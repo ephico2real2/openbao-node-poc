@@ -189,7 +189,7 @@ Evidence: [ADR-002](03-adr-002-openbao-first.md), Facts checked 2026-10-18 again
 
 ### B8 — Tutorial: learning chapters, guide and demos
 
-[#25](https://github.com/ephico2real2/openbao-node-poc/issues/25) · ✅ · **Outcome:** Learners can follow the move from AWS Secrets Manager to OpenBao and Vault, step by step, with CI evidence. Docs: [initiative](README.md)
+[#25](https://github.com/ephico2real2/openbao-node-poc/issues/25) · 🔜 · **Outcome:** Learners can follow the move from AWS Secrets Manager to OpenBao and Vault, step by step, with CI evidence. Docs: [initiative](README.md)
 
 **S8.1 · Chapters** · M · ✅ · [#26](https://github.com/ephico2real2/openbao-node-poc/issues/26)
 *As a junior engineer, I want the new ideas explained, so that I understand why each step exists.*
@@ -203,3 +203,10 @@ Evidence: [learning path](../learn/README.md), [chapter 7](../learn/07-secret-ze
 - [x] GUIDE and TUTORIAL cover every step on Compose and kind; OpenShift stays labelled unproven (S5.3).
 
 Evidence: [demo pages](../../demo/README.md), [docs/GUIDE.md](../GUIDE.md), [docs/TUTORIAL.md](../TUTORIAL.md), Screenshots and output from CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271)
+
+**S8.3 · A tag and release notes for each step** · S · 🔜 · [#34](https://github.com/ephico2real2/openbao-node-poc/issues/34)
+*As a learner, I want each step tagged with its release notes, so that I can check out exactly the code a chapter describes.*
+- [x] docs/releases/<tag>.md for v1-aws-baseline through v6-detection, each naming its commit and green CI run.
+- [ ] Tags cut with the milestone workflow on those commits; a GitHub release per tag.
+
+Evidence: [docs/releases](../releases/README.md)

@@ -181,6 +181,12 @@ EPICS = [
       "GUIDE and TUTORIAL cover every step on Compose and kind; OpenShift stays labelled unproven (S5.3)."],
      evidence=[d("demo/README.md", "demo pages"), d("docs/GUIDE.md"), d("docs/TUTORIAL.md"), "Screenshots and output from CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271)"],
      status="done", done=(0, 1)),
+   S("S8.3", "A tag and release notes for each step", "S",
+     "As a learner, I want each step tagged with its release notes, so that I can check out exactly the code a chapter describes.",
+     ["docs/releases/<tag>.md for v1-aws-baseline through v6-detection, each naming its commit and green CI run.",
+      "Tags cut with the milestone workflow on those commits; a GitHub release per tag."],
+     evidence=[d("docs/releases/README.md", "docs/releases")],
+     done=(0,)),
   ]),
 ]
 
