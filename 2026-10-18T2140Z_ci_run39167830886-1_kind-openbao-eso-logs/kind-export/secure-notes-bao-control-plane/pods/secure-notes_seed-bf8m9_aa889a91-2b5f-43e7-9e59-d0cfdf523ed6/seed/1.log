@@ -1,0 +1,3 @@
+2026-10-18T21:33:10.581178383Z stdout F [seed] secret names (/{service}/{env}/{resource}/{name}): /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+2026-10-18T21:33:10.628374231Z stdout F [seed] OpenBao: logged in with this pod's service-account token (Kubernetes auth, role secure-notes-seed)
+2026-10-18T21:33:10.633495155Z stdout F [seed] /rds/dev/notes-db/app already exists; nothing to do (reset with: docker compose down -v)

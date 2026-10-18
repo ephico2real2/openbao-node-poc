@@ -1,0 +1,60 @@
+2026-10-18T21:32:40.212403401Z stderr F chmod: changing permissions of '/var/run/postgresql': Operation not permitted
+2026-10-18T21:32:40.238006832Z stdout F The files belonging to this database system will be owned by user "postgres".
+2026-10-18T21:32:40.238238186Z stdout F This user must also own the server process.
+2026-10-18T21:32:40.238255652Z stdout F 
+2026-10-18T21:32:40.238258176Z stdout F The database cluster will be initialized with locale "en_US.utf8".
+2026-10-18T21:32:40.23826074Z stdout F The default database encoding has accordingly been set to "UTF8".
+2026-10-18T21:32:40.238291005Z stdout F The default text search configuration will be set to "english".
+2026-10-18T21:32:40.238314119Z stdout F 
+2026-10-18T21:32:40.238316362Z stdout F Data page checksums are disabled.
+2026-10-18T21:32:40.238318426Z stdout F 
+2026-10-18T21:32:40.238332947Z stdout F fixing permissions on existing directory /var/lib/postgresql/data/pgdata ... ok
+2026-10-18T21:32:40.239159528Z stdout F creating subdirectories ... ok
+2026-10-18T21:32:40.2391747Z stdout F selecting dynamic shared memory implementation ... posix
+2026-10-18T21:32:40.263032207Z stdout F selecting default max_connections ... 100
+2026-10-18T21:32:40.306237711Z stdout F selecting default shared_buffers ... 128MB
+2026-10-18T21:32:40.330142077Z stdout F selecting default time zone ... Etc/UTC
+2026-10-18T21:32:40.330639758Z stdout F creating configuration files ... ok
+2026-10-18T21:32:40.448489734Z stdout F running bootstrap script ... ok
+2026-10-18T21:32:40.759763767Z stdout F performing post-bootstrap initialization ... ok
+2026-10-18T21:32:41.187705912Z stderr F initdb: warning: enabling "trust" authentication for local connections
+2026-10-18T21:32:41.187726563Z stderr F initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-18T21:32:41.187705957Z stdout F syncing data to disk ... ok
+2026-10-18T21:32:41.187734134Z stdout F 
+2026-10-18T21:32:41.187736037Z stdout F 
+2026-10-18T21:32:41.187738391Z stdout F Success. You can now start the database server using:
+2026-10-18T21:32:41.187740213Z stdout F 
+2026-10-18T21:32:41.187742136Z stdout F     pg_ctl -D /var/lib/postgresql/data/pgdata -l logfile start
+2026-10-18T21:32:41.187743969Z stdout F 
+2026-10-18T21:32:41.26125934Z stdout F waiting for server to start....2026-10-18 21:32:41.261 UTC [54] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-18T21:32:41.261730061Z stdout F 2026-10-18 21:32:41.261 UTC [54] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-18T21:32:41.26371511Z stdout F 2026-10-18 21:32:41.263 UTC [57] LOG:  database system was shut down at 2026-10-18 21:32:40 UTC
+2026-10-18T21:32:41.26672701Z stdout F 2026-10-18 21:32:41.266 UTC [54] LOG:  database system is ready to accept connections
+2026-10-18T21:32:41.303749389Z stdout F  done
+2026-10-18T21:32:41.303762569Z stdout F server started
+2026-10-18T21:32:41.351573133Z stdout F 2026-10-18 21:32:41.351 UTC [65] LOG:  statement: CREATE DATABASE "notes" ;
+2026-10-18T21:32:41.39072302Z stdout F CREATE DATABASE
+2026-10-18T21:32:41.391209114Z stdout F 
+2026-10-18T21:32:41.391314641Z stdout F 
+2026-10-18T21:32:41.391339973Z stdout F /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-18T21:32:41.391345281Z stdout F 
+2026-10-18T21:32:41.392575312Z stdout F 2026-10-18 21:32:41.392 UTC [54] LOG:  received fast shutdown request
+2026-10-18T21:32:41.392854518Z stdout F waiting for server to shut down....2026-10-18 21:32:41.392 UTC [54] LOG:  aborting any active transactions
+2026-10-18T21:32:41.394252154Z stdout F 2026-10-18 21:32:41.394 UTC [54] LOG:  background worker "logical replication launcher" (PID 60) exited with exit code 1
+2026-10-18T21:32:41.395262363Z stdout F 2026-10-18 21:32:41.395 UTC [55] LOG:  shutting down
+2026-10-18T21:32:41.395485895Z stdout F 2026-10-18 21:32:41.395 UTC [55] LOG:  checkpoint starting: shutdown immediate
+2026-10-18T21:32:41.515508791Z stdout F 2026-10-18 21:32:41.515 UTC [55] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.068 s, sync=0.032 s, total=0.121 s; sync files=301, longest=0.023 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E8, redo lsn=0/191F0E8
+2026-10-18T21:32:41.592815867Z stdout F  done
+2026-10-18T21:32:41.592833924Z stdout F server stopped
+2026-10-18T21:32:41.593962083Z stdout F 
+2026-10-18T21:32:41.593972669Z stdout F PostgreSQL init process complete; ready for start up.
+2026-10-18T21:32:41.593974632Z stdout F 
+2026-10-18T21:32:41.607832622Z stdout F 2026-10-18 21:32:41.607 UTC [54] LOG:  database system is shut down
+2026-10-18T21:32:41.617065948Z stderr F 2026-10-18 21:32:41.616 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-18T21:32:41.617315479Z stderr F 2026-10-18 21:32:41.617 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-18T21:32:41.617320206Z stderr F 2026-10-18 21:32:41.617 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-18T21:32:41.633728353Z stderr F 2026-10-18 21:32:41.633 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-18T21:32:41.636648465Z stderr F 2026-10-18 21:32:41.636 UTC [70] LOG:  database system was shut down at 2026-10-18 21:32:41 UTC
+2026-10-18T21:32:41.640518927Z stderr F 2026-10-18 21:32:41.640 UTC [1] LOG:  database system is ready to accept connections
+2026-10-18T21:37:41.736091346Z stderr F 2026-10-18 21:37:41.735 UTC [68] LOG:  checkpoint starting: time
+2026-10-18T21:37:46.05857435Z stderr F 2026-10-18 21:37:46.058 UTC [68] LOG:  checkpoint complete: wrote 45 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.208 s, sync=0.001 s, total=4.323 s; sync files=12, longest=0.001 s, average=0.001 s; distance=260 kB, estimate=260 kB; lsn=0/19604E8, redo lsn=0/19604B0
