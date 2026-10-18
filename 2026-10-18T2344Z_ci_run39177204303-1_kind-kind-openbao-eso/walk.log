@@ -1,0 +1,2 @@
+01-file-mode-dashboard: found "Secrets in memory", "via External Secrets", "mounted Secret, watched", "no OpenBao identity · restricted PSA", "No OpenBao identity in the app", "Mounted credential files protected" — expectations met
+02-leak-test: found "0 of 6 leaked", "[REDACTED]" — expectations met
