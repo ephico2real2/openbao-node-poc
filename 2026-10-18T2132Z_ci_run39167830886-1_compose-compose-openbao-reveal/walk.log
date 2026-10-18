@@ -1,0 +1,3 @@
+07-reveal-banner: found "Secret values are being written to the log", "VALUES REVEALED" — expectations met
+08-reveal-posture: found "Secret values kept out of logs", "LOG_REVEAL_SECRETS=true" — expectations met
+09-reveal-log-panel: found "secret values will be written to this log" — expectations met
