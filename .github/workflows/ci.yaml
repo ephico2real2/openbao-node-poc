@@ -1,6 +1,6 @@
 # CI: every way to run this app, proven on a runner, with the evidence on the run page.
 #
-#   checks ─► build ─┬─► compose (sdk, agent, openbao, openbao-dynamic, vault) ─┐
+#   checks ─► build ─┬─► compose (sdk, agent, openbao, openbao-dynamic, openbao-detection, vault) ─┐
 #   (scan, SBOM)     ├─► kind ───────────────────────────────────────────┼─► images (main only: push, sign, attest)
 #                    ├─► mirror ─────────────────────────────────────────┘
 #                    └─► env-file-demo
@@ -83,6 +83,10 @@ jobs:
             || { echo "::error title=pin mismatch::steps/v4-vault/compose.yaml does not use $VAULT_IMAGE"; exit 1; }
           grep -qF "image: $VALKEY_IMAGE" steps/v2-openbao-dynamic/compose.yaml \
             || { echo "::error title=pin mismatch::steps/v2-openbao-dynamic/compose.yaml does not use $VALKEY_IMAGE"; exit 1; }
+          for img in "$VICTORIALOGS_IMAGE" "$VMALERT_IMAGE"; do
+            grep -qF "image: $img" steps/v5-detection/compose.yaml \
+              || { echo "::error title=pin mismatch::steps/v5-detection/compose.yaml does not use $img"; exit 1; }
+          done
 
       # Vault has no self-init: dev/vault/entrypoint.sh scripts init, unseal and
       # setup. Tested here against the real Vault binary (checksum verified).
@@ -96,6 +100,23 @@ jobs:
           mkdir -p /tmp/vault && unzip -q -o "/tmp/$f" vault -d /tmp/vault
           /tmp/vault/vault version
           VAULT_BIN=/tmp/vault/vault dev/vault/test-entrypoint.sh
+
+      # Epic B7 end to end without Docker: real OpenBao, VictoriaLogs and vmalert
+      # (release tarballs, checksum verified), the shipper, the console, the intruder.
+      - name: Detection on the audit log, end to end (dev/detect/test-detection.sh)
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          d=/tmp/vm && mkdir -p "$d"
+          vl="victoria-logs-linux-amd64-${VICTORIALOGS_VERSION}.tar.gz"
+          vu="vmutils-linux-amd64-${VMALERT_VERSION}.tar.gz"
+          curl -fsSL -o "$d/$vl" "https://github.com/VictoriaMetrics/VictoriaLogs/releases/download/${VICTORIALOGS_VERSION}/$vl"
+          curl -fsSL -o "$d/$vu" "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/${VMALERT_VERSION}/$vu"
+          echo "$VICTORIALOGS_LINUX_AMD64_SHA256  $d/$vl" | sha256sum -c -
+          echo "$VMUTILS_LINUX_AMD64_SHA256  $d/$vu" | sha256sum -c -
+          tar -xzf "$d/$vl" -C "$d" victoria-logs-prod
+          tar -xzf "$d/$vu" -C "$d" vmalert-prod
+          BAO_BIN=/tmp/bao/bao VLOGS_BIN="$d/victoria-logs-prod" VMALERT_BIN="$d/vmalert-prod" dev/detect/test-detection.sh
 
       - name: Unit tests (secrets layer, logging; OpenBao against the real server)
         working-directory: backend
@@ -112,7 +133,7 @@ jobs:
         run: git ls-files '*.js' | xargs -n1 node --check
 
       - name: Shellcheck
-        run: shellcheck -S warning scripts/*.sh scripts/bootstrap/*.sh dev/*.sh dev/openbao/*.sh versions/*/*.sh
+        run: shellcheck -S warning scripts/*.sh scripts/bootstrap/*.sh dev/*.sh dev/openbao/*.sh dev/vault/*.sh dev/detect/*.sh versions/*/*.sh
 
       - name: Workflows lint clean (actionlint)
         run: |
@@ -233,6 +254,12 @@ jobs:
             platform: AppRole secret ID in a file
             spec: scripts/capture/dynamic.yaml
             product: OpenBao
+          # step v5: detection: OpenBao's audit log -> VictoriaLogs -> vmalert -> alert console
+          - mode: openbao-detection
+            compose-file: docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v5-detection/compose.yaml
+            platform: AppRole secret ID in a file
+            spec: scripts/capture/dashboard.yaml
+            product: OpenBao
           # step v4: the same app on HashiCorp Vault 2.2.0 (dynamic users; Vault's Redis plugin)
           - mode: vault
             compose-file: docker-compose.yml:steps/v4-vault/compose.yaml
@@ -280,6 +307,15 @@ jobs:
           mkdir -p output
           scripts/compose-check.sh | tee output/compose-check.txt
           { echo "## Docker Compose (${{ matrix.mode }}) — check"; echo; echo '```'; cat output/compose-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: The alert console after the intruder (step v5)
+        if: matrix.mode == 'openbao-detection'
+        uses: ./.github/actions/browser-walk
+        with:
+          spec: scripts/capture/detection.yaml
+          out: captures-detection
+          label: compose-${{ matrix.mode }}-alerts
+          env-json: '{"CONSOLE":"http://localhost:3100"}'
 
       # The flag that prints real values (lab use) — and the proof the scan
       # would catch a leak: with it on, the scan MUST find the values in the

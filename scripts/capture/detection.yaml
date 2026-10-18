@@ -1,0 +1,11 @@
+# Step v5 (epic B7): the alert console after compose-check ran the intruder.
+# ${CONSOLE} = where the alert console is reachable from the runner.
+viewport: {width: 1280, height: 900}
+
+pages:
+  - name: 07-alert-console
+    url: ${CONSOLE}/
+    fullPage: true
+    before: 2000
+    expect:
+      text: [Alert console, SecretReadByUnexpectedIdentity, "An app credential was read by 'ops-admin', not by the app", secret/data/rds/dev/notes-db/app]

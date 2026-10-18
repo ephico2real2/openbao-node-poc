@@ -209,3 +209,15 @@ client. The C, D, F, S, L and Y tests also run in `compose (vault)`, with the st
 | V5 | After a restart, Vault unseals from the key on the data volume | restart the entrypoint | unsealed | checks |
 | V6 | `VAULT_ADDR` is accepted; `VAULT_TOKEN` is refused; messages name Vault | config and client unit tests | as stated | unit |
 
+## 15. Detection on OpenBao's audit log (step v5)
+
+[Step v5](../steps/v5-detection/README.md): OpenBao's audit log → VictoriaLogs → vmalert → the alert console.
+
+| ID | What it proves | How | Pass rule | Runs in |
+| --- | --- | --- | --- | --- |
+| T1 | The shipper sends complete lines only, survives a recreated file, and resends a refused batch | temp file, fake log store | lines counted exactly once | unit |
+| T2 | The console takes vmalert's Alertmanager-API posts, de-duplicates them, and escapes alert text | unit | one alert after two posts; no raw HTML | unit |
+| T3 | The app reading its own secret raises no alert | real OpenBao, VictoriaLogs, vmalert; three reads as `secure-notes-app` | 0 alerts after 25 s | checks (test-detection.sh), compose (openbao-detection) |
+| T4 | Another role reading the app's secret raises an alert that names it | the intruder (`ops-admin`) reads `secret/data/rds/dev/notes-db/app` | SecretReadByUnexpectedIdentity, role `ops-admin`, within 60 to 90 s | checks, compose (openbao-detection), walk |
+| T5 | The log store holds the audit lines and no secret value | LogsQL count; a search for the actual password | count > 0; 0 lines with the password | checks |
+

@@ -133,4 +133,32 @@ fi
 echo "== the actual credential values, searched for in every container, file and log"
 scripts/credential-scan.sh compose || fails=$((fails + 1))
 
+# Step v5 (epic B7): detection on OpenBao's audit log. Runs last, after the
+# smoke test, the rotations and the credential scan: all of that was the app,
+# the seed and the scan (as the app), and must not have raised an alert.
+if docker compose ps --services --status running 2>/dev/null | grep -qx alert-console; then
+  echo "== step v5: OpenBao audit log -> VictoriaLogs -> vmalert -> alert console"
+  ac() { curl -fsS "http://localhost:3100/api/alerts"; }
+  shipped=$(docker compose logs --no-color audit-shipper 2>/dev/null | grep -c 'audit-ship')
+  stored=$(docker compose exec -T victorialogs wget -qO- 'http://127.0.0.1:9428/select/logsql/query?query=type:%3Dresponse%20%7C%20stats%20count()%20as%20n' 2>/dev/null | jq -r .n)
+  [ "${stored:-0}" -gt 0 ] && ok "VictoriaLogs holds ${stored} audit response line(s) shipped from OpenBao's audit log" || fail "no audit lines in VictoriaLogs (shipper log lines: $shipped)"
+  sleep 15 # one rule interval and a bit, so anything the app did would have fired by now
+  n=$(ac | jq '[.alerts[] | select(.labels.alertname == "SecretReadByUnexpectedIdentity")] | length')
+  [ "$n" = 0 ] && ok "no alert from everything the app did (its role is secure-notes-app)" || fail "$n unexpected-read alert(s) before the intruder: $(ac | jq -c '[.alerts[].labels]')"
+  echo "  ..    docker compose run --rm intruder (role ops-admin reads the app's Postgres secret)"
+  docker compose run --rm intruder 2>&1 | sed 's/^/        /'
+  got=""
+  for _ in $(seq 1 45); do
+    got=$(ac | jq -c '[.alerts[] | select(.labels.alertname == "SecretReadByUnexpectedIdentity")][0] // empty')
+    [ -n "$got" ] && break
+    sleep 2
+  done
+  if [ -n "$got" ] && [ "$(jq -r .labels.auth_metadata_role_name <<< "$got")" = ops-admin ]; then
+    ok "alert SecretReadByUnexpectedIdentity: role $(jq -r .labels.auth_metadata_role_name <<< "$got") read $(jq -r .labels.request_path <<< "$got")"
+    echo "        \"$(jq -r .annotations.summary <<< "$got")\""
+  else
+    fail "no unexpected-read alert naming ops-admin within 90 s: '${got}'"
+  fi
+fi
+
 exit $((fails > 0))

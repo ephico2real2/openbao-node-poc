@@ -18,6 +18,7 @@ and on **HashiCorp Vault**. AWS Secrets Manager keeps working, behind the same s
 | `openbao` | OpenBao 2.7.1: KV v2 with AppRole ([step v1](steps/v1-openbao-kv/README.md)) | ✅ step v1 on Docker Compose, CI job `compose (openbao)` |
 | | Database users OpenBao creates per instance, with leases; Valkey ([step v2](steps/v2-openbao-dynamic/README.md)) | ✅ step v2 on Docker Compose, CI job `compose (openbao-dynamic)` |
 | | Kubernetes: OpenBao from its Helm chart, Kubernetes auth with projected tokens ([step v3](steps/v3-k8s/README.md)); then External Secrets Operator | 🚧 step v3 on kind, CI job `kind (openbao)` |
+| detection | OpenBao's audit log → VictoriaLogs → vmalert → an alert when anyone but the app reads its secret ([step v5](steps/v5-detection/README.md)) | 🚧 CI job `compose (openbao-detection)` |
 | `vault` | HashiCorp Vault 2.2.0: the same app and client, dynamic users, Vault's Redis plugin ([step v4](steps/v4-vault/README.md)) | 🚧 CI job `compose (vault)` |
 
 **Where the work stands:** [initiative and epics](docs/modernization/README.md) ·

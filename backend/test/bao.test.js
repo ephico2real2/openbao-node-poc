@@ -138,6 +138,7 @@ test('real OpenBao: the lab config self-initialises; bootstrap once; app reads, 
   writeFileSync(join(dir, 'file', 'unseal.key'), randomBytes(32));
   const bootstrap = randomBytes(16).toString('hex');
   writeFileSync(join(dir, 'config', 'seed-secret-id'), bootstrap);
+  writeFileSync(join(dir, 'config', 'ops-secret-id'), randomBytes(16).toString('hex')); // epic B7's ops-admin role (self-init reads it)
   const server = spawn(BIN, ['server', `-config=${join(dir, 'config.hcl')}`], { env: { PATH: process.env.PATH }, stdio: 'ignore' });
   try {
     const addr = `http://127.0.0.1:${port}`;

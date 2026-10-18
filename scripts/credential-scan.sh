@@ -129,7 +129,7 @@ case "$TARGET:$PROVIDER" in
   compose:openbao|compose:vault)
     dc exec -T app node --input-type=module -e "$COLLECT_BAO" > "$VALS" 2>/dev/null
     # The AppRole secret IDs: the app's (in its file) and the seed's spent bootstrap one.
-    { dc exec -T app cat /home/node/bao-secret-id; echo; dc exec -T "$SM" cat "$SMDIR/config/seed-secret-id"; echo; } 2>/dev/null | grep . > "$SIDS" ;;
+    { dc exec -T app cat /home/node/bao-secret-id; echo; dc exec -T "$SM" cat "$SMDIR/config/seed-secret-id"; echo; dc exec -T "$SM" cat "$SMDIR/config/ops-secret-id"; echo; } 2>/dev/null | grep . > "$SIDS" ;;
   compose:aws)
     dc exec -T aws-mock node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   compose:*) echo "SECRETS_PROVIDER must be aws, openbao or vault (got '$PROVIDER')"; exit 1 ;;
@@ -225,7 +225,7 @@ if [ "$TARGET" = compose ]; then
     # Secret zero: the AppRole secret IDs are credentials too. They live only in
     # their files; never in env, a container's config, a log or the audit log.
     m=$(grep -c . "$SIDS")
-    echo "-- the AppRole secret IDs ($m: the app's and the seed's spent bootstrap one)"
+    echo "-- the AppRole secret IDs ($m: the app's, the seed's spent bootstrap one, and the lab's ops-admin one if present)"
     if [ "$m" -lt 2 ]; then
       echo "  FAIL  could not read both secret ID files"; fails=$((fails + 1))
     else

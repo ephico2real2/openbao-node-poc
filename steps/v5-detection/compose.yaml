@@ -1,0 +1,78 @@
+# Step v5 (epic B7): detection. Layered on step v1 (paths resolve from the repo root):
+#
+#   export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v5-detection/compose.yaml
+#   docker compose up --build -d          # the app on :3000, the alert console on :3100
+#   docker compose run --rm intruder      # an over-broad role reads the app's secret
+#   open http://localhost:3100            # the alert, within a minute
+#
+# OpenBao's audit log (every request and response, values HMAC'd) is followed
+# by a small shipper, stored in VictoriaLogs, and checked every 10 s by vmalert
+# with dev/detect/rules.yml. Firing alerts go to the alert console, which plays
+# Alertmanager's receiving end. The sibling repo did this with CloudTrail,
+# EventBridge and SNS; here it is the secrets manager's own audit trail.
+
+services:
+  victorialogs:
+    image: docker.io/victoriametrics/victoria-logs:v1.53.0
+    command: ["-storageDataPath=/vlogs", "-retentionPeriod=7d", "-loggerLevel=WARN"]
+    volumes:
+      - vlogs-data:/vlogs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9428/health"]
+      interval: 2s
+      retries: 30
+
+  audit-shipper:
+    image: secure-notes-app:dev # the app's image, another entry point
+    command: ["node", "scripts/audit-ship.js"]
+    environment:
+      AUDIT_FILE: /audit/audit.log
+      LOGS_URL: http://victorialogs:9428/insert/jsonline?_time_field=time&_msg_field=request.id&_stream_fields=type
+    volumes:
+      - bao-logs:/audit:ro
+    depends_on:
+      openbao: { condition: service_healthy }
+      victorialogs: { condition: service_healthy }
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  vmalert:
+    image: docker.io/victoriametrics/vmalert:v1.154.0
+    command:
+      - -datasource.url=http://victorialogs:9428
+      - -rule.defaultRuleType=vlogs
+      - -rule=/rules/rules.yml
+      - -notifier.url=http://alert-console:3100
+      - -loggerLevel=WARN
+    volumes:
+      - ./dev/detect/rules.yml:/rules/rules.yml:ro
+    depends_on:
+      victorialogs: { condition: service_healthy }
+      alert-console: { condition: service_started }
+
+  alert-console:
+    image: secure-notes-app:dev
+    command: ["node", "scripts/alert-console.js"]
+    ports:
+      - "127.0.0.1:3100:3100"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # The "unexpected read": run on demand (docker compose run --rm intruder).
+  intruder:
+    image: secure-notes-app:dev
+    profiles: [intruder]
+    command: ["node", "scripts/intruder.js"]
+    environment:
+      BAO_ADDR: http://openbao:8200
+      BAO_ROLE_ID: ops-admin
+      BAO_SECRET_ID_FILE: /bao-bootstrap/ops-secret-id
+    volumes:
+      - bao-bootstrap:/bao-bootstrap:ro
+    depends_on:
+      openbao: { condition: service_healthy }
+
+volumes:
+  vlogs-data:

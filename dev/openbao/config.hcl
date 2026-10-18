@@ -50,6 +50,7 @@ seal "static" {
 audit "file" "file" {
   options {
     file_path = "/openbao/logs/audit.log"
+    mode      = "0644" # lab: the audit shipper (epic B7) runs as another user; every value in it is HMAC'd
   }
 }
 
@@ -124,6 +125,19 @@ initialize "policies" {
       EOT
     }
   }
+  # Epic B7: an operator role that may read every KV secret. Legitimate, but
+  # too broad: when it reads the app's credentials, the detection rule on the
+  # audit log raises an alert (dev/detect/rules.yml). The lab's "intruder".
+  request "ops-admin-policy" {
+    operation = "update"
+    path      = "sys/policies/acl/ops-admin"
+    data = {
+      policy = <<-EOT
+        path "secret/data/*"     { capabilities = ["read"] }
+        path "secret/metadata/*" { capabilities = ["read", "list"] }
+      EOT
+    }
+  }
 }
 
 initialize "roles" {
@@ -158,6 +172,32 @@ initialize "roles" {
     operation = "update"
     path      = "auth/approle/role/secure-notes-seed/role-id"
     data      = { role_id = "secure-notes-seed" }
+  }
+  request "ops-admin-role" {
+    operation = "update"
+    path      = "auth/approle/role/ops-admin"
+    data = {
+      token_policies     = ["ops-admin"]
+      token_ttl          = "10m"
+      secret_id_num_uses = 0
+      secret_id_ttl      = "0"
+    }
+  }
+  request "ops-admin-role-id" {
+    operation = "update"
+    path      = "auth/approle/role/ops-admin/role-id"
+    data      = { role_id = "ops-admin" }
+  }
+  request "ops-admin-secret-id" {
+    operation = "update"
+    path      = "auth/approle/role/ops-admin/custom-secret-id"
+    data = {
+      secret_id = {
+        eval_type   = "string"
+        eval_source = "file"
+        path        = "/openbao/config/ops-secret-id"
+      }
+    }
   }
   request "seed-bootstrap-secret-id" {
     operation = "update"

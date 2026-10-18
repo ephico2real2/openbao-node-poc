@@ -19,4 +19,9 @@ if [ ! -s /openbao/config/seed-secret-id ]; then
   chmod 0444 /openbao/config/seed-secret-id # the seed job runs as another user; it is single-use
   echo "[openbao-lab] generated the seed job's one-time bootstrap secret ID"
 fi
+# Epic B7: the over-broad ops-admin role's secret ID (the lab's "intruder").
+if [ ! -s /openbao/config/ops-secret-id ]; then
+  head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' > /openbao/config/ops-secret-id
+  chmod 0444 /openbao/config/ops-secret-id
+fi
 exec bao server -config=/etc/openbao/config.hcl

@@ -1,0 +1,35 @@
+# Epic B7: alert rules over OpenBao's audit log, evaluated by vmalert against
+# VictoriaLogs (LogsQL). The audit log already HMACs every secret value; these
+# rules use only fields OpenBao writes in plain text: the request path and
+# operation, and who made it (the AppRole role name, the token's policies).
+groups:
+  - name: openbao-audit
+    type: vlogs
+    interval: 10s
+    rules:
+      # The app's credentials are read by anyone but the app itself. The seed
+      # job only creates and updates them; the app is secure-notes-app.
+      - alert: SecretReadByUnexpectedIdentity
+        expr: >-
+          type:=response
+          request.operation:=read
+          request.path:~"^secret/data/(rds|elasticache)/[^/]+/notes-(db|cache)/"
+          -auth.metadata.role_name:="secure-notes-app"
+          | stats by (auth.metadata.role_name, auth.display_name, request.path) count() as reads
+          | filter reads:>0
+        labels:
+          severity: critical
+        annotations:
+          summary: "An app credential was read by '{{ index $labels \"auth.metadata.role_name\" }}', not by the app"
+          description: "{{ $value }} read(s) of {{ index $labels \"request.path\" }} in the last interval. Check who holds that role, rotate the secret if the read was not expected, and narrow the role's policy."
+      # Someone is probing paths they may not read.
+      - alert: OpenBaoPermissionDenied
+        expr: >-
+          type:=response error:"permission denied"
+          | stats by (auth.metadata.role_name, request.path) count() as denied
+          | filter denied:>3
+        labels:
+          severity: warning
+        annotations:
+          summary: "Repeated permission denied for '{{ index $labels \"auth.metadata.role_name\" }}'"
+          description: "{{ $value }} denied request(s) to {{ index $labels \"request.path\" }}."

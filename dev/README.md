@@ -16,6 +16,7 @@ AWS account and no real keys. `config.js` refuses a mock endpoint when
 | [`redis-entrypoint.sh`](redis-entrypoint.sh) | Starts Redis (or Valkey, in step v2) with an ACL file, so the users the seed job creates survive a restart |
 | [`openbao/config.hcl`](openbao/config.hcl) | A **real** OpenBao server's lab config ([step v1](../steps/v1-openbao-kv/README.md)): raft storage, `seal "static"`, a file audit device, and self-init (KV v2, AppRole, the `secure-notes-app` and `secure-notes-seed` policies and roles). The backend's unit tests start the release binary with this same file |
 | [`vault/`](vault) | Step v4: HashiCorp Vault's lab config, the same policies as OpenBao's, and an entrypoint that does what Vault has no config for: `operator init` with one key share, unseal, setup with the root token in memory only, then revoke it |
+| [`detect/`](detect) | Step v5 (epic B7): the alert rules on OpenBao's audit log (`rules.yml`) and the end-to-end test of the detection chain (`test-detection.sh`) |
 | [`openbao/entrypoint.sh`](openbao/entrypoint.sh) | Lab only: on the first start, makes the static seal key and the seed job's one-time secret ID on the server's own volumes, then starts the server |
 
 ## Who is calling: the access key decides
