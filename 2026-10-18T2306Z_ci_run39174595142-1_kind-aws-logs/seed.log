@@ -1,0 +1,5 @@
+[seed] secret names (/{service}/{env}/{resource}/{name}): /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+[seed] created 4 secrets
+[seed] postgres: role, table, grants done; bootstrap password replaced
+[seed] redis: ACL user created (notes:* keys only); bootstrap password replaced
+[seed] done. Every credential now lives only in Secrets Manager.
