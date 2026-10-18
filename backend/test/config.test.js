@@ -56,3 +56,11 @@ test('openbao in file mode: no OpenBao address or identity is needed (External S
   assert.match(check({ ...file, SECRETS_MODE: 'agent' }), /SECRETS_MODE must be 'api' or 'file'/);
 });
 
+test('vault: the same settings as openbao; the product name follows the provider', () => {
+  const vault = { SECRETS_PROVIDER: 'vault', VAULT_ADDR: 'http://vault:8200', BAO_ROLE_ID: 'secure-notes-app', BAO_SECRET_ID_FILE: '/home/node/bao-secret-id' };
+  assert.equal(check(vault), 'OK', 'VAULT_ADDR is accepted for BAO_ADDR');
+  assert.match(check({ ...vault, VAULT_TOKEN: 'example-only' }), /VAULT_TOKEN is set/);
+  const name = (p) => spawnSync(process.execPath, ['--input-type=module', '-e', `const { config } = await import(${JSON.stringify(configUrl)}); console.log(config.product)`], { env: { PATH: process.env.PATH, SECRETS_PROVIDER: p }, encoding: 'utf8' }).stdout.trim();
+  assert.deepEqual(['aws', 'openbao', 'vault'].map(name), ['Secrets Manager', 'OpenBao', 'Vault']);
+});
+

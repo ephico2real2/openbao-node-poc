@@ -84,6 +84,19 @@ jobs:
           grep -qF "image: $VALKEY_IMAGE" steps/v2-openbao-dynamic/compose.yaml \
             || { echo "::error title=pin mismatch::steps/v2-openbao-dynamic/compose.yaml does not use $VALKEY_IMAGE"; exit 1; }
 
+      # Vault has no self-init: dev/vault/entrypoint.sh scripts init, unseal and
+      # setup. Tested here against the real Vault binary (checksum verified).
+      - name: The Vault lab entrypoint, against the real Vault 2.2.0 binary
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          f="vault_${VAULT_VERSION}_linux_amd64.zip"
+          curl -fsSL -o "/tmp/$f" "https://releases.hashicorp.com/vault/${VAULT_VERSION}/$f"
+          echo "$VAULT_LINUX_AMD64_SHA256  /tmp/$f" | sha256sum -c -
+          mkdir -p /tmp/vault && unzip -q -o "/tmp/$f" vault -d /tmp/vault
+          /tmp/vault/vault version
+          VAULT_BIN=/tmp/vault/vault dev/vault/test-entrypoint.sh
+
       - name: Unit tests (secrets layer, logging; OpenBao against the real server)
         working-directory: backend
         run: |

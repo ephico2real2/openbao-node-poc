@@ -129,3 +129,13 @@ test('the cache keeps a leased user until the keeper asks for a new one, then em
   assert.equal(w.leases.get(`${id}/L2`).revoked, true, 'shutdown revokes the current lease');
   assert.equal(await fetcher.describe(id), undefined, 'a lease has no KV metadata');
 });
+
+test('lease log lines name the provider (Vault on step v4)', async () => {
+  const w = fakeWorld();
+  const lines = [];
+  const logger = { child: () => logger, info: (o, m) => lines.push(m), warn: () => {}, debug: () => {} };
+  const keeper = createLeaseKeeper(w.client, { logger, product: 'Vault', now: w.now, timers: w.timers });
+  await keeper.issue('database/creds/notes-app', 'database/creds/notes-app');
+  assert.ok(lines.includes('Vault issued a database user for this instance'), lines.join(' | '));
+});
+

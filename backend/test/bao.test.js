@@ -113,6 +113,11 @@ test('kubernetes auth: logs in with the projected token from its file, re-read a
   }
 });
 
+test('vault: the same client, with Vault named in its errors', async () => {
+  const client = createBaoClient({ addr: 'http://127.0.0.1:1', roleId: 'r', secretIdFile: secretFile('s'), product: 'Vault', scheduleRenewal: false, timeoutMs: 500 });
+  await assert.rejects(client.login(), /^BaoError: Vault unreachable at http:\/\/127\.0\.0\.1:1/);
+});
+
 test('a missing secret ID file is a clear error, not a request with an empty secret', async () => {
   const client = createBaoClient({ addr: 'http://127.0.0.1:1', roleId: 'r', secretIdFile: '/nonexistent/secret-id', scheduleRenewal: false });
   await assert.rejects(client.login(), /cannot read the AppRole secret ID file/);

@@ -195,3 +195,17 @@ with External Secrets Operator.
 | K8B9 | A ..data swap triggers a re-read; a secret ID can't escape the directory | a kubelet-style directory in a temp dir | new version with reason `file-changed`; `../../etc/passwd` refused | unit |
 | K8B10 | Outside the ESO Secret and the mounted files, the values are nowhere | the credential scan (k8s) | clean; the two by-design places are reported as such | kind (openbao-eso) |
 
+## 14. The same app on HashiCorp Vault (step v4)
+
+[Step v4](../steps/v4-vault/README.md): `SECRETS_PROVIDER=vault`, the same image and
+client. The C, D, F, S, L and Y tests also run in `compose (vault)`, with the step v2 walk.
+
+| ID | What it proves | How | Pass rule | Runs in |
+| --- | --- | --- | --- | --- |
+| V1 | The lab entrypoint initialises, unseals and configures Vault with no manual step | `dev/vault/test-entrypoint.sh` with the real Vault 2.2.0 binary | configured; unseal key mode 600 | checks |
+| V2 | The root token is never written down, and is revoked | grep of the data, config and log directories and the entrypoint's output; the audit log | no token found; `auth/token/revoke-self` recorded | checks |
+| V3 | The seed's bootstrap secret ID works once, also after a restart | two logins, then a restart and a third | first works, the rest are refused | checks, compose (vault) |
+| V4 | The app's secret ID is minted by the seed, and its policy refuses other paths | mint, log in, read another path | login works; read refused | checks, compose (vault) |
+| V5 | After a restart, Vault unseals from the key on the data volume | restart the entrypoint | unsealed | checks |
+| V6 | `VAULT_ADDR` is accepted; `VAULT_TOKEN` is refused; messages name Vault | config and client unit tests | as stated | unit |
+
