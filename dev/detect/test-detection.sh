@@ -18,7 +18,20 @@ cleanup() { for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done; rm -r
 trap cleanup EXIT
 fails=0
 ok()   { echo "  ok    $*"; }
-fail() { echo "  FAIL  $*"; fails=$((fails + 1)); }
+fail() { echo "  FAIL  $*"; fails=$((fails + 1)); [ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=test-detection::$*"; return 0; }
+# A command that stops the script (set -e) says where, and shows each part's log
+# tail, as GitHub annotations too: CI job logs aren't always readable.
+died() {
+  local rc=$? line=$1 cmd=$2
+  echo "  DIED  line $line (exit $rc): $cmd"
+  [ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=test-detection::stopped at line $line (exit $rc): $cmd"
+  for f in bao vl console vmalert ship; do
+    [ -s "$T/$f.log" ] || continue
+    echo "  -- $f.log"; tail -5 "$T/$f.log" | sed 's/^/     /'
+    [ -n "${GITHUB_ACTIONS:-}" ] && echo "::warning title=test-detection $f.log::$(tail -3 "$T/$f.log" | tr '\n' ' ' | cut -c1-600)"
+  done
+}
+trap 'died $LINENO "$BASH_COMMAND"' ERR
 
 mkdir -p "$T"/{file,logs,config,vl}
 sed -e "s|/openbao/|$T/|g" -e "s|0.0.0.0:8200|127.0.0.1:$B|" -e "s|http://openbao:8200|http://127.0.0.1:$B|" -e "s|http://openbao:8201|http://127.0.0.1:$((B + 1))|" dev/openbao/config.hcl > "$T/config.hcl"
@@ -70,7 +83,7 @@ if [ -n "$got" ]; then
   ok "alert SecretReadByUnexpectedIdentity after $(( $(date +%s) - t0 )) s: role $(jq -r '.labels.auth_metadata_role_name' <<< "$got"), path $(jq -r '.labels.request_path' <<< "$got")"
   [ "$(jq -r '.labels.auth_metadata_role_name' <<< "$got")" = ops-admin ] && ok "the alert names the role that read it" || fail "wrong role in the alert: $got"
 else
-  fail "no alert within 90 s"; tail -5 "$T/vmalert.log"; tail -3 "$T/ship.log"
+  fail "no alert within 90 s (vmalert: $(tail -2 "$T/vmalert.log" | tr '\n' ' ' | cut -c1-300); shipper: $(tail -2 "$T/ship.log" | tr '\n' ' ' | cut -c1-300))"
 fi
 
 echo "== the log store"
