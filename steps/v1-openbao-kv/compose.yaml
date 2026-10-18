@@ -57,6 +57,7 @@ services:
   app:
     environment: !override
       NODE_ENV: development
+      APP_PLATFORM: compose # without the AWS stand-in's endpoint the app can't tell it's on Compose
       HOST: 0.0.0.0
       PORT: "3000"
       DEMO_MODE: "true"

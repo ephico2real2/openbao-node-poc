@@ -53,6 +53,8 @@ const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', m
 const ago = (s) => (s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${Math.floor(s / 3600)}h`);
 
 let cfg = { demoMode: false };
+const smBao = () => Boolean(cfg.secretsProvider && cfg.secretsProvider !== 'aws');
+const smName = () => ({ openbao: 'OpenBao', vault: 'Vault' })[cfg.secretsProvider] ?? 'Secrets Manager';
 
 // ---------------------------------------------------------------- config ---
 async function loadConfig() {
@@ -148,16 +150,18 @@ async function loadSecrets() {
           el('dt', {}, 'fingerprint'), el('dd', {}, s.fingerprint ?? '–'),
           el('dt', {}, 'loaded'), el('dd', {}, s.ageSeconds != null ? `${ago(s.ageSeconds)} ago · ${s.lastReason}` : '–'),
           el('dt', {}, 'usage'), el('dd', {}, `${s.cacheHits ?? 0} cache hits · ${s.fetches ?? 0} API fetches`),
-          s.remote ? el('dt', {}, 'in AWS') : null,
-          s.remote ? el('dd', {}, `AWSCURRENT = ${short(s.remote.currentVersionId)}${s.remote.rotationEnabled ? ' · rotation on' : ''}`) : null,
+          s.remote ? el('dt', {}, smBao() ? `in ${smName()}` : 'in AWS') : null,
+          s.remote ? el('dd', {}, smBao()
+            ? `current version = ${s.remote.currentVersionId}${s.remote.versions ? ` · ${s.remote.versions} kept` : ''}`
+            : `AWSCURRENT = ${short(s.remote.currentVersionId)}${s.remote.rotationEnabled ? ' · rotation on' : ''}`) : null,
           s.lastError ? el('dt', {}, 'last error') : null,
           s.lastError ? el('dd', {}, s.lastError) : null,
         ),
-        el('div', { class: 'ttl', title: 'time until the cache re-checks Secrets Manager' }, el('span', { style: null })),
+        el('div', { class: 'ttl', title: `time until the cache re-checks ${smName()}` }, el('span', { style: null })),
         el('div', { class: 'secret-foot' },
           el('span', { class: s.staleInCache ? 'stale-note' : 'muted small' },
             s.staleInCache
-              ? 'Secrets Manager has a newer version. The app picks it up on the next auth failure or TTL expiry.'
+              ? `${smName()} has a newer version. The app picks it up on the next auth failure or TTL expiry.`
               : `re-checks in ${ago(s.ttlRemainingSeconds ?? 0)}`),
           btn,
         ),
