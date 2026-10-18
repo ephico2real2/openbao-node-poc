@@ -1,0 +1,83 @@
+# Step v2 (steps/v2-openbao-dynamic): the dashboard when the app's database
+# logins are users OpenBao creates for it, each with a lease. Walked the way a
+# person demos it; each page is a test (the text it must show is measured).
+# ${BASE} = where the app is reachable from the runner.
+viewport: {width: 1280, height: 900}
+
+pages:
+  # 1. Both credentials are leased users: the secrets card shows the lease,
+  #    the time left and the renewals; the timeline says OpenBao issued them.
+  - name: 01-dynamic-dashboard
+    url: ${BASE}/
+    fullPage: true
+    before: 4000
+    expect:
+      text: [Secrets in memory, lease, renewed, "OpenBao issued this instance its own db user", "${PLATFORM_LABEL}", Database logins are short-lived]
+      absent: [Cannot reach the API]
+
+  # 2. Revoke the Postgres lease, as an operator would after a leak: OpenBao
+  #    drops the user and ends its sessions. The next query fails, the app
+  #    asks for a new user and retries.
+  - name: 02-revoke-postgres-lease
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Revoke Postgres lease
+      - waitForText: revokeLease
+      - fill: ["#note-input", "Written after the Postgres lease was revoked"]
+      - click: Add
+      - waitForText: Reconnected to Postgres with the rotated credential
+      - wait: 3000
+    expect:
+      text: [revokeLease, dropped this instance's Postgres user, Postgres rejected the cached password, OpenBao issued a new db user, Reconnected to Postgres with the rotated credential]
+
+  # 3. The same for Redis (Valkey): revoking the lease deletes the ACL user,
+  #    which disconnects the app; it reconnects as a new user by itself.
+  - name: 03-revoke-redis-lease
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Revoke Redis lease
+      - waitForText: Reconnected to Redis with the rotated credential
+      - wait: 3000
+    expect:
+      text: [dropped this instance's Redis user, OpenBao issued a new redis user, Reconnected to Redis with the rotated credential]
+
+  # 4. Leave it alone: the leases are renewed, and at the role's max TTL
+  #    (lab: 90 s) the app gets a NEW user before the old one ends, switches
+  #    its connections, and the old user is revoked after the drain.
+  - name: 04-max-ttl-reissue
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - waitForText: "(lease-max-ttl)"
+        timeout: 150000
+      - wait: 3000
+    expect:
+      text: ["(lease-max-ttl)", New Postgres connections use the newly issued user]
+
+  # 5. Six realistic ways to leak the password; every one comes out [REDACTED].
+  - name: 05-leak-test
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Run leak attempts
+      - waitForText: 0 of 6 leaked
+      - wait: 1500
+    expect:
+      text: [0 of 6 leaked, "[REDACTED]"]
+
+  # 6. The Application log at debug level: the lease lines, and every password
+  #    shown as ******** (length, fingerprint).
+  - name: 06-debug-log
+    url: ${BASE}/
+    before: 4000
+    element: "#logs-card"
+    actions:
+      - clickSelector: "#log-cred-only"
+      - wait: 2000
+      - scrollToBottom: "#log"
+      - wait: 500
+    expect:
+      text: [Application log, secret consumed, "password=******** (", connecting with]
+      absent: [values revealed]

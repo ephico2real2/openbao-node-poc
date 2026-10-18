@@ -5,7 +5,10 @@
 # root token ever exists outside the server).
 #
 # What self-init creates:
-#   - KV v2 at secret/                       the app's credentials
+#   - KV v2 at secret/                       the app's credentials (step v1)
+#   - the database secrets engine at database/  short-lived Postgres and Valkey
+#                                            users, one per app instance (step v2;
+#                                            the seed job configures it)
 #   - AppRole auth at approle/               how the seed job and the app log in
 #   - a file audit device                    every request, values HMAC'd (never plaintext)
 #   - policies and two roles:
@@ -56,6 +59,11 @@ initialize "engines" {
     path      = "sys/mounts/secret"
     data      = { type = "kv", options = { version = "2" } }
   }
+  request "enable-database" {
+    operation = "update"
+    path      = "sys/mounts/database"
+    data      = { type = "database" }
+  }
   request "enable-approle" {
     operation = "update"
     path      = "sys/auth/approle"
@@ -79,6 +87,16 @@ initialize "policies" {
         path "secret/metadata/rds/+/notes-db/+/pending"      { capabilities = ["read", "delete"] } # the most specific rule wins: repeat read
         path "secret/metadata/elasticache/+/notes-cache/+/pending" { capabilities = ["read", "delete"] }
         path "sys/tools/random/*"                    { capabilities = ["update"] }
+        # Step v2: short-lived database users. The app asks for its own, renews
+        # its leases, and may revoke ONLY leases of these two roles (on shutdown,
+        # and the dashboard's "Revoke lease" demo).
+        path "database/creds/notes-app"              { capabilities = ["read"] }
+        path "database/creds/notes-cache"            { capabilities = ["read"] }
+        path "sys/leases/renew"                      { capabilities = ["update"] }
+        path "sys/leases/revoke" {
+          capabilities       = ["update"]
+          allowed_parameters = { "lease_id" = ["database/creds/notes-app/*", "database/creds/notes-cache/*"] }
+        }
       EOT
     }
   }
@@ -94,6 +112,15 @@ initialize "policies" {
         path "secret/metadata/*"                     { capabilities = ["read", "list"] }
         path "sys/tools/random/*"                    { capabilities = ["update"] }
         path "auth/approle/role/secure-notes-app/secret-id" { capabilities = ["update"] }
+        # Step v2: connect the database engine to Postgres and Valkey with an
+        # OpenBao-only admin user, define the two roles, then rotate that admin's
+        # password so only OpenBao knows it.
+        path "database/config/notes-db"              { capabilities = ["create", "update"] }
+        path "database/config/notes-cache"           { capabilities = ["create", "update"] }
+        path "database/roles/notes-app"              { capabilities = ["create", "update"] }
+        path "database/roles/notes-cache"            { capabilities = ["create", "update"] }
+        path "database/rotate-root/notes-db"         { capabilities = ["update"] }
+        path "database/rotate-root/notes-cache"      { capabilities = ["update"] }
       EOT
     }
   }

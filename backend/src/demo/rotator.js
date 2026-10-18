@@ -21,7 +21,7 @@ import { redisPasswordHash, scramSha256Verifier } from './crypto.js';
 
 const short = (id) => String(id).slice(0, 8);
 
-export function createRotator({ config, redactor, logger, events, store }) {
+export function createRotator({ config, redactor, logger, events, store, provider, leases }) {
   const log = logger.child({ component: 'rotator' });
   const L = store.labels;
   let busy = false;
@@ -108,10 +108,41 @@ export function createRotator({ config, redactor, logger, events, store }) {
     },
   };
 
+  // Step v2: a dynamic user is not rotated, it is replaced. The demo revokes
+  // the current lease, as an operator would after a leak: OpenBao drops the
+  // user and ends its sessions; the app finds out on its next query and asks
+  // for a new user.
+  async function revokeLease(alias, secretId) {
+    if (busy) throw new HttpError(409, 'a rotation is already running');
+    busy = true;
+    const steps = [];
+    try {
+      const id = await leases.revoke(secretId);
+      const what = alias === 'db' ? 'Postgres' : 'Redis';
+      steps.push({ name: 'revokeLease', detail: `Revoked lease ${id}: OpenBao dropped this instance's ${what} user and ended its sessions`, at: new Date().toISOString() });
+      events.record('rotation', 'revokeLease', `[${alias}] Revoked lease ${id}: OpenBao dropped this instance's ${what} user`);
+      log.info({ alias, secretId, lease: id, event: 'rotation.demo.revoked' }, 'demo: lease revoked');
+      return {
+        alias,
+        revokedLease: id,
+        newVersionId: id,
+        steps,
+        next: `The app still holds the revoked user. Its next ${what} login fails, so it asks OpenBao for a new user and retries.`,
+      };
+    } catch (err) {
+      throw new HttpError(502, `revoking the lease failed: ${err.message}`, 'rotation_failed');
+    } finally {
+      busy = false;
+    }
+  }
+
+  const isDynamic = (secretId) => Boolean(leases && provider?.status().find((s) => s.secretId === secretId)?.lease);
+
   async function rotate(alias) {
     const target = targets[alias];
     if (!target) throw new HttpError(404, `unknown secret alias '${alias}'`);
     const secretId = config.secretIds[alias];
+    if (isDynamic(secretId)) return revokeLease(alias, secretId);
     const adminId = target.adminSecretId();
     if (!adminId) throw new HttpError(400, `no admin secret configured for '${alias}'`);
     if (busy) throw new HttpError(409, 'a rotation is already running');
@@ -178,8 +209,9 @@ export function createRotator({ config, redactor, logger, events, store }) {
 
   /** Kill the app's open DB/Redis connections so the next request must reconnect. */
   async function dropConnections() {
-    const dbApp = (await readSecret(config.secretIds.db)).value;
-    const redisApp = (await readSecret(config.secretIds.redis)).value;
+    // The users the app is logged in as right now (static or dynamic).
+    const dbApp = (await provider.get(config.secretIds.db)).reveal();
+    const redisApp = (await provider.get(config.secretIds.redis)).reveal();
     const dbAdmin = (await readSecret(config.demo.dbAdminSecretId)).value;
     const redisAdmin = (await readSecret(config.demo.redisAdminSecretId)).value;
 

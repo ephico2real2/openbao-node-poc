@@ -32,6 +32,17 @@ export class SecretsProvider extends EventEmitter {
     this.#maxStaleMs = maxStaleSeconds * 1000;
     this.#redactor = redactor;
     this.#log = logger.child({ component: 'secrets' });
+    // Dynamic credentials: the lease keeper says when a new user is needed.
+    fetcher.onExpiring?.((secretId, reason) =>
+      this.refresh(secretId, reason).catch((err) => this.#log.error({ err, secretId, event: 'secrets.lease.reissue.failed' }, 'could not get a new database user')),
+    );
+  }
+
+  /** Until when the cached value may be used: the TTL, or for a lease, its end. */
+  #validUntil(e, secretId) {
+    if (!e.dynamic) return e.expiresAt;
+    const end = this.#fetcher.leaseExpiresAt?.(secretId);
+    return end === undefined ? e.expiresAt : end - 2_000;
   }
 
   get mode() {
@@ -51,11 +62,16 @@ export class SecretsProvider extends EventEmitter {
   /** Returns a SecretValue. Call .reveal() only where the credential is used. */
   async get(secretId) {
     const e = this.#entries.get(secretId);
-    if (e && Date.now() < e.expiresAt) {
+    if (e && Date.now() < this.#validUntil(e, secretId)) {
       e.hits++;
       return e.value;
     }
     return this.#load(secretId, { force: false, reason: e ? 'ttl-expired' : 'cold-start' });
+  }
+
+  /** The cached value without a fetch (clients reacting to 'loaded'); undefined if none. */
+  peek(secretId) {
+    return this.#entries.get(secretId)?.value.reveal();
   }
 
   /** Bypass the cache (e.g. after an authentication failure). */
@@ -103,6 +119,7 @@ export class SecretsProvider extends EventEmitter {
         fetches: (prev?.fetches ?? 0) + 1,
         lastReason: reason,
         lastError: undefined,
+        dynamic: Boolean(r.dynamic),
       };
       this.#entries.set(secretId, entry);
 
@@ -190,7 +207,8 @@ export class SecretsProvider extends EventEmitter {
       fingerprint: e.fingerprint,
       fetchedAt: new Date(e.fetchedAt).toISOString(),
       ageSeconds: Math.round((now - e.fetchedAt) / 1000),
-      ttlRemainingSeconds: Math.max(0, Math.round((e.expiresAt - now) / 1000)),
+      ttlRemainingSeconds: Math.max(0, Math.round((this.#validUntil(e, secretId) - now) / 1000)),
+      lease: e.dynamic ? this.#fetcher.leaseStatus?.(secretId) : undefined,
       cacheHits: e.hits,
       fetches: e.fetches,
       lastReason: e.lastReason,

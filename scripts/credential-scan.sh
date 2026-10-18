@@ -124,10 +124,25 @@ case "$TARGET:$PROVIDER" in
     $K -n "$NS" exec deploy/aws-mock -- node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   *) echo "target must be compose or k8s"; exit 1 ;;
 esac
+# Step v2: dynamic users. Their passwords exist only in the app's memory (and
+# in OpenBao, encrypted), so nothing can read them back to search for, except
+# when the app runs with LOG_REVEAL_SECRETS=true: then they are taken from its
+# own log, and every OTHER place must still be clean of them.
+DYNAMIC=no
+if [ "$TARGET:$PROVIDER" = compose:openbao ] && dc exec -T app printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
+  DYNAMIC=yes
+  if [ "$EXPECT_REVEALED" = 1 ]; then
+    dc logs --no-color app 2>/dev/null | sed 's/^[^{]*//' | jq -r 'select(.msg? == "secret consumed (values revealed)") | .keys[]? | select(startswith("password=")) | sub("^.* value="; "")' 2>/dev/null | sort -u >> "$VALS"
+  fi
+fi
 n=$(grep -c . "$VALS")
 src="Secrets Manager"; [ "$PROVIDER" = openbao ] && src="OpenBao, read as the app's AppRole identity"
+[ "$DYNAMIC" = yes ] && [ "$EXPECT_REVEALED" = 1 ] && src="$src, plus the leased users' passwords from the app's revealed log"
 echo "== credential scan ($TARGET): searching for $n secret values from $src (every version); the values are never printed"
 [ "$n" -ge 4 ] || { echo "  FAIL  could not read the values from $src (got $n, expected at least 4)"; exit 1; }
+if [ "$DYNAMIC" = yes ] && [ "$EXPECT_REVEALED" != 1 ]; then
+  echo "  info  dynamic users: their passwords are only in the app's memory; the LOG_REVEAL_SECRETS run searches for them"
+fi
 
 fails=0
 found_app_logs=0

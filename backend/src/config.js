@@ -55,6 +55,8 @@ export const config = Object.freeze({
     secretIdFile: env.BAO_SECRET_ID_FILE,
     authMount: env.BAO_AUTH_MOUNT ?? 'approle',
     kvMount: env.BAO_KV_MOUNT ?? 'secret',
+    // Step v2: a secret ID under <dbMount>/creds/ is a dynamic database user with a lease.
+    dbMount: env.BAO_DB_MOUNT ?? 'database',
     namespace: env.BAO_NAMESPACE || undefined,
   }),
 

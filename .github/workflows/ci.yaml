@@ -1,8 +1,8 @@
 # CI: every way to run this app, proven on a runner, with the evidence on the run page.
 #
-#   checks ─► build ─┬─► compose (sdk, agent, openbao) ─┐
-#   (scan, SBOM)     ├─► kind ──────────────────────────┼─► images (main only: push, sign, attest)
-#                    ├─► mirror ────────────────────────┘
+#   checks ─► build ─┬─► compose (sdk, agent, openbao, openbao-dynamic) ─┐
+#   (scan, SBOM)     ├─► kind ───────────────────────────────────────────┼─► images (main only: push, sign, attest)
+#                    ├─► mirror ─────────────────────────────────────────┘
 #                    └─► env-file-demo
 #   docs (every relative link resolves, every Mermaid diagram renders)
 #   v0-leak (versions/v0-env-file: the original .env app still leaks, as the story says)
@@ -195,14 +195,22 @@ jobs:
           - mode: sdk
             compose-file: docker-compose.yml
             platform: dummy keys, for the mock only
+            spec: scripts/capture/dashboard.yaml
           # the app reads its secrets through an agent on its own localhost, as SECRETS_MODE=agent does on EC2
           - mode: agent
             compose-file: docker-compose.yml:docker-compose.agent.yml
             platform: dummy keys, for the mock only
+            spec: scripts/capture/dashboard.yaml
           # step v1: the same app on OpenBao (KV v2, AppRole), the AWS stand-in not started
           - mode: openbao
             compose-file: docker-compose.yml:steps/v1-openbao-kv/compose.yaml
             platform: AppRole secret ID in a file
+            spec: scripts/capture/dashboard.yaml
+          # step v2: database users OpenBao creates per instance, with leases; Valkey replaces Redis
+          - mode: openbao-dynamic
+            compose-file: docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v2-openbao-dynamic/compose.yaml
+            platform: AppRole secret ID in a file
+            spec: scripts/capture/dynamic.yaml
     name: compose (${{ matrix.mode }})
     env:
       COMPOSE_FILE: ${{ matrix.compose-file }}
@@ -234,6 +242,7 @@ jobs:
       - name: Walk the dashboard — captures
         uses: ./.github/actions/browser-walk
         with:
+          spec: ${{ matrix.spec }}
           label: compose-${{ matrix.mode }}
           env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"${{ matrix.platform }}"}'
 

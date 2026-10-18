@@ -1,0 +1,34 @@
+# Step v2: dynamic credentials. Layered on step v1 (paths resolve from the repo root):
+#
+#   export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v2-openbao-dynamic/compose.yaml
+#   docker compose up --build -d          # http://localhost:3000
+#   scripts/compose-check.sh
+#
+# What changes from step v1: the app no longer reads a stored password. It asks
+# OpenBao's database secrets engine for its OWN Postgres user and its own Valkey
+# user, each with a lease that the app renews and that OpenBao revokes (drops
+# the user) when it ends. Valkey replaces Redis: OpenBao documents a Valkey
+# database plugin. The KV secrets of step v1 stay for the admin logins the
+# dashboard's demos use.
+
+services:
+  redis:
+    image: docker.io/valkey/valkey:8.1-alpine
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"] # a NOAUTH reply still proves the server is up
+
+  seed:
+    environment:
+      BAO_DYNAMIC: "true"
+      BAO_DB_DEFAULT_TTL: ${BAO_DB_DEFAULT_TTL:-30s} # lab: short, so a few minutes show
+      BAO_DB_MAX_TTL: ${BAO_DB_MAX_TTL:-90s}         # renewals and a re-issue
+
+  app:
+    environment:
+      # A secret ID under database/creds/ is a dynamic user, not a stored secret.
+      DB_SECRET_ID: database/creds/notes-app
+      REDIS_SECRET_ID: database/creds/notes-cache
+      # The credentials carry no host: these are where to connect (never a password).
+      DB_HOST: postgres
+      DB_NAME: notes
+      REDIS_HOST: redis

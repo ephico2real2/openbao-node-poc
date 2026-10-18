@@ -105,16 +105,21 @@ Evidence: CI run [39161016646](https://github.com/ephico2real2/openbao-node-poc/
 
 **S4.1 · Postgres dynamic credentials** · M · 🔜 · [#16](https://github.com/ephico2real2/openbao-node-poc/issues/16)
 *As a DBA, I want each app instance to get its own short-lived database user, so that a leaked password expires by itself.*
-- [ ] Database secrets engine with a Postgres role; leases renewed, re-issued before the max TTL; the pool drains old users.
-- [ ] The dashboard shows the lease countdown.
+- [ ] Database secrets engine with a Postgres role; the seed job connects it through an OpenBao-only admin (bao_admin) and has OpenBao rotate that admin's password; Postgres only ever sees SCRAM verifiers.
+- [ ] Leases renewed at 2/3 of their TTL, re-issued before the max TTL; new queries move to a pool for the new user while the old pool drains; the old lease is revoked after the drain.
+- [ ] Revoking a lease (the dashboard demo) drops the user and ends its sessions; the app recovers on its next query. Leases are revoked on shutdown.
+- [ ] The dashboard shows each lease: time left, renewals, the next renewal or re-issue.
+- [ ] CI job compose (openbao-dynamic) with captures; the reveal-flag run searches for the leased passwords everywhere but the app log.
 
-Evidence: [initiative](README.md)
+Evidence: [steps/v2-openbao-dynamic/README.md](../../steps/v2-openbao-dynamic/README.md), [backend/src/secrets/bao/leases.js](../../backend/src/secrets/bao/leases.js), [backend/test/leases.test.js](../../backend/test/leases.test.js)
 
 **S4.2 · Valkey through OpenBao's plugin** · S · 🔜 · [#17](https://github.com/ephico2real2/openbao-node-poc/issues/17)
 *As an operator, I want the cache credential managed the same way, so that both credentials rotate without the app.*
-- [ ] Valkey replaces Redis here (OpenBao has a Valkey plugin and no Redis plugin); ioredis works unchanged.
+- [ ] Valkey replaces Redis here (OpenBao documents a Valkey plugin; its binary also carries an undocumented Redis one); ioredis works unchanged.
+- [ ] The seed job connects the plugin through bao-admin (ACL commands only), rotates its password, and saves the ACL file.
+- [ ] A re-issued user switches the connection before the old one is revoked; a revoked user reconnects as a new one by itself.
 
-Evidence: [initiative](README.md)
+Evidence: [steps/v2-openbao-dynamic/compose.yaml](../../steps/v2-openbao-dynamic/compose.yaml), [backend/scripts/seed-local.js](../../backend/scripts/seed-local.js)
 
 ### B5 — Kubernetes and OpenShift: OpenBao Helm and External Secrets Operator
 

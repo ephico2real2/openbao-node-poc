@@ -52,27 +52,36 @@ await check('notes: write to postgres, read through redis', async () => {
   return `${first.source} -> ${second.source}`;
 });
 
+// Step v2: dynamic users. The demo then revokes leases instead of rotating.
+const dynamic = (await call('GET', '/api/secrets')).secrets.some((s) => s.lease);
+let since = Math.max(0, ...(await call('GET', '/api/events')).events.map((e) => e.id));
+
 for (const alias of ['db', 'redis']) {
-  await check(`rotate ${alias} secret (createSecret -> setSecret -> testSecret -> finishSecret)`, async () => {
+  const what = dynamic ? `revoke the ${alias} lease (OpenBao drops the user)` : `rotate ${alias} secret (createSecret -> setSecret -> testSecret -> finishSecret)`;
+  await check(what, async () => {
     const r = await call('POST', `/api/demo/rotate/${alias}`);
     const names = r.steps.map((s) => s.name);
-    assert(names.includes('finishSecret'), names.join(','));
+    assert(names.includes(dynamic ? 'revokeLease' : 'finishSecret'), names.join(','));
     const s = (await call('GET', '/api/secrets')).secrets.find((x) => x.alias === alias);
     if (s.remote) assert(s.staleInCache, 'expected the app cache to still hold the old version');
-    return `new version ${r.newVersionId.slice(0, 8)}`;
+    return dynamic ? `revoked lease ${r.revokedLease}` : `new version ${r.newVersionId.slice(0, 8)}`;
   });
 }
-
-let since = Math.max(0, ...(await call('GET', '/api/events')).events.map((e) => e.id));
 
 await check('drop connections, then app recovers with the rotated credentials', async () => {
   await call('POST', '/api/demo/drop-connections');
   await call('POST', '/api/notes', { body: 'written after rotation + dropped connections' });
   const notes = await call('GET', '/api/notes');
   assert(notes.notes.length > 0, 'no notes');
-  await new Promise((r) => setTimeout(r, 300));
-  const ev = (await call('GET', `/api/events?since=${since}`)).events;
-  const recovered = ev.filter((e) => e.type === 'recovered').map((e) => e.source);
+  // Redis reconnects in the background: give it a few seconds.
+  let ev = [];
+  let recovered = [];
+  for (let i = 0; i < 20; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    ev = (await call('GET', `/api/events?since=${since}`)).events;
+    recovered = ev.filter((e) => e.type === 'recovered').map((e) => e.source);
+    if (recovered.includes('db') && recovered.includes('redis')) break;
+  }
   assert(recovered.includes('db'), `db did not report recovery: ${JSON.stringify(ev.map((e) => e.type))}`);
   assert(recovered.includes('redis'), `redis did not report recovery: ${JSON.stringify(ev.map((e) => e.type))}`);
   return `recovered: ${[...new Set(recovered)].join(', ')}`;

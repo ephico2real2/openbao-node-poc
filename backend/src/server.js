@@ -4,7 +4,7 @@ import path from 'node:path';
 import { config, assertSafeEnvironment } from './config.js';
 import { createLogger } from './log.js';
 import { createEventLog } from './events.js';
-import { Redactor, createSecretsProvider, createSecretsStore, createBaoClientFromConfig } from './secrets/index.js';
+import { Redactor, createSecretsProvider, createSecretsStore, createBaoClientFromConfig, createLeaseKeeperFromConfig } from './secrets/index.js';
 import { createDb } from './clients/db.js';
 import { createCache } from './clients/cache.js';
 import { createHttpServer, createRouter } from './http.js';
@@ -96,9 +96,21 @@ if (config.logging.revealSecrets) {
 
 const events = createEventLog();
 const baoClient = createBaoClientFromConfig({ config, redactor, logger });
-const provider = createSecretsProvider({ config, redactor, logger, baoClient });
+const leases = createLeaseKeeperFromConfig({ baoClient, logger });
+const provider = createSecretsProvider({ config, redactor, logger, baoClient, leases });
 provider.on('loaded', ({ secretId, reason, changed, versionId }) => {
   const alias = Object.entries(config.secretIds).find(([, id]) => id === secretId)?.[0] ?? secretId;
+  const dynamic = provider.status().find((s) => s.secretId === secretId)?.lease;
+  if (dynamic) {
+    events.record(
+      'secrets',
+      changed ? 'new-lease' : 'leased',
+      changed
+        ? `OpenBao issued a new ${alias} user, lease ${versionId.slice(0, 8)} (${reason}); the old user is retired`
+        : `OpenBao issued this instance its own ${alias} user, lease ${versionId.slice(0, 8)} (${reason})`,
+    );
+    return;
+  }
   events.record(
     'secrets',
     changed ? 'new-version' : 'loaded',
@@ -144,7 +156,7 @@ if (config.db.autoMigrate) {
 }
 
 const rotator = config.demo.enabled
-  ? (await import('./demo/rotator.js')).createRotator({ config, redactor, logger, events, store: await createSecretsStore({ config, baoClient }) })
+  ? (await import('./demo/rotator.js')).createRotator({ config, redactor, logger, events, provider, leases, store: await createSecretsStore({ config, baoClient }) })
   : undefined;
 
 const router = createRouter();
@@ -170,6 +182,9 @@ async function shutdown(signal) {
   logger.info({ signal }, 'shutting down');
   server.close();
   await Promise.allSettled([db.close(), cache.close()]);
+  // Dynamic users: revoke our leases, so this instance's database users are dropped now.
+  await leases?.revokeAll().catch(() => {});
+  baoClient?.close();
   await exitAfterLogs(0);
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));

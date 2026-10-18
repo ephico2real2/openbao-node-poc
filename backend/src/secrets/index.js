@@ -10,6 +10,7 @@ import { SecretsProvider } from './provider.js';
 import { createAgentFetcher, createSdkFetcher } from './fetchers.js';
 import { createBaoClient } from './bao/client.js';
 import { createKvFetcher, createKvStore } from './bao/kv.js';
+import { createLeaseKeeper } from './bao/leases.js';
 
 export { SecretValue } from './SecretValue.js';
 export { Redactor } from './redactor.js';
@@ -20,7 +21,12 @@ export function createBaoClientFromConfig({ config, redactor, logger }) {
   return createBaoClient({ ...config.bao, redactor, logger });
 }
 
-export function createSecretsProvider({ config, redactor, logger, baoClient }) {
+/** Step v2: the lease keeper for dynamic database users (openbao/vault only). */
+export function createLeaseKeeperFromConfig({ baoClient, logger }) {
+  return baoClient ? createLeaseKeeper(baoClient, { logger }) : undefined;
+}
+
+export function createSecretsProvider({ config, redactor, logger, baoClient, leases }) {
   let fetcher;
   if (config.secretsProvider === 'aws') {
     fetcher =
@@ -28,7 +34,7 @@ export function createSecretsProvider({ config, redactor, logger, baoClient }) {
         ? createAgentFetcher({ ...config.agent, logger })
         : createSdkFetcher({ region: config.region, endpoint: config.awsEndpoint });
   } else {
-    fetcher = createKvFetcher(baoClient ?? createBaoClientFromConfig({ config, redactor, logger }), { mount: config.bao.kvMount });
+    fetcher = createKvFetcher(baoClient ?? createBaoClientFromConfig({ config, redactor, logger }), { mount: config.bao.kvMount, dbMount: config.bao.dbMount, leases });
   }
 
   // In agent mode the agent already caches (default 300s), so keep the

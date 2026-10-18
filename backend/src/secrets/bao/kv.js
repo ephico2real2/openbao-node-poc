@@ -18,10 +18,29 @@
 
 const pathOf = (secretId) => String(secretId).replace(/^\/+/, '');
 
-export function createKvFetcher(client, { mount = 'secret' } = {}) {
+export function createKvFetcher(client, { mount = 'secret', dbMount = 'database', leases } = {}) {
+  // Step v2: an ID like database/creds/notes-app is a dynamic credential (a new
+  // database user with a lease), not a KV path. See leases.js.
+  const isDynamic = (secretId) => Boolean(leases) && pathOf(secretId).startsWith(`${dbMount}/creds/`);
   return {
     kind: 'bao',
+    isDynamic,
+    onExpiring: leases ? (fn) => leases.onExpiring(fn) : undefined,
+    leaseExpiresAt: leases ? (secretId) => leases.expiresAt(secretId) : undefined,
+    leaseStatus: leases ? (secretId) => leases.status(secretId) : undefined,
     async fetch(secretId) {
+      if (isDynamic(secretId)) {
+        const { data, leaseId, issuedAt } = await leases.issue(secretId, pathOf(secretId));
+        return {
+          name: secretId,
+          arn: undefined,
+          versionId: String(leaseId).split('/').pop().slice(0, 8), // a new lease = a new "version"
+          versionStages: ['lease'],
+          createdDate: new Date(issuedAt),
+          secretString: JSON.stringify({ username: data.username, password: data.password }),
+          dynamic: true,
+        };
+      }
       const out = await client.request('GET', `${mount}/data/${pathOf(secretId)}`);
       const data = out?.data?.data;
       const meta = out?.data?.metadata ?? {};
@@ -38,6 +57,7 @@ export function createKvFetcher(client, { mount = 'secret' } = {}) {
     // Metadata only: lets the dashboard show "a newer version exists" without
     // pulling the new value into memory.
     async describe(secretId) {
+      if (isDynamic(secretId)) return undefined; // a lease has no versions to compare
       const out = await client.request('GET', `${mount}/metadata/${pathOf(secretId)}`);
       const d = out?.data ?? {};
       return {

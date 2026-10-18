@@ -156,13 +156,22 @@ async function loadSecrets() {
             : `AWSCURRENT = ${short(s.remote.currentVersionId)}${s.remote.rotationEnabled ? ' · rotation on' : ''}`) : null,
           s.lastError ? el('dt', {}, 'last error') : null,
           s.lastError ? el('dd', {}, s.lastError) : null,
+          // Step v2: a dynamic user with a lease (this instance's own login).
+          s.lease ? el('dt', {}, 'lease') : null,
+          s.lease ? el('dd', {}, `${s.lease.lease} · ${s.lease.ttlSeconds}s left · renewed ${s.lease.renewals}×`) : null,
+          s.lease ? el('dt', {}, 'next') : null,
+          s.lease ? el('dd', {}, s.lease.maxTtlReached || !s.lease.renewable
+            ? `max TTL reached: new user in ${s.lease.reissueInSeconds ?? 0}s`
+            : `renew in ${s.lease.renewInSeconds ?? 0}s`) : null,
         ),
-        el('div', { class: 'ttl', title: `time until the cache re-checks ${smName()}` }, el('span', { style: null })),
+        el('div', { class: 'ttl', title: s.lease ? 'time left on the lease' : `time until the cache re-checks ${smName()}` }, el('span', { style: null })),
         el('div', { class: 'secret-foot' },
           el('span', { class: s.staleInCache ? 'stale-note' : 'muted small' },
             s.staleInCache
               ? `${smName()} has a newer version. The app picks it up on the next auth failure or TTL expiry.`
-              : `re-checks in ${ago(s.ttlRemainingSeconds ?? 0)}`),
+              : s.lease
+                ? `a user of its own, issued ${ago(s.lease.issuedSecondsAgo ?? 0)} ago`
+                : `re-checks in ${ago(s.ttlRemainingSeconds ?? 0)}`),
           btn,
         ),
       );
@@ -171,7 +180,15 @@ async function loadSecrets() {
   // Width set via CSSOM (allowed by the CSP), not an inline style attribute.
   [...$('secrets').querySelectorAll('.ttl > span')].forEach((bar, i) => {
     const s = r.secrets[i];
-    bar.style.width = `${s.ttlRemainingSeconds != null && r.ttlSeconds ? Math.min(100, (s.ttlRemainingSeconds / r.ttlSeconds) * 100) : 0}%`;
+    const full = s.lease ? s.lease.ttlSeconds + (s.lease.issuedSecondsAgo ?? 0) : r.ttlSeconds;
+    const left = s.lease ? s.lease.ttlSeconds : s.ttlRemainingSeconds;
+    bar.style.width = `${left != null && full ? Math.min(100, (left / full) * 100) : 0}%`;
+  });
+  // Step v2: with dynamic users, the demo revokes a lease instead of rotating a password.
+  const dynamic = r.secrets.some((s) => s.lease);
+  document.querySelectorAll('[data-rotate]').forEach((b) => {
+    const what = b.dataset.rotate === 'db' ? 'Postgres' : 'Redis';
+    b.textContent = dynamic ? `Revoke ${what} lease` : `Rotate ${what} secret`;
   });
 }
 

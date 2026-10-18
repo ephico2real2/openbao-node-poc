@@ -52,6 +52,21 @@ export function createDb({ provider, secretId, config, logger, events }) {
     return pool;
   }
 
+  // Step v2 (dynamic users): a re-issued lease brings a NEW user. New queries
+  // go to a pool for that user at once; the old pool drains (end() waits for
+  // queries in flight) before OpenBao revokes the old user.
+  provider.on('loaded', ({ secretId: id, changed }) => {
+    if (id !== secretId || !changed || !poolPromise) return;
+    const fresh = provider.peek(secretId);
+    if (!fresh || fresh.username === poolUser) return;
+    const old = poolPromise;
+    poolPromise = null;
+    poolUser = undefined;
+    old.then((p) => p.end()).catch(() => {});
+    log.info({ event: 'db.pool.switched' }, 'switching to a pool for the newly issued Postgres user; the old pool drains');
+    events.record('db', 'switched', 'New Postgres connections use the newly issued user; the old pool drains');
+  });
+
   function getPool() {
     poolPromise ??= buildPool().catch((err) => {
       poolPromise = null;

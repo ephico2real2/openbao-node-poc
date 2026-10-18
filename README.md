@@ -16,7 +16,8 @@ and on **HashiCorp Vault**. AWS Secrets Manager keeps working, behind the same s
 | --- | --- | --- |
 | `aws` (default) | AWS Secrets Manager (a bundled stand-in locally) | ✅ copied from the sibling repo, CI green |
 | `openbao` | OpenBao 2.7.1: KV v2 with AppRole ([step v1](steps/v1-openbao-kv/README.md)) | ✅ step v1 on Docker Compose, CI job `compose (openbao)` |
-| | then dynamic database credentials (B4), then Kubernetes with External Secrets Operator (B5) | 🔜 |
+| | Database users OpenBao creates per instance, with leases; Valkey ([step v2](steps/v2-openbao-dynamic/README.md)) | ✅ step v2 on Docker Compose, CI job `compose (openbao-dynamic)` |
+| | Kubernetes with External Secrets Operator (B5) | 🔜 |
 | `vault` | HashiCorp Vault | 🔜 epic B6 |
 
 **Where the work stands:** [initiative and epics](docs/modernization/README.md) ·
@@ -33,6 +34,10 @@ docker compose down -v           # stop and wipe
 # step v1: the same lab on OpenBao
 export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml
 docker compose up --build -d && scripts/compose-check.sh
+
+# step v2: no stored database password; users OpenBao creates, with leases
+export COMPOSE_FILE=$COMPOSE_FILE:steps/v2-openbao-dynamic/compose.yaml
+docker compose down -v && docker compose up --build -d && scripts/compose-check.sh
 ```
 
 - **kind:** `scripts/kind-up.sh && scripts/images-build.sh && scripts/k8s-deploy.sh deploy/k8s/overlays/kind`, then <http://localhost:3000>.
@@ -56,7 +61,7 @@ have every command. [HANDOVER.md](HANDOVER.md) is for a new contributor or AI ag
 | [`frontend/`](frontend/README.md) | The dashboard: static files, no build step |
 | [`deploy/`](deploy/README.md) | kind cluster config and Kubernetes overlays (kind, OpenShift, AWS) |
 | [`dev/`](dev/README.md) | Dev/CI only: the AWS Secrets Manager stand-in, and the OpenBao lab server's config |
-| [`steps/`](steps/v1-openbao-kv/README.md) | One folder per step: its Compose overlay and README (v1: OpenBao KV) |
+| [`steps/`](steps/v1-openbao-kv/README.md) | One folder per step: its Compose overlay and README ([v1: OpenBao KV](steps/v1-openbao-kv/README.md), [v2: dynamic users](steps/v2-openbao-dynamic/README.md)) |
 | [`scripts/`](scripts/README.md) | Set up, run, prove and generate: the same scripts on a laptop and in CI |
 | [`docs/`](docs/README.md) | Learning path, tutorial, guide, test catalogue, reference, the initiative |
 | [`demo/`](demo/README.md) | One page per test case, with CI screenshots |

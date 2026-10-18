@@ -36,7 +36,7 @@ OpenBao fork, and HashiCorp Vault itself.
 | Read scaling | Standby nodes serve reads since 2.5.0 [12] | not compared |
 | Control groups | Since 2.7.0, with identity-group factors only [13] | Enterprise [11] |
 | Not available | Performance/DR replication, Sentinel, the Transform engine [14] | Each of these needs an Enterprise licence [11] |
-| Database plugins | Cassandra, InfluxDB, MySQL/MariaDB, PostgreSQL, **Valkey**. No Redis plugin [15] | Includes `redis` and `redis-elasticache` [16] |
+| Database plugins | The docs list Cassandra, InfluxDB, MySQL/MariaDB, PostgreSQL and **Valkey** [15]. The 2.7.1 binary also lists `redis-database-plugin` as built in (`bao plugin list database`, run 2026-10-18), but the docs don't cover it, so step v2 uses Valkey | Includes `redis` and `redis-elasticache` [16] |
 
 **On Kubernetes (epic B5):**
 - **External Secrets Operator.** The latest is v2.13.0 (16 October 2026), API `external-secrets.io/v1` [17].

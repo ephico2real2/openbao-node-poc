@@ -92,6 +92,13 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
     } else {
       add('identity', `Logged in to ${product} with its own identity`, 'fail', `Not logged in${st?.lastError ? `: ${st.lastError}` : ''}.`);
     }
+    const leased = provider.status().filter((s) => s.lease);
+    if (leased.length) {
+      add('short-lived', 'Database logins are short-lived', 'pass',
+        `${leased.length} login(s) are users ${product} created for this instance, each with a lease (${leased.map((s) => `${s.lease.ttlSeconds}s left, renewed ${s.lease.renewals}×`).join('; ')}). When a lease ends, ${product} drops the user.`);
+    } else {
+      add('short-lived', 'Database logins are short-lived', 'info', `Stored passwords from ${product}'s KV store, rotated by the demo. Step v2 replaces them with users that expire.`);
+    }
     try {
       const sid = await stat(config.bao.secretIdFile);
       const loose = (sid.mode & 0o077) !== 0;

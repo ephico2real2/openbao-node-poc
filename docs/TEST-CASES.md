@@ -158,3 +158,21 @@ server)* starts the `bao` release binary with the lab's own `dev/openbao/config.
 | O13 | OpenBao's storage and config hold no plaintext password | grep `/openbao` (raft, seal key, audit log), `/etc/openbao`, `/tmp` | 0 matches | compose |
 | O14 | Config refuses a token or secret ID in env, and plain HTTP to OpenBao in production | `config.js` checks | refused at startup | unit |
 
+## 12. Dynamic database users (step v2)
+
+[Step v2](../steps/v2-openbao-dynamic/README.md): the app logs in to Postgres and Valkey as
+users OpenBao creates for it, each with a lease. The C, D, F, S and L tests also run in
+`compose (openbao-dynamic)`. There the rotation tests become lease revocations.
+
+| ID | What it proves | How | Pass rule | Runs in |
+| --- | --- | --- | --- | --- |
+| Y1 | A lease is renewed at 2/3 of its TTL; at the max TTL the app asks for a new user; the replaced lease is revoked after the drain | fake OpenBao and clock | renewals, `lease-max-ttl`, revoked after 15 s | unit |
+| Y2 | A failed renewal (a revoked lease) asks for a new user at once | fake OpenBao | `lease-renew-failed` | unit |
+| Y3 | The cache keeps a leased user until the keeper asks for a new one; status shows the lease, never the password; shutdown revokes | fake OpenBao | no new user within the lease; `peek` is the new user after; current lease revoked | unit |
+| Y4 | The app's Postgres sessions use a user OpenBao created, not a stored one | `pg_stat_activity` for `application_name = secure-notes` | every user starts `v-`, none is `notes_app` | compose |
+| Y5 | The app renews its leases | `/api/secrets` lease renewals | ≥ 1 for both within 60 s | compose |
+| Y6 | Revoking a lease drops the user and the app recovers | the smoke test revokes both leases, drops connections, writes a note | `revokeLease`, then `recovered` for db and redis | compose, walk |
+| Y7 | Revoked and replaced users are cleaned up | `pg_roles` like `v-%` after the smoke test | ≤ 2 (the current user, at most one draining) | compose |
+| Y8 | At the max TTL the app switches to a new user without a failed request | the walk waits on the dashboard | `(lease-max-ttl)` and `New Postgres connections use the newly issued user` shown | walk |
+| Y9 | The leased passwords appear nowhere but the app's revealed log | `LOG_REVEAL_SECRETS=true`; the scan takes them from the app log | FOUND in the app log only | compose (openbao-dynamic) |
+

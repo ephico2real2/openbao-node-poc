@@ -15,6 +15,12 @@
 // After this runs, the only copy of every credential is in the secrets manager.
 // Passwords are sent to the servers as hashes (SCRAM verifier / ACL #sha256).
 //
+// Step v2 (BAO_DYNAMIC=true): the seed job also connects OpenBao's database
+// secrets engine to Postgres and Valkey, through an admin user made only for
+// OpenBao (bao_admin / bao-admin), defines the two roles the app asks for
+// users from, then has OpenBao rotate that admin's password: from then on
+// nobody but OpenBao can create or drop database users.
+//
 // On OpenBao / Vault the seed job also plays "whoever provisions the app": it
 // logs in ONCE with the bootstrap AppRole (a secret ID that works one time,
 // from a file), and hands the app its own AppRole secret ID in a file (mode
@@ -38,6 +44,8 @@ const must = (k) => {
 };
 
 const PROVIDER = (env.SECRETS_PROVIDER ?? 'aws').toLowerCase();
+const DYNAMIC = PROVIDER !== 'aws' && /^(1|true|yes)$/i.test(env.BAO_DYNAMIC ?? '');
+const DB_MOUNT = env.BAO_DB_MOUNT ?? 'database';
 const NAME = PROVIDER === 'aws' ? 'Secrets Manager' : PROVIDER === 'vault' ? 'Vault' : 'OpenBao';
 let bao; // the seed job's own OpenBao/Vault session (bootstrap AppRole)
 const store =
@@ -87,6 +95,59 @@ async function provisionAppSecretId() {
   console.log(`[seed] ${NAME}: minted the app's AppRole secret ID (accessor ${out.accessor.slice(0, 8)}…) into ${file} (mode 0400)`);
 }
 
+/** Step v2: OpenBao's database secrets engine, connected and handed over. */
+async function configureDatabaseEngine(pw) {
+  const ttl = env.BAO_DB_DEFAULT_TTL ?? '30s'; // lab: short, so a few minutes show renewals
+  const maxTtl = env.BAO_DB_MAX_TTL ?? '90s'; //  and a re-issue at the max TTL
+  const write = (path, body) => bao.request('POST', `${DB_MOUNT}/${path}`, { body });
+
+  await write('config/notes-db', {
+    plugin_name: 'postgresql-database-plugin',
+    allowed_roles: 'notes-app',
+    connection_url: `postgresql://{{username}}:{{password}}@${appPgHost}:5432/${DB_NAME}?sslmode=disable`,
+    username: 'bao_admin',
+    password: pw.baoDb,
+    password_authentication: 'scram-sha-256', // OpenBao sends Postgres a SCRAM verifier, never the password
+  });
+  await write('roles/notes-app', {
+    db_name: 'notes-db',
+    default_ttl: ttl,
+    max_ttl: maxTtl,
+    creation_statements: [`CREATE ROLE "{{name}}" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE notes_rw`],
+    revocation_statements: [
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = '{{name}}'`,
+      `DROP ROLE IF EXISTS "{{name}}"`,
+    ],
+  });
+  await write('rotate-root/notes-db', {});
+  console.log(`[seed] ${NAME}: database engine connected to Postgres as bao_admin; role notes-app (TTL ${ttl}, max ${maxTtl}); bao_admin's password rotated, only ${NAME} knows it`);
+
+  await write('config/notes-cache', {
+    plugin_name: 'valkey-database-plugin',
+    allowed_roles: 'notes-cache',
+    host: appRedisHost,
+    port: 6379,
+    username: 'bao-admin',
+    password: pw.baoCache,
+  });
+  await write('roles/notes-cache', {
+    db_name: 'notes-cache',
+    default_ttl: ttl,
+    max_ttl: maxTtl,
+    creation_statements: JSON.stringify(['~notes:*', 'resetchannels', '-@all', '+@read', '+@write', '+@connection', '-@dangerous', '+info']),
+  });
+  await write('rotate-root/notes-cache', {});
+  // The rotated admin password is only in the server's memory until ACL SAVE
+  // writes it to the ACL file; the default user (its password just burned
+  // into the secrets manager) saves it, so a restart keeps OpenBao working.
+  const r = new Redis({ host: redisHost, port: redisPort, username: 'default', password: pw.redisAdmin, lazyConnect: true, maxRetriesPerRequest: 1 });
+  r.on('error', () => {});
+  await r.connect();
+  await r.call('ACL', 'SAVE').catch(() => {});
+  r.disconnect();
+  console.log(`[seed] ${NAME}: database engine connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated`);
+}
+
 async function waitFor(name, fn, tries = 30) {
   for (let i = 1; ; i++) {
     try {
@@ -127,6 +188,9 @@ async function main() {
     dbAdmin: await randomPassword(),
     redis: await randomPassword(),
     redisAdmin: await randomPassword(),
+    // Step v2: OpenBao's own admin logins; rotated by OpenBao right after setup.
+    baoDb: DYNAMIC ? await randomPassword() : undefined,
+    baoCache: DYNAMIC ? await randomPassword() : undefined,
   };
 
   // --- Secrets first, so a credential is never applied without being recorded.
@@ -166,6 +230,22 @@ async function main() {
       (${lit(`Hello! This note came from Postgres using a password the app fetched from ${NAME}.`)}),
       (${lit(`Reload the list: the second read is served from Redis, also authenticated with a ${NAME} credential.`)})`);
   }
+  if (DYNAMIC) {
+    // The group role every dynamic user joins (the same least privilege as
+    // notes_app), and OpenBao's admin: it may create users in that group, drop
+    // them, and end their sessions. Nothing else.
+    await admin.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'notes_rw') THEN CREATE ROLE notes_rw NOLOGIN; END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bao_admin') THEN CREATE ROLE bao_admin LOGIN CREATEROLE; END IF;
+      END $$;`);
+    await admin.query(`GRANT SELECT, INSERT ON notes TO notes_rw`);
+    await admin.query(`GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw`);
+    await admin.query(`ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD ${lit(scramSha256Verifier(pw.baoDb))}`);
+    await admin.query(`GRANT notes_rw TO bao_admin WITH ADMIN OPTION`);
+    await admin.query(`GRANT pg_signal_backend TO bao_admin`); // revocation ends the dropped user's sessions
+    console.log('[seed] postgres: group role notes_rw and OpenBao\'s admin bao_admin created');
+  }
   // Burn the bootstrap password.
   await admin.query(`ALTER ROLE ${admin.escapeIdentifier(env.PG_BOOTSTRAP_USER ?? 'postgres')} WITH PASSWORD ${lit(scramSha256Verifier(pw.dbAdmin))}`);
   await admin.end();
@@ -186,10 +266,16 @@ async function main() {
     'ACL', 'SETUSER', APP_REDIS_USER, 'reset', 'on', `#${redisPasswordHash(pw.redis)}`,
     '~notes:*', 'resetchannels', '-@all', '+@read', '+@write', '+@connection', '-@dangerous', '+info',
   );
+  if (DYNAMIC) {
+    // OpenBao's admin on Redis/Valkey: ACL commands only, no keys.
+    await r.call('ACL', 'SETUSER', 'bao-admin', 'reset', 'on', `#${redisPasswordHash(pw.baoCache)}`,
+      'resetchannels', '-@all', '+acl', '+ping', '+auth', '+hello', '+client|setname', '+client|kill');
+  }
   await r.call('ACL', 'SETUSER', 'default', 'resetpass', `#${redisPasswordHash(pw.redisAdmin)}`);
   await r.call('ACL', 'SAVE').catch(() => console.log('[seed] redis: no aclfile configured, ACL kept in memory only'));
   r.disconnect();
   console.log('[seed] redis: ACL user created (notes:* keys only); bootstrap password replaced');
+  if (DYNAMIC) await configureDatabaseEngine(pw);
   if (bao) await provisionAppSecretId();
   console.log(`[seed] done. Every credential now lives only in ${NAME}.`);
 }

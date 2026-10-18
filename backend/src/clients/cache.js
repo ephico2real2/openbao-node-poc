@@ -91,6 +91,21 @@ export async function createCache({ provider, secretId, config, logger, events }
     }
   }
 
+  // Step v2 (dynamic users): when the cache holds a NEW user (a re-issued
+  // lease), switch before the old user is revoked: new options, then a clean
+  // reconnect. ioredis queues commands while it reconnects.
+  provider.on('loaded', ({ secretId: id, changed }) => {
+    if (id !== secretId || !changed || refreshing) return;
+    const fresh = provider.peek(secretId);
+    if (!fresh || fresh.username === client.options.username) return;
+    client.options.username = fresh.username;
+    client.options.password = fresh.password;
+    logUse('new lease');
+    log.info({ event: 'cache.user.switched' }, 'switching the Redis connection to the newly issued user');
+    events.record('redis', 'switched', 'Reconnected to Redis as the newly issued user, before the old one is revoked');
+    client.disconnect(true);
+  });
+
   async function run(fn) {
     try {
       return await fn(client);

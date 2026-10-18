@@ -20,7 +20,11 @@ docker compose ps --format 'table {{.Service}}\t{{.Image}}\t{{.State}}'
 
 echo "== the seed job burned the bootstrap passwords"
 fails=0
-if docker compose exec -T redis redis-cli --no-auth-warning --user default --pass bootstrap-only-change-me ping 2>&1 | grep -q PONG; then
+ok()   { echo "  ok    $1"; }
+fail() { echo "  FAIL  $1"; fails=$((fails + 1)); }
+# redis-cli, or valkey-cli when step v2 runs Valkey
+rcli() { docker compose exec -T redis sh -c 'if command -v valkey-cli >/dev/null 2>&1; then exec valkey-cli "$@"; else exec redis-cli "$@"; fi' rcli "$@"; }
+if rcli --no-auth-warning --user default --pass bootstrap-only-change-me ping 2>&1 | grep -q PONG; then
   echo "  FAIL  Redis still accepts the bootstrap password"; fails=$((fails + 1))
 else
   echo "  ok    Redis rejects the bootstrap password"
@@ -36,8 +40,6 @@ mode=$(jq -r '.secretsMode // empty' <<< "$cfg")
 provider=$(jq -r '.secretsProvider // empty' <<< "$cfg")
 echo "== secrets provider: ${provider:-unknown}, mode: ${mode:-unknown}"
 if [ "$provider" = openbao ]; then
-  ok()   { echo "  ok    $1"; }
-  fail() { echo "  FAIL  $1"; fails=$((fails + 1)); }
   # The app logged in with its own AppRole identity, and holds no token anywhere it could leak from.
   if [ "$(jq -r '.bao.loggedIn' <<< "$cfg")" = true ]; then
     ok "the app is logged in to OpenBao as role '$(jq -r '.bao.roleId' <<< "$cfg")' (policies: $(jq -r '.bao.policies | join(",")' <<< "$cfg"))"
@@ -90,8 +92,36 @@ if [ "$mode" = agent ]; then
   if [ "$code" = 403 ]; then echo "  ok    the agent rejects a request without the SSRF token (403)"; else echo "  FAIL  token-less request got '$code', expected 403"; fails=$((fails + 1)); fi
 fi
 
+dynamic=$(curl -fsS "$BASE/api/secrets" | jq -r 'any(.secrets[]; .lease != null)')
+if [ "$dynamic" = true ]; then
+  echo "== step v2: dynamic database users with leases"
+  pgq() { docker compose exec -T postgres psql -U postgres -d notes -tAc "$1" 2>/dev/null; }
+  users=$(pgq "SELECT string_agg(DISTINCT usename, ' ') FROM pg_stat_activity WHERE application_name = 'secure-notes'")
+  case "$users" in
+    v-*) if grep -q notes_app <<< "$users"; then fail "the app still logs in as the stored user notes_app"; else ok "the app's Postgres sessions use a user OpenBao created for it (${users:0:20}…), not a stored one"; fi ;;
+    *) fail "the app's Postgres sessions are not a leased user: '$users'" ;;
+  esac
+  # A renewal happens at 2/3 of the lease TTL (lab: 30 s).
+  renewed=0
+  for _ in $(seq 1 30); do
+    renewed=$(curl -fsS "$BASE/api/secrets" | jq '[.secrets[].lease.renewals // 0] | min')
+    [ "$renewed" -ge 1 ] && break
+    sleep 2
+  done
+  if [ "$renewed" -ge 1 ]; then ok "the app renewed both leases (sys/leases/renew)"; else fail "no lease renewal within 60 s"; fi
+fi
+
 echo "== end-to-end smoke test"
 node backend/scripts/smoke-test.js "$BASE" || fails=$((fails + 1))
+
+if [ "$dynamic" = true ]; then
+  echo "== step v2: revoked and replaced users are gone"
+  sleep 20 # the replaced leases are revoked 15 s after the switch
+  left=$(docker compose exec -T postgres psql -U postgres -d notes -tAc "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'v-%'" 2>/dev/null)
+  if [ "${left:-99}" -le 2 ]; then ok "Postgres has $left leased user(s) left: the app's current one (and at most one draining)"; else fail "Postgres still has $left leased users: revocation is not cleaning up"; fi
+  ev=$(curl -fsS "$BASE/api/events" | jq -r '[.events[] | select(.type == "new-lease")] | length')
+  echo "  info  the app switched to a newly issued user $ev time(s) so far (revocations, and leases at their max TTL)"
+fi
 
 # After the smoke test: its rotations and its leak test have run, so the logs
 # hold every place a password could have slipped into.

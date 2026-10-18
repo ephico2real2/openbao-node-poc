@@ -27,6 +27,7 @@ The OpenBao test against a real server runs when `BAO_BIN` points at the `bao` b
 | `src/secrets/fetchers.js` | AWS: the SDK (`SECRETS_MODE=sdk`), or the local agent with its SSRF token (`SECRETS_MODE=agent`) |
 | `src/secrets/aws-store.js` | AWS writes: create, random password, AWSPENDING then AWSCURRENT |
 | `src/secrets/bao/client.js` | OpenBao/Vault: HTTP client, AppRole login with the secret ID read from a file, token renewal at 2/3 of the TTL, re-login at the max TTL or on 403 |
+| `src/secrets/bao/leases.js` | Step v2: dynamic users. Issue, renew at 2/3 of the TTL, re-issue before the max TTL, revoke the replaced lease after the drain and all leases at shutdown |
 | `src/secrets/bao/kv.js` | OpenBao/Vault KV v2: the fetcher (version = KV version), and the store (create with `cas: 0`, pending at `<name>/pending`, promote with check-and-set) |
 | `src/secrets/naming.js` | The naming convention `/{service}/{env}/{resource}/{name}` ([reference](../docs/reference/secret-naming.md)) |
 | `src/secrets/SecretValue.js`, `redactor.js`, `mask.js` | A value only comes out through `.reveal()`; every log line and API response is scrubbed of registered values; debug lines show `******** (32 chars, fp=…)` |
@@ -49,7 +50,7 @@ The full list is in `src/config.js`. These are the ones you'll touch:
 | `SECRETS_PROVIDER` | `aws` (default), `openbao`, or `vault` (the same client; its own lab comes with epic B6) |
 | `SECRETS_MODE` | aws: `sdk` (default) or `agent`. openbao/vault: `api` (default) |
 | `BAO_ADDR`, `BAO_ROLE_ID`, `BAO_SECRET_ID_FILE` | openbao/vault: the server, the AppRole role ID (not a secret), and the **file** holding the secret ID (mode 0400). `BAO_TOKEN`, `VAULT_TOKEN`, `BAO_SECRET_ID` and `VAULT_SECRET_ID` are refused. Production requires `https://` |
-| `BAO_AUTH_MOUNT`, `BAO_KV_MOUNT`, `BAO_NAMESPACE` | Optional: `approle`, `secret`, none |
+| `BAO_AUTH_MOUNT`, `BAO_KV_MOUNT`, `BAO_DB_MOUNT`, `BAO_NAMESPACE` | Optional: `approle`, `secret`, `database`, none. A secret ID under `<BAO_DB_MOUNT>/creds/` (e.g. `DB_SECRET_ID=database/creds/notes-app`) is a dynamic user with a lease ([step v2](../steps/v2-openbao-dynamic/README.md)); set `DB_HOST`/`REDIS_HOST` with it, since the credential carries no host |
 | `SECRETS_ENV`, `DB_SECRET_RESOURCE`, `REDIS_SECRET_RESOURCE` | Build the secret names from the convention, or set `DB_SECRET_ID` / `REDIS_SECRET_ID` directly |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_SSL`; `REDIS_HOST`, `REDIS_PORT`, `REDIS_TLS` | Where to connect. Never a password |
 | `LOG_LEVEL`, `LOG_FORMAT`, `LOG_FILE`, `LOG_OTLP_ENDPOINT` | Logging. `LOG_REVEAL_SECRETS=true` is a lab-only flag that production refuses |

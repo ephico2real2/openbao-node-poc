@@ -102,6 +102,31 @@ export const ALERTS = Object.freeze({
     repeat: '10m',
     action: 'Demo only. The log line names the step that failed.',
   },
+  // OpenBao / Vault (steps v1 and v2)
+  'secrets.lease.reissue.failed': {
+    severity: 'critical',
+    title: 'App could not get a new database user before its lease ends',
+    source: 'secrets/provider.js (lease keeper asked for a new user)',
+    when: { count: 1, window: '5m' },
+    repeat: '30m',
+    action: 'When the current lease ends, OpenBao drops the user and the app loses the database. Check OpenBao is reachable and the app token can read database/creds/<role>.',
+  },
+  'bao.lease.renew.failed': {
+    severity: 'warning',
+    title: 'A database lease could not be renewed',
+    source: 'secrets/bao/leases.js',
+    when: { count: 3, window: '10m' },
+    repeat: '1h',
+    action: 'Once is normal after a revocation (the app asks for a new user). Repeated: OpenBao is unreachable or the policy lost sys/leases/renew.',
+  },
+  'bao.token.renew.failed': {
+    severity: 'warning',
+    title: 'The app could not renew its OpenBao token',
+    source: 'secrets/bao/client.js',
+    when: { count: 3, window: '15m' },
+    repeat: '1h',
+    action: 'The app logs in again with its secret ID. Repeated failures: check OpenBao is reachable and the secret ID file is still valid.',
+  },
 });
 
 /**
@@ -125,6 +150,15 @@ export const PATTERN_ALERTS = Object.freeze({
 export const RECORD_EVENTS = Object.freeze({
   'db.auth.recovered': 'Postgres accepted the refreshed credential',
   'cache.auth.recovered': 'Redis accepted the refreshed credential',
+  'db.pool.switched': 'New Postgres connections use a newly issued user; the old pool drains (step v2)',
+  'cache.user.switched': 'The Redis connection switched to a newly issued user (step v2)',
+  'rotation.demo.revoked': 'Demo: a lease was revoked from the dashboard (step v2)',
+  'bao.login': 'The app logged in to OpenBao with its AppRole',
+  'bao.token.max_ttl': 'The OpenBao token reached its max TTL; the app logs in again',
+  'bao.lease.issued': 'OpenBao issued a database user for this instance (step v2)',
+  'bao.lease.renewed': 'A database lease was renewed (step v2)',
+  'bao.lease.reissue': 'A lease is near its end; the app asks for a new user (step v2)',
+  'bao.lease.revoked': 'A lease was revoked: replaced, at shutdown, or by the demo (step v2)',
 });
 
 export const ALL_EVENTS = Object.freeze(new Set([
