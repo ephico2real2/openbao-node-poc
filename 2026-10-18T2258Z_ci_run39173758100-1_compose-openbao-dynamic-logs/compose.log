@@ -1,0 +1,285 @@
+redis-1  | 1:M 18 Oct 2026 22:53:43.561 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+redis-1  | 1:M 18 Oct 2026 22:53:43.561 * oO0OoO0OoO0Oo Valkey is starting oO0OoO0OoO0Oo
+redis-1  | 1:M 18 Oct 2026 22:53:43.561 * Valkey version=8.1.10, bits=64, commit=00000000, modified=1, pid=1, just started
+redis-1  | 1:M 18 Oct 2026 22:53:43.561 * Configuration loaded
+redis-1  | 1:M 18 Oct 2026 22:53:43.561 * monotonic clock: POSIX clock_gettime
+redis-1  | 1:M 18 Oct 2026 22:53:43.562 * Running mode=standalone, port=6379.
+redis-1  | 1:M 18 Oct 2026 22:53:43.563 * Server initialized
+redis-1  | 1:M 18 Oct 2026 22:53:43.563 * Ready to accept connections tcp
+app-1    | {"time":"2026-10-18T22:58:29.124Z","level":"debug","app":"secure-notes","secretsProvider":"openbao","secretsMode":"api","secretIds":{"db":"database/creds/notes-app","redis":"database/creds/notes-cache"},"secretIdSources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"namingPattern":"/{service}/{env}/{resource}/{name}","endpoint":"http://openbao:8200","logLevel":"debug","msg":"credential sources: which secrets this process will consume"}
+app-1    | {"time":"2026-10-18T22:58:29.126Z","level":"info","app":"secure-notes","secretIds":{"db":"database/creds/notes-app","redis":"database/creds/notes-cache"},"sources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"environment":"dev","pattern":"/{service}/{env}/{resource}/{name}","msg":"secret IDs resolved"}
+app-1    | {"time":"2026-10-18T22:58:29.170Z","level":"info","app":"secure-notes","component":"bao","reason":"startup","auth":"approle","role":"secure-notes-app","authMount":"approle","policies":["default","secure-notes-app"],"ttlSeconds":900,"renewable":true,"event":"bao.login","msg":"logged in to OpenBao with AppRole"}
+app-1    | {"time":"2026-10-18T22:58:29.180Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"Mf8cvFIa","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"OpenBao issued a database user for this instance"}
+app-1    | {"time":"2026-10-18T22:58:29.181Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","versionId":"Mf8cvFIa","reason":"cold-start","forced":false,"changed":false,"ms":53,"msg":"secret loaded"}
+app-1    | {"time":"2026-10-18T22:58:29.182Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","name":"database/creds/notes-cache","versionId":"Mf8cvFIa","stages":["lease"],"source":"bao","reason":"cold-start","fingerprint":"3b373863241c","keys":["username=V_*************************************************09","password=******** (20 chars, fp=12fb2591)"],"msg":"secret consumed"}
+app-1    | {"time":"2026-10-18T22:58:29.186Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"GR4tmbI4","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"OpenBao issued a database user for this instance"}
+app-1    | {"time":"2026-10-18T22:58:29.186Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","versionId":"GR4tmbI4","reason":"cold-start","forced":false,"changed":false,"ms":59,"msg":"secret loaded"}
+app-1    | {"time":"2026-10-18T22:58:29.187Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","name":"database/creds/notes-app","versionId":"GR4tmbI4","stages":["lease"],"source":"bao","reason":"cold-start","fingerprint":"1bb546425470","keys":["username=v-**********************************************09","password=******** (20 chars, fp=a374e608)"],"msg":"secret consumed"}
+app-1    | {"time":"2026-10-18T22:58:29.190Z","level":"debug","app":"secure-notes","component":"redis","secretId":"database/creds/notes-cache","versionId":"Mf8cvFIa","fingerprint":"3b373863241c","host":"redis","port":6379,"tls":false,"why":"first connection","using":["username<-username=V_*************************************************09","password<-password=******** (20 chars, fp=12fb2591)"],"msg":"redis authenticating with"}
+app-1    | {"time":"2026-10-18T22:58:29.201Z","level":"info","app":"secure-notes","component":"redis","msg":"redis connection ready"}
+app-1    | {"time":"2026-10-18T22:58:29.207Z","level":"debug","app":"secure-notes","component":"db","secretId":"database/creds/notes-app","versionId":"GR4tmbI4","fingerprint":"1bb546425470","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=v-**********************************************09","password<-password=******** (20 chars, fp=a374e608)"],"msg":"postgres connecting with"}
+app-1    | {"time":"2026-10-18T22:58:29.222Z","level":"info","app":"secure-notes","host":"0.0.0.0","port":3000,"secretsProvider":"openbao","secretsMode":"api","demoMode":true,"msg":"secure-notes listening"}
+app-1    | {"time":"2026-10-18T22:58:30.918Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":3.6,"msg":"request"}
+seed-1   | [seed] secret names (/{service}/{env}/{resource}/{name}): /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+seed-1   | [seed] OpenBao: logged in with the one-time bootstrap AppRole (that secret ID no longer works)
+seed-1   | [seed] created 4 secrets
+seed-1   | [seed] postgres: group role notes_rw and OpenBao's admin bao_admin created
+seed-1   | [seed] postgres: role, table, grants done; bootstrap password replaced
+seed-1   | [seed] redis: ACL user created (notes:* keys only); bootstrap password replaced
+seed-1   | [seed] OpenBao: database engine connected to Postgres as bao_admin; role notes-app (TTL 30s, max 90s); bao_admin's password rotated, only OpenBao knows it
+seed-1   | [seed] OpenBao: database engine (valkey-database-plugin) connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated
+seed-1   | [seed] OpenBao: minted the app's AppRole secret ID (accessor 4108bc8a…) into /home/node/bao-secret-id (mode 0400)
+seed-1   | [seed] done. Every credential now lives only in OpenBao.
+openbao-1  | [openbao-lab] generated the static seal key (lab only: it sits next to the data)
+openbao-1  | [openbao-lab] generated the seed job's one-time bootstrap secret ID
+openbao-1  | 2026-10-18T22:53:43.654Z [WARN]  unknown or unsupported field disable_mlock found in configuration at /etc/openbao/config.hcl:26:1
+openbao-1  | 2026-10-18T22:53:43.654Z [INFO]  proxy environment: http_proxy="" https_proxy="" no_proxy=""
+openbao-1  | 2026-10-18T22:53:43.659Z [INFO]  core: Initializing version history cache for core
+openbao-1  | 
+openbao-1  | ==> OpenBao server configuration:
+openbao-1  | 
+openbao-1  |              Api Address: http://openbao:8200
+openbao-1  |                Auto Seal: static (builtin: true, current_key_id: "lab-1")
+openbao-1  |                      Cgo: disabled
+openbao-1  |          Cluster Address: https://openbao:8201
+openbao-1  |    Environment Variables: HOME, HOSTNAME, PATH, PWD, SHLVL
+openbao-1  |               Go Version: go1.27.1
+openbao-1  |               Listener 1: tcp (addr: "0.0.0.0:8200", cluster address: "0.0.0.0:8201", max_request_duration: "1m30s", max_request_json_memory: "34078720", max_request_json_strings: "1000", max_request_size: "33554432", tls: "disabled")
+openbao-1  |                Log Level: 
+openbao-1  |            Recovery Mode: false
+openbao-1  |                  Storage: raft (HA available)
+openbao-1  |                  Version: OpenBao v2.7.1, committed 2026-10-01T15:32:54Z
+openbao-1  |              Version Sha: a5db72cef75c24b920ade02065b18dd8eb666bac
+openbao-1  | 
+openbao-1  | 2026-10-18T22:53:43.660Z [INFO]  core: security barrier not initialized
+openbao-1  | 2026-10-18T22:53:43.660Z [INFO]  core: security barrier not initialized
+openbao-1  | 2026-10-18T22:53:43.661Z [INFO]  storage.raft: creating Raft: config="&raft.Config{ProtocolVersion:3, HeartbeatTimeout:5000000000, ElectionTimeout:5000000000, CommitTimeout:50000000, MaxAppendEntries:64, BatchApplyCh:true, ShutdownOnRemove:true, TrailingLogs:0xffffffffffffffff, SnapshotInterval:4611686018427387903, SnapshotThreshold:0xffffffffffffffff, LeaderLeaseTimeout:2500000000, LocalID:\"openbao-0\", NotifyCh:(chan<- bool)(0x32d457310580), LogOutput:io.Writer(nil), LogLevel:\"DEBUG\", Logger:(*hclog.interceptLogger)(0x32d457263c50), NoSnapshotRestoreOnStart:true, PreVoteDisabled:false, NoLegacyTelemetry:false, skipStartup:false}"
+openbao-1  | 2026-10-18T22:53:43.661Z [INFO]  storage.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:openbao-0 Address:openbao:8201}]"
+openbao-1  | 2026-10-18T22:53:43.661Z [INFO]  storage.raft: entering follower state: follower="Node at openbao-0 [Follower]" leader-address= leader-id=
+openbao-1  | 2026-10-18T22:53:52.517Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+openbao-1  | 2026-10-18T22:53:52.517Z [INFO]  storage.raft: entering candidate state: node="Node at openbao-0 [Candidate]" term=2
+openbao-1  | 2026-10-18T22:53:52.517Z [INFO]  storage.raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+openbao-1  | 2026-10-18T22:53:52.517Z [INFO]  storage.raft: election won: term=2 tally=1
+openbao-1  | 2026-10-18T22:53:52.517Z [INFO]  storage.raft: entering leader state: leader="Node at openbao-0 [Leader]"
+openbao-1  | 2026-10-18T22:53:52.526Z [INFO]  core: security barrier not initialized
+openbao-1  | 2026-10-18T22:53:52.526Z [INFO]  core: acquired HA initialization lock
+openbao-1  | 2026-10-18T22:53:52.528Z [INFO]  core: security barrier initialized: shares=1 threshold=1
+openbao-1  | 2026-10-18T22:53:52.543Z [INFO]  core: post-unseal setup starting
+openbao-1  | 2026-10-18T22:53:52.545Z [INFO]  core: loaded wrapping token key
+openbao-1  | 2026-10-18T22:53:52.545Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+openbao-1  | 2026-10-18T22:53:52.545Z [INFO]  core: reading transactional mount table
+openbao-1  | 2026-10-18T22:53:52.545Z [INFO]  core: no mounts in transactional mount table; adding default mount table
+openbao-1  | 2026-10-18T22:53:52.547Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.7.1+builtin.bao" path=cubbyhole/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.547Z [INFO]  core: successfully mounted: type=system version="v2.7.1+builtin.bao" path=sys/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.547Z [INFO]  core: successfully mounted: type=identity version="v2.7.1+builtin.bao" path=identity/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.550Z [INFO]  core: reading transactional auth mount table
+openbao-1  | 2026-10-18T22:53:52.550Z [INFO]  core: no auth mounts in transactional auth mount table; adding default auth mount table
+openbao-1  | 2026-10-18T22:53:52.551Z [INFO]  core: successfully mounted: type=token version="v2.7.1+builtin.bao" path=token/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.552Z [INFO]  rollback: Starting the rollback manager with 256 workers
+openbao-1  | 2026-10-18T22:53:52.552Z [INFO]  rollback: starting rollback manager
+openbao-1  | 2026-10-18T22:53:52.552Z [INFO]  core: restoring leases
+openbao-1  | 2026-10-18T22:53:52.553Z [INFO]  expiration: lease restore complete
+openbao-1  | 2026-10-18T22:53:52.556Z [INFO]  core: adding new audit device: path=file/
+openbao-1  | 2026-10-18T22:53:52.558Z [INFO]  core: enabled audit backend: path=file/ type=file
+openbao-1  | 2026-10-18T22:53:52.558Z [INFO]  core: entities restored
+openbao-1  | 2026-10-18T22:53:52.558Z [INFO]  core: groups restored
+openbao-1  | 2026-10-18T22:53:52.558Z [INFO]  core: usage gauge collection is disabled
+openbao-1  | 2026-10-18T22:53:52.559Z [INFO]  core: Recorded vault version: vault version=2.7.1 upgrade time="2026-10-18 22:53:52.558354273 +0000 UTC" commit date=2026-10-01T15:32:54Z
+openbao-1  | 2026-10-18T22:53:52.559Z [WARN]  core: post-unseal upgrade seal keys failed: error="no recovery key found"
+openbao-1  | 2026-10-18T22:53:52.561Z [INFO]  core: post-unseal setup complete
+openbao-1  | 2026-10-18T22:53:52.563Z [INFO]  core: root token generated
+openbao-1  | 2026-10-18T22:53:52.569Z [INFO]  core: pre-seal teardown starting
+openbao-1  | 2026-10-18T22:53:52.569Z [INFO]  core: stopping raft active node
+openbao-1  | 2026-10-18T22:53:52.569Z [INFO]  rollback: stopping rollback manager
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core: pre-seal teardown complete
+openbao-1  | 2026-10-18T22:53:52.570Z [ERROR] core: failed to unlock initialization lock: error="cannot find peer"
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core: stored unseal keys supported, attempting fetch
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core.cluster-listener.tcp: starting listener: listener_address=0.0.0.0:8201
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core.cluster-listener: serving cluster requests: cluster_listen_address=[::]:8201
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  storage.raft: creating Raft: config="&raft.Config{ProtocolVersion:3, HeartbeatTimeout:15000000000, ElectionTimeout:15000000000, CommitTimeout:50000000, MaxAppendEntries:64, BatchApplyCh:true, ShutdownOnRemove:true, TrailingLogs:0xffffffffffffffff, SnapshotInterval:4611686018427387903, SnapshotThreshold:0xffffffffffffffff, LeaderLeaseTimeout:2500000000, LocalID:\"openbao-0\", NotifyCh:(chan<- bool)(0x32d456ed3100), LogOutput:io.Writer(nil), LogLevel:\"DEBUG\", Logger:(*hclog.interceptLogger)(0x32d457263c50), NoSnapshotRestoreOnStart:true, PreVoteDisabled:false, NoLegacyTelemetry:false, skipStartup:false}"
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  storage.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:openbao-0 Address:openbao:8201}]"
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core: vault is unsealed
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core: unsealed with stored key
+openbao-1  | 2026-10-18T22:53:52.570Z [WARN]  core: attempted unseal with stored keys, but vault is already unsealed
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  storage.raft: entering follower state: follower="Node at openbao:8201 [Follower]" leader-address= leader-id=
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  core: attempting leadership lock acquisition
+openbao-1  | 2026-10-18T22:53:52.570Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  storage.raft: entering candidate state: node="Node at openbao:8201 [Candidate]" term=3
+openbao-1  | 2026-10-18T22:53:52.570Z [INFO]  storage.raft: pre-vote successful, starting election: term=3 tally=1 refused=0 votesNeeded=1
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: pre-seal teardown starting
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: stopping raft active node
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: pre-seal teardown complete
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: entering read-enabled standby mode
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: post-unseal setup starting
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: reading transactional mount table
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  storage.raft: election won: term=3 tally=1
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  storage.raft: entering leader state: leader="Node at openbao:8201 [Leader]"
+openbao-1  | 2026-10-18T22:53:52.571Z [INFO]  core: successfully mounted: type=system version="v2.7.1+builtin.bao" path=sys/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  core: successfully mounted: type=identity version="v2.7.1+builtin.bao" path=identity/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.7.1+builtin.bao" path=cubbyhole/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  core: reading transactional auth mount table
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  core: successfully mounted: type=token version="v2.7.1+builtin.bao" path=token/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  core: acquired lock, enabling active operation
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  rollback: Starting the rollback manager with 256 workers
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  core: skipping lease restoration - standby
+openbao-1  | 2026-10-18T22:53:52.572Z [INFO]  rollback: starting rollback manager
+openbao-1  | 2026-10-18T22:53:52.573Z [INFO]  core: enabled audit backend: path=file/ type=file
+openbao-1  | 2026-10-18T22:53:52.573Z [INFO]  core: entities restored
+openbao-1  | 2026-10-18T22:53:52.573Z [INFO]  core: groups restored
+openbao-1  | 2026-10-18T22:53:52.573Z [WARN]  core: post-unseal upgrade seal keys failed: error="no recovery key found"
+openbao-1  | 2026-10-18T22:53:52.573Z [INFO]  core: post-unseal setup complete
+openbao-1  | 2026-10-18T22:53:52.579Z [INFO]  core: pre-seal teardown starting
+openbao-1  | 2026-10-18T22:53:52.579Z [INFO]  core: stopping raft active node
+openbao-1  | 2026-10-18T22:53:52.579Z [INFO]  rollback: stopping rollback manager
+openbao-1  | 2026-10-18T22:53:52.580Z [INFO]  core: pre-seal teardown complete
+openbao-1  | 2026-10-18T22:53:52.580Z [INFO]  core: post-unseal setup starting
+openbao-1  | 2026-10-18T22:53:52.580Z [INFO]  core: loaded wrapping token key
+openbao-1  | 2026-10-18T22:53:52.580Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+openbao-1  | 2026-10-18T22:53:52.580Z [INFO]  core: reading transactional mount table
+openbao-1  | 2026-10-18T22:53:52.580Z [INFO]  core: successfully mounted: type=system version="v2.7.1+builtin.bao" path=sys/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.581Z [INFO]  core: successfully mounted: type=identity version="v2.7.1+builtin.bao" path=identity/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.581Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.7.1+builtin.bao" path=cubbyhole/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.581Z [INFO]  core: reading transactional auth mount table
+openbao-1  | 2026-10-18T22:53:52.581Z [INFO]  core: successfully mounted: type=token version="v2.7.1+builtin.bao" path=token/ namespace="ID: root. Path: "
+openbao-1  | 2026-10-18T22:53:52.581Z [INFO]  rollback: Starting the rollback manager with 256 workers
+openbao-1  | 2026-10-18T22:53:52.581Z [INFO]  rollback: starting rollback manager
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: restoring leases
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: enabled audit backend: path=file/ type=file
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  expiration: lease restore complete
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: entities restored
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: groups restored
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: starting raft active node
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  storage.raft: starting autopilot: config="&{false 0 10s 24h0m0s 1000 0 10s}" reconcile_interval=0s
+openbao-1  | 2026-10-18T22:53:52.582Z [WARN]  core: post-unseal upgrade seal keys failed: error="no recovery key found"
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: usage gauge collection is disabled
+openbao-1  | 2026-10-18T22:53:52.582Z [INFO]  core: post-unseal setup complete
+openbao-1  | 2026-10-18T22:53:53.571Z [INFO]  beginning post-unseal configuration
+openbao-1  | 2026-10-18T22:53:53.577Z [INFO]  core: successful mount: namespace="" path=secret/ type=kv version=""
+openbao-1  | 2026-10-18T22:53:53.577Z [INFO]  secrets.database.database_ecc3835c: initializing database rotation queue
+openbao-1  | 2026-10-18T22:53:53.578Z [INFO]  core: successful mount: namespace="" path=database/ type=database version=""
+openbao-1  | 2026-10-18T22:53:53.581Z [INFO]  core: enabled credential backend: namespace="" path=approle/ type=approle version=""
+openbao-1  | 2026-10-18T22:53:53.588Z [INFO]  secrets.kv.kv_c26e740b: collecting keys to upgrade
+openbao-1  | 2026-10-18T22:53:53.588Z [INFO]  secrets.kv.kv_c26e740b: done collecting keys: num_keys=1
+openbao-1  | 2026-10-18T22:53:53.588Z [INFO]  secrets.kv.kv_c26e740b: upgrading keys finished
+openbao-1  | 2026-10-18T22:53:53.589Z [INFO]  secrets.database.database_ecc3835c: populating role rotation queue
+openbao-1  | 2026-10-18T22:53:53.590Z [INFO]  secrets.database.database_ecc3835c: starting periodic ticker
+openbao-1  | 2026-10-18T22:53:53.600Z [INFO]  expiration: revoked lease: lease_id=auth/token/root/hd9fe89166fefe49dd9c2ca6951cb529959999cc7cd41d72b5c54534071cb4b63
+openbao-1  | ==> OpenBao server started!
+openbao-1  | 2026-10-18T22:54:19.337Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/H256bmvZFmZAmShxWLnAhy0l
+openbao-1  | 2026-10-18T22:54:27.014Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/BzG1zzClBrWu5KhoaOC8m4A1
+openbao-1  | 2026-10-18T22:55:49.455Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/fCnToYaGNSNSEeECfsOmgmUI
+openbao-1  | 2026-10-18T22:55:57.240Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/j9xsf9b9MXpCs3KNwE242Q7u
+openbao-1  | 2026-10-18T22:57:03.370Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/mNyrYY4nusz3gyhqrnwaNRnK
+openbao-1  | 2026-10-18T22:57:03.684Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/Zirho9TgVE5e9hUtawCIo7cw
+openbao-1  | 2026-10-18T22:57:41.549Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/59g5LFa5TSYCOB2FKyAJ7EAm
+openbao-1  | 2026-10-18T22:57:41.550Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/VwC6rFeGfdtND0BwLTLB8D2r
+openbao-1  | 2026-10-18T22:58:28.645Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/ZCQCt45pq3FH52ZcZiRqioRV
+openbao-1  | 2026-10-18T22:58:28.646Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/x5g2jQ9TwrxmG87HiVXZaSug
+postgres-1  | The files belonging to this database system will be owned by user "postgres".
+postgres-1  | This user must also own the server process.
+postgres-1  | 
+postgres-1  | The database cluster will be initialized with locale "en_US.utf8".
+postgres-1  | The default database encoding has accordingly been set to "UTF8".
+postgres-1  | The default text search configuration will be set to "english".
+postgres-1  | 
+postgres-1  | Data page checksums are disabled.
+postgres-1  | 
+postgres-1  | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+postgres-1  | creating subdirectories ... ok
+postgres-1  | selecting dynamic shared memory implementation ... posix
+postgres-1  | selecting default max_connections ... 100
+postgres-1  | selecting default shared_buffers ... 128MB
+postgres-1  | selecting default time zone ... Etc/UTC
+postgres-1  | creating configuration files ... ok
+postgres-1  | running bootstrap script ... ok
+postgres-1  | performing post-bootstrap initialization ... ok
+postgres-1  | syncing data to disk ... ok
+postgres-1  | 
+postgres-1  | 
+postgres-1  | Success. You can now start the database server using:
+postgres-1  | 
+postgres-1  |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+postgres-1  | 
+postgres-1  | initdb: warning: enabling "trust" authentication for local connections
+postgres-1  | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+postgres-1  | waiting for server to start....2026-10-18 22:53:44.158 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1  | 2026-10-18 22:53:44.159 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1  | 2026-10-18 22:53:44.161 UTC [51] LOG:  database system was shut down at 2026-10-18 22:53:44 UTC
+postgres-1  | 2026-10-18 22:53:44.164 UTC [48] LOG:  database system is ready to accept connections
+postgres-1  |  done
+postgres-1  | server started
+postgres-1  | 2026-10-18 22:53:44.309 UTC [59] LOG:  statement: CREATE DATABASE "notes" ;
+postgres-1  | CREATE DATABASE
+postgres-1  | 
+postgres-1  | 
+postgres-1  | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+postgres-1  | 
+postgres-1  | 2026-10-18 22:53:44.350 UTC [48] LOG:  received fast shutdown request
+postgres-1  | waiting for server to shut down....2026-10-18 22:53:44.351 UTC [48] LOG:  aborting any active transactions
+postgres-1  | 2026-10-18 22:53:44.353 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+postgres-1  | 2026-10-18 22:53:44.353 UTC [49] LOG:  shutting down
+postgres-1  | 2026-10-18 22:53:44.354 UTC [49] LOG:  checkpoint starting: shutdown immediate
+postgres-1  | 2026-10-18 22:53:44.368 UTC [49] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.012 s, sync=0.003 s, total=0.016 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E8, redo lsn=0/191F0E8
+postgres-1  | 2026-10-18 22:53:44.375 UTC [48] LOG:  database system is shut down
+postgres-1  |  done
+postgres-1  | server stopped
+postgres-1  | 
+postgres-1  | PostgreSQL init process complete; ready for start up.
+postgres-1  | 
+postgres-1  | 2026-10-18 22:53:44.471 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1  | 2026-10-18 22:53:44.471 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1  | 2026-10-18 22:53:44.471 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1  | 2026-10-18 22:53:44.472 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1  | 2026-10-18 22:53:44.475 UTC [64] LOG:  database system was shut down at 2026-10-18 22:53:44 UTC
+postgres-1  | 2026-10-18 22:53:44.478 UTC [1] LOG:  database system is ready to accept connections
+postgres-1  | 2026-10-18 22:53:54.500 UTC [103] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:jxjU4beL2XS8mJZ2L/bElw==$6ykEHz9oJwtyw1QLcV7epdqw5rSTrcMpRPG7v1uq0qw=:PeYtI6MINKml/xt5UyBe7k3/wNHPB+rUxXBAnnaoqdA='
+postgres-1  | 2026-10-18 22:53:54.506 UTC [103] LOG:  statement: 
+postgres-1  | 	  CREATE TABLE IF NOT EXISTS notes (
+postgres-1  | 	    id         bigserial PRIMARY KEY,
+postgres-1  | 	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+postgres-1  | 	    created_at timestamptz NOT NULL DEFAULT now()
+postgres-1  | 	  )
+postgres-1  | 2026-10-18 22:53:54.511 UTC [103] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+postgres-1  | 2026-10-18 22:53:54.512 UTC [103] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+postgres-1  | 2026-10-18 22:53:54.512 UTC [103] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+postgres-1  | 2026-10-18 22:53:54.513 UTC [103] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+postgres-1  | 2026-10-18 22:53:54.516 UTC [103] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+postgres-1  | 2026-10-18 22:53:54.517 UTC [103] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+postgres-1  | 2026-10-18 22:53:54.518 UTC [103] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:p6m7zszb2yo1Pk967eTX+w==$6CrGKUiAk9/X+zZ7HZGUNv8caF158QU3rtBnhKHxYjM=:xMoD25IAwQ5fSmOqRrXFTHlXQo/jz2nu83y0Ha4WP/E='
+postgres-1  | 2026-10-18 22:53:54.522 UTC [103] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+postgres-1  | 2026-10-18 22:53:54.523 UTC [103] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+postgres-1  | 2026-10-18 22:53:54.525 UTC [103] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:ORtoPFY+mLDZ7mD3o2IpXA==$3z7tTmLEoq44RHSmu3b2o3TvAtnVje+5tmOUhryiLWE=:k+RyEtfdGAZBylg8WwIHfbVfAQwiaPWE1VOnIB4MO7I='
+postgres-1  | 2026-10-18 22:53:54.555 UTC [104] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:Rr2Rub4CRYmC1q8Kb7HR1g==$Sn8ZpeokdmkLWqo6gFETtPjxaKFlIU0874VUR7X5NPE=:Y0F8UJ3X16kxcOv0XMpnq0MKQv13Nh266znQImSXu6c='
+postgres-1  | 2026-10-18 22:53:55.093 UTC [105] LOG:  statement: CREATE ROLE "v-approle-notes-ap-x2Es3KdBQnjG2RVN6zve-1792364035" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:sB4eMOy2iAfMSuxRnNtrMQ==$v5ozhFDzGw59YsiVNXCV80QO2K2xZuWvXEPT7eX4Qt4=:FZOgV5csBkYPjHRK8b495lUpYg2rsaIQNeH8xazVBvc=' VALID UNTIL '2026-10-18 22:54:30+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:54:15.105 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-x2Es3KdBQnjG2RVN6zve-1792364035" VALID UNTIL '2026-10-18 22:54:50+0000'
+postgres-1  | 2026-10-18 22:54:19.335 UTC [106] FATAL:  terminating connection due to administrator command
+postgres-1  | 2026-10-18 22:54:19.335 UTC [105] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-x2Es3KdBQnjG2RVN6zve-1792364035"
+postgres-1  | 2026-10-18 22:54:19.415 UTC [191] FATAL:  password authentication failed for user "v-approle-notes-ap-x2Es3KdBQnjG2RVN6zve-1792364035"
+postgres-1  | 2026-10-18 22:54:19.415 UTC [191] DETAIL:  Role "v-approle-notes-ap-x2Es3KdBQnjG2RVN6zve-1792364035" does not exist.
+postgres-1  | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+postgres-1  | 2026-10-18 22:54:19.419 UTC [105] LOG:  statement: CREATE ROLE "v-approle-notes-ap-wOeS8BQkxIBTPROrSn3b-1792364059" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:4jx6H5JCb+vF/9A6WCZTFw==$EAKi2iFuiysRBrxr3IcO3k3LWS5QC7K5MhykzR813/U=:L/pMoO+3baKfHeJwPhBuOZurHgeJ60h3QeqZgrMc9tg=' VALID UNTIL '2026-10-18 22:54:54+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:54:39.432 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-wOeS8BQkxIBTPROrSn3b-1792364059" VALID UNTIL '2026-10-18 22:55:14+0000'
+postgres-1  | 2026-10-18 22:54:59.439 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-wOeS8BQkxIBTPROrSn3b-1792364059" VALID UNTIL '2026-10-18 22:55:34+0000'
+postgres-1  | 2026-10-18 22:55:19.445 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-wOeS8BQkxIBTPROrSn3b-1792364059" VALID UNTIL '2026-10-18 22:55:54+0000'
+postgres-1  | 2026-10-18 22:55:39.451 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-wOeS8BQkxIBTPROrSn3b-1792364059" VALID UNTIL '2026-10-18 22:55:54+0000'
+postgres-1  | 2026-10-18 22:55:44.459 UTC [105] LOG:  statement: CREATE ROLE "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:0+nROxgNAIg7qDic9IdMRw==$DBfTwCwqWXWGwW2CU6BoHg/djdtINpsiaWAlQ9u9RAs=:QxMvEE/FGsdTgAy4k7mSWmP6QZ4EoasPFxBALVaWAZ4=' VALID UNTIL '2026-10-18 22:56:19+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:55:49.454 UTC [105] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-wOeS8BQkxIBTPROrSn3b-1792364059"
+postgres-1  | 2026-10-18 22:56:04.469 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144" VALID UNTIL '2026-10-18 22:56:39+0000'
+postgres-1  | 2026-10-18 22:56:24.479 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144" VALID UNTIL '2026-10-18 22:56:59+0000'
+postgres-1  | 2026-10-18 22:56:44.487 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144" VALID UNTIL '2026-10-18 22:57:19+0000'
+postgres-1  | 2026-10-18 22:57:02.039 UTC [761] FATAL:  password authentication failed for user "postgres"
+postgres-1  | 2026-10-18 22:57:02.039 UTC [761] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 119: "host    all             all             127.0.0.1/32            scram-sha-256"
+postgres-1  | 2026-10-18 22:57:03.366 UTC [754] FATAL:  terminating connection due to administrator command
+postgres-1  | 2026-10-18 22:57:03.368 UTC [105] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144"
+postgres-1  | 2026-10-18 22:57:03.714 UTC [777] FATAL:  password authentication failed for user "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144"
+postgres-1  | 2026-10-18 22:57:03.714 UTC [777] DETAIL:  Role "v-approle-notes-ap-iBgMB2A11K9IZOSGo4BZ-1792364144" does not exist.
+postgres-1  | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+postgres-1  | 2026-10-18 22:57:03.717 UTC [105] LOG:  statement: CREATE ROLE "v-approle-notes-ap-taFVLLGinM4kXOSX0Ix8-1792364223" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:R5OaBca8fATLVoaTuSDFjA==$4YCJqFvBozQa7B8p/D+AaknS4J5Vj0UKwauGWmrslzs=:tQQ0aZvRHTjvRd9ZkMGDAwGeTmYTBc3GcgXSno9Ta04=' VALID UNTIL '2026-10-18 22:57:38+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:57:23.723 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-taFVLLGinM4kXOSX0Ix8-1792364223" VALID UNTIL '2026-10-18 22:57:58+0000'
+postgres-1  | 2026-10-18 22:57:41.548 UTC [105] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-taFVLLGinM4kXOSX0Ix8-1792364223"
+postgres-1  | 2026-10-18 22:57:42.113 UTC [105] LOG:  statement: CREATE ROLE "v-approle-notes-ap-RcGJ6TLGwsHMlM4aOAgW-1792364262" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:b5pypvn8WhQvz1+aWEqucA==$hXKs+7ur8+nhyLmjEfgjVgaUP6GZpPeb6nxmVDVPV+0=:5uA5Q5iBwSEmbvNFo3/VyqwlW7prxYtsj0LHdx/crN0=' VALID UNTIL '2026-10-18 22:58:17+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:58:02.141 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-RcGJ6TLGwsHMlM4aOAgW-1792364262" VALID UNTIL '2026-10-18 22:58:37+0000'
+postgres-1  | 2026-10-18 22:58:22.149 UTC [105] LOG:  statement: ALTER ROLE "v-approle-notes-ap-RcGJ6TLGwsHMlM4aOAgW-1792364262" VALID UNTIL '2026-10-18 22:58:57+0000'
+postgres-1  | 2026-10-18 22:58:28.644 UTC [105] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-RcGJ6TLGwsHMlM4aOAgW-1792364262"
+postgres-1  | 2026-10-18 22:58:29.176 UTC [105] LOG:  statement: CREATE ROLE "v-approle-notes-ap-RcCgimJJRNXg6CGv2foO-1792364309" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:d6DOjhp7kqHI7tdT1V8tpw==$l9dCQDnDV0VMTj5qcooRBv17LJBid0M4NOf43OcPsLA=:7oaEPwKTSOfdag77KxOHoihcnXLqVC/dPgmV22AMA8U=' VALID UNTIL '2026-10-18 22:59:04+0000' IN ROLE notes_rw
