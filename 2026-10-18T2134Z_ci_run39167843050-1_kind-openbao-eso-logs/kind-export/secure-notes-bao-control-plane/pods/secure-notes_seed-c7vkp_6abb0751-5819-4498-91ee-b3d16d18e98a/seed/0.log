@@ -1,0 +1,9 @@
+2026-10-18T21:32:43.612475476Z stdout F [seed] secret names (/{service}/{env}/{resource}/{name}): /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+2026-10-18T21:32:43.678928327Z stdout F [seed] OpenBao: logged in with this pod's service-account token (Kubernetes auth, role secure-notes-seed)
+2026-10-18T21:32:43.758846623Z stdout F [seed] created 4 secrets
+2026-10-18T21:32:47.937131517Z stdout F [seed] postgres: group role notes_rw and OpenBao's admin bao_admin created
+2026-10-18T21:32:47.944375329Z stdout F [seed] postgres: role, table, grants done; bootstrap password replaced
+2026-10-18T21:32:47.95349525Z stdout F [seed] redis: ACL user created (notes:* keys only); bootstrap password replaced
+2026-10-18T21:32:47.985947338Z stdout F [seed] OpenBao: database engine connected to Postgres as bao_admin; role notes-app (TTL 30s, max 90s); bao_admin's password rotated, only OpenBao knows it
+2026-10-18T21:32:48.310637845Z stdout F [seed] OpenBao: database engine (valkey-database-plugin) connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated
+2026-10-18T21:32:48.310652763Z stdout F [seed] done. Every credential now lives only in OpenBao.
