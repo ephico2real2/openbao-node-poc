@@ -1,0 +1,9 @@
+# Step v3: External Secrets Operator from its Helm chart (2.13.0), installed by
+# scripts/eso-k8s-up.sh into the namespace external-secrets. The chart's
+# defaults already meet Pod Security "restricted" (non-root, no privilege
+# escalation, all capabilities dropped, RuntimeDefault seccomp); its CRDs are
+# installed with it. Its service account, "external-secrets", is the identity
+# OpenBao's role "external-secrets" accepts.
+installCRDs: true
+serviceAccount:
+  name: external-secrets

@@ -48,3 +48,11 @@ test('openbao with kubernetes auth: a role and a token file, no secret ID file',
   assert.match(check({ ...k8s, BAO_K8S_ROLE: '' }), /BAO_K8S_ROLE is required/);
   assert.match(check({ ...k8s, BAO_AUTH: 'token' }), /BAO_AUTH must be/);
 });
+
+test('openbao in file mode: no OpenBao address or identity is needed (External Secrets Operator has it)', () => {
+  const file = { SECRETS_PROVIDER: 'openbao', SECRETS_MODE: 'file', SECRETS_DIR: '/var/run/secrets/secure-notes', DB_SECRET_ID: 'db', REDIS_SECRET_ID: 'redis' };
+  assert.equal(check(file), 'OK');
+  assert.equal(check({ ...file, NODE_ENV: 'production' }), 'OK');
+  assert.match(check({ ...file, SECRETS_MODE: 'agent' }), /SECRETS_MODE must be 'api' or 'file'/);
+});
+

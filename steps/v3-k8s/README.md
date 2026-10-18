@@ -84,6 +84,37 @@ storage, and the `openbao` namespace's Secrets.
 
 The CI job `kind (openbao)` runs all of this on every push, with its own dashboard captures.
 
+## File mode: External Secrets Operator and a watched volume
+
+Some apps can't be changed to call OpenBao. For those, [External Secrets
+Operator](https://external-secrets.io) (ESO) reads OpenBao and writes a Kubernetes Secret,
+and the app reads that Secret's files. This app can do both. `SECRETS_MODE=file` makes it
+read a directory instead of calling OpenBao:
+
+```bash
+scripts/openbao-k8s-up.sh
+scripts/eso-k8s-up.sh                                        # ESO from its chart, then its ClusterSecretStore
+scripts/k8s-deploy.sh deploy/k8s/overlays/kind-openbao-eso
+scripts/k8s-check.sh                                         # also rotates in OpenBao and watches it arrive
+```
+
+| Piece | What it is |
+| --- | --- |
+| [`eso-values.yaml`](eso-values.yaml), [`scripts/eso-k8s-up.sh`](../../scripts/eso-k8s-up.sh) | ESO's chart `external-secrets-2.13.0`, pinned and checked against the `.prov` checksum. The chart's defaults already meet Pod Security `restricted` |
+| [`eso-clustersecretstore.yaml`](eso-clustersecretstore.yaml) | ESO's **Vault provider** (stable; ESO's own OpenBao provider is alpha, see [ADR-002](../../docs/modernization/03-adr-002-openbao-first.md)). It points at KV v2 `secret` and uses Kubernetes auth as service account `external-secrets`, with a token for audience `openbao`. OpenBao's role `external-secrets` may read only the app's two KV secrets |
+| [`deploy/k8s/components/openbao-eso`](../../deploy/k8s/components/openbao-eso) | The `ExternalSecret`, refreshed every 15 s, with keys `db` and `redis`, each the whole KV secret as JSON. The app mounts that Secret **as a volume** (mode 0440, never `env`, never `subPath`) and has **no OpenBao token** |
+| [`backend/src/secrets/file-fetcher.js`](../../backend/src/secrets/file-fetcher.js) | Reads `<dir>/db` and `<dir>/redis`. A value's version is the name of the kubelet's timestamped directory. A watch on the directory sees the kubelet's atomic `..data` swap, and the cache TTL re-reads anyway |
+
+**How a rotation reaches the app:**
+1. A rotation outside the app changes the password in Postgres and writes the next KV version. In CI that is the Job [`rotate-db`](../../deploy/k8s/jobs/rotate-db.yaml), which runs as the seed job's service account.
+2. Within 15 s, ESO copies the new version into the Secret.
+3. Within the kubelet's sync period (about a minute), the kubelet writes the new files and swaps `..data`.
+4. The app's watch fires and the cache re-reads (`file-changed`). New connections use the new password. There is no restart.
+
+**The trade-offs, plainly:**
+- **The credentials are in a Kubernetes Secret.** It is base64 in etcd, and anyone allowed to read Secrets in the namespace can read it. In api mode they never enter Kubernetes at all. `k8s-check` reports this Secret as expected in file mode, and the credential scan says so instead of hiding it.
+- **There is a window.** It runs from the moment the database has the new password to the moment the file arrives. During it, new connections with the old password fail, and open ones keep working. Production setups avoid this with two alternating users, or with the dynamic users of api mode.
+
 ## OpenShift (unproven)
 
 `KUBECTL=oc scripts/openbao-k8s-up.sh` notices OpenShift and adds

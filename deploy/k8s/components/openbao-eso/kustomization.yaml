@@ -1,0 +1,30 @@
+# Step v3, file mode: External Secrets Operator (installed by
+# scripts/eso-k8s-up.sh) reads the app's two KV secrets from OpenBao with its
+# own service account, and keeps a Kubernetes Secret in sync. The app mounts
+# that Secret as files and watches them (SECRETS_MODE=file). The app itself has
+# no OpenBao identity in this mode. Use it AFTER the openbao component.
+#
+# The trade-off, said plainly: in this mode the credentials ARE stored in a
+# Kubernetes Secret (base64 in etcd; anyone who may read Secrets in the
+# namespace can read them). The api mode (the openbao component alone) keeps
+# them out of Kubernetes entirely. File mode suits apps you can't change.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - externalsecret.yaml
+
+patches:
+  - path: app.yaml
+
+configMapGenerator:
+  - name: secure-notes-config
+    behavior: merge
+    literals:
+      - SECRETS_MODE=file
+      - SECRETS_DIR=/var/run/secrets/secure-notes
+      # File names in SECRETS_DIR (the ExternalSecret's keys), not OpenBao paths.
+      - DB_SECRET_ID=db
+      - REDIS_SECRET_ID=redis
+      # The files are re-read on every kubelet swap (watched) and at least this often.
+      - SECRET_CACHE_TTL_SECONDS=60

@@ -1,0 +1,23 @@
+# Step v3, file mode (deploy/k8s/overlays/kind-openbao-eso): the app reads its
+# credentials from a Secret that External Secrets Operator keeps in sync with
+# OpenBao, mounted as files. The app has no OpenBao identity.
+viewport: {width: 1280, height: 900}
+
+pages:
+  - name: 01-file-mode-dashboard
+    url: ${BASE}/
+    fullPage: true
+    before: 5000
+    expect:
+      text: [Secrets in memory, via External Secrets, "mounted Secret, watched", "${PLATFORM_LABEL}", No OpenBao identity in the app, Mounted credential files protected]
+      absent: [Cannot reach the API]
+
+  - name: 02-leak-test
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Run leak attempts
+      - waitForText: 0 of 6 leaked
+      - wait: 1500
+    expect:
+      text: [0 of 6 leaked, "[REDACTED]"]

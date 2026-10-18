@@ -1,0 +1,12 @@
+# Step v3, file mode, AFTER k8s-check rotated the Postgres password in OpenBao
+# from outside the app: the new version arrived as a changed file (External
+# Secrets Operator, then the kubelet's ..data swap), with no restart.
+viewport: {width: 1280, height: 900}
+
+pages:
+  - name: 03-rotation-arrived-as-a-file
+    url: ${BASE}/
+    fullPage: true
+    before: 5000
+    expect:
+      text: ["(file-changed)", written after the rotation arrived as a file]

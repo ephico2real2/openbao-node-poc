@@ -97,7 +97,8 @@ const fs = require('fs'), path = require('path');
 let d = '';
 process.stdin.on('data', (c) => (d += c)).on('end', () => {
   const vals = d.split('\n').filter(Boolean);
-  const skip = new Set(['/proc', '/sys', '/dev']);
+  // SKIP_DIR: file mode's mounted Secret, which holds the values by design (reported separately).
+  const skip = new Set(['/proc', '/sys', '/dev', ...(process.env.SKIP_DIR ? [process.env.SKIP_DIR] : [])]);
   const hits = []; let files = 0;
   const walk = (p) => {
     let st; try { st = fs.lstatSync(p); } catch { return; }
@@ -129,7 +130,16 @@ case "$TARGET:$PROVIDER" in
     dc exec -T aws-mock node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   compose:*) echo "SECRETS_PROVIDER must be aws or openbao (got '$PROVIDER')"; exit 1 ;;
   k8s:openbao)
-    $K -n "$NS" exec deploy/secure-notes -- node --input-type=module -e "$COLLECT_BAO" > "$VALS" 2>/dev/null ;;
+    FILEDIR=$($K -n "$NS" exec deploy/secure-notes -- printenv SECRETS_DIR 2>/dev/null || true)
+    if [ "$($K -n "$NS" exec deploy/secure-notes -- printenv SECRETS_MODE 2>/dev/null)" = file ]; then
+      # File mode: the app has no OpenBao identity, so the values come from the
+      # mounted files (their current versions; rotated-out ones are not kept there).
+      for f in db redis; do $K -n "$NS" exec deploy/secure-notes -- cat "$FILEDIR/$f" 2>/dev/null | jq -r '.. | objects | to_entries[] | select((.key | test("pass|secret|token|key"; "i")) and (.value | type == "string") and (.value | length >= 8)) | .value'; done > "$VALS"
+      MIN=2
+    else
+      FILEDIR=""
+      $K -n "$NS" exec deploy/secure-notes -- node --input-type=module -e "$COLLECT_BAO" > "$VALS" 2>/dev/null
+    fi ;;
   k8s:*)
     $K -n "$NS" exec deploy/aws-mock -- node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   *) echo "target must be compose or k8s"; exit 1 ;;
@@ -151,7 +161,9 @@ n=$(grep -c . "$VALS")
 src="Secrets Manager"; [ "$PROVIDER" = openbao ] && src="OpenBao, read as the app's AppRole identity"
 [ "$DYNAMIC" = yes ] && [ "$EXPECT_REVEALED" = 1 ] && src="$src, plus the leased users' passwords from the app's revealed log"
 echo "== credential scan ($TARGET): searching for $n secret values from $src (every version); the values are never printed"
-[ "$n" -ge 4 ] || { echo "  FAIL  could not read the values from $src (got $n, expected at least 4)"; exit 1; }
+export FILEDIR="${FILEDIR:-}"
+[ -n "${FILEDIR:-}" ] && src="the app's mounted Secret files (file mode: the app has no OpenBao identity)"
+[ "$n" -ge "${MIN:-4}" ] || { echo "  FAIL  could not read the values from $src (got $n, expected at least ${MIN:-4})"; exit 1; }
 if [ "$DYNAMIC" = yes ] && [ "$EXPECT_REVEALED" != 1 ]; then
   echo "  info  dynamic users: their passwords are only in the app's memory; the LOG_REVEAL_SECRETS run searches for them"
 fi
@@ -228,11 +240,13 @@ else
   echo "-- Kubernetes objects"
   report "pod specs, Deployments, Jobs (env, args, annotations)" "$($K -n "$NS" get pods,deploy,jobs -o yaml | hits)"
   report "ConfigMaps" "$($K -n "$NS" get configmaps -o yaml | hits)"
-  report "Secrets (decoded)" "$($K -n "$NS" get secrets -o json | jq -r '.items[].data // {} | .[]' | while read -r b; do echo "$b" | base64 -d; echo; done | hits)"
+  report "Secrets (decoded)$([ -n "${FILEDIR:-}" ] && echo ', except the one ESO manages')" "$($K -n "$NS" get secrets -o json | jq -r '.items[] | select(.metadata.name != "secure-notes-credentials" or env.FILEDIR == "") | .data // {} | .[]' | while read -r b; do echo "$b" | base64 -d; echo; done | hits)"
+  [ -n "${FILEDIR:-}" ] && echo "  info  secure-notes-credentials (managed by External Secrets Operator) holds the values by design in file mode"
   report "events" "$($K -n "$NS" get events -o yaml | hits)"
   echo "-- inside the app pod"
   report "app: process environment values (/proc/1/environ)" "$($K -n "$NS" exec deploy/secure-notes -- cat /proc/1/environ | tr '\0' '\n' | hits)"
-  fsr=$($K -n "$NS" exec -i deploy/secure-notes -- node -e "$FSWALK" < "$VALS")
+  fsr=$($K -n "$NS" exec -i deploy/secure-notes -- env SKIP_DIR="${FILEDIR:-}" node -e "$FSWALK" < "$VALS")
+  [ -n "${FILEDIR:-}" ] && echo "  info  $FILEDIR (the mounted Secret) holds the values by design in file mode; every other file is searched"
   report "app: every readable file ($(echo "$fsr" | jq .files) files)" "$(echo "$fsr" | jq '.hits | length')"
   report "postgres pod: data directory (plaintext passwords?)" "$($K -n "$NS" exec -i deploy/postgres -- sh -c 'grep -rhoF -f - /var/lib/postgresql/data 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
   report "redis pod: data and ACL files (plaintext passwords?)" "$($K -n "$NS" exec -i deploy/redis -- sh -c 'grep -rhoF -f - /data /etc 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"

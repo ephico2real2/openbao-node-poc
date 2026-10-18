@@ -107,13 +107,14 @@ jobs:
           set -euo pipefail
           curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz | tar -xz -C /tmp kubeconform
           rc=0
-          for o in deploy/k8s/overlays/kind deploy/k8s/overlays/kind-openbao deploy/k8s/overlays/openshift deploy/k8s/overlays/openshift-local deploy/k8s/overlays/aws; do
+          for o in deploy/k8s/overlays/kind deploy/k8s/overlays/kind-openbao deploy/k8s/overlays/kind-openbao-eso deploy/k8s/overlays/openshift deploy/k8s/overlays/openshift-local deploy/k8s/overlays/aws; do
             echo "== $o"
             # failures become annotations, which are readable on the run page and through the API
             if ! out=$(kubectl kustomize "$o" 2>&1); then echo "$out" | head -5 | sed "s|^|::error title=kustomize $o::|"; rc=1; continue; fi
             # The OpenShift Route has no public JSON schema, so it is skipped here; everything
             # else in the openshift overlay is the same Kubernetes the kind job deploys.
-            if ! res=$(echo "$out" | /tmp/kubeconform -strict -summary -skip Route \
+            # ExternalSecret: validated by the real CRD in the kind (openbao-eso) job.
+            if ! res=$(echo "$out" | /tmp/kubeconform -strict -summary -skip Route,ExternalSecret \
                 -schema-location default \
                 -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' 2>&1); then
               echo "$res" | grep -v '^Summary' | head -8 | sed "s|^|::error title=kubeconform $o::|"; rc=1
@@ -334,12 +335,21 @@ jobs:
             spec: scripts/capture/dashboard.yaml
             platform: no SA token · restricted PSA
             openbao: false
+            eso: false
           # step v3: OpenBao from its Helm chart; Kubernetes auth with projected tokens; leased users
           - name: openbao
             overlay: kind-openbao
             spec: scripts/capture/dynamic.yaml
             platform: projected token for OpenBao · restricted PSA
             openbao: true
+            eso: false
+          # step v3, file mode: External Secrets Operator writes a Secret the app mounts and watches
+          - name: openbao-eso
+            overlay: kind-openbao-eso
+            spec: scripts/capture/eso.yaml
+            platform: no OpenBao identity · restricted PSA
+            openbao: true
+            eso: true
     name: kind (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v5
@@ -370,6 +380,10 @@ jobs:
           helm version --short
           scripts/openbao-k8s-up.sh
 
+      - name: External Secrets Operator from its Helm chart (pinned, checksum verified), and its store
+        if: matrix.eso
+        run: scripts/eso-k8s-up.sh
+
       - name: Deploy deploy/k8s/overlays/${{ matrix.overlay }}
         run: scripts/k8s-deploy.sh deploy/k8s/overlays/${{ matrix.overlay }}
 
@@ -396,6 +410,15 @@ jobs:
           mkdir -p output
           scripts/k8s-check.sh http://localhost:3000 | tee output/k8s-check.txt
           { echo "## kind (${{ matrix.name }}) — check"; echo; echo '```'; cat output/k8s-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: After the rotation in OpenBao — what the dashboard shows (file mode)
+        if: matrix.eso
+        uses: ./.github/actions/browser-walk
+        with:
+          spec: scripts/capture/eso-rotated.yaml
+          out: captures-rotated
+          label: kind-${{ matrix.name }}-rotated
+          env-json: '{"BASE":"http://localhost:3000"}'
 
       - name: kind's own logs, on failure (node, kubelet, containerd)
         if: failure()

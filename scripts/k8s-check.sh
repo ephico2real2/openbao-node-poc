@@ -42,7 +42,14 @@ echo "== Kubernetes Secrets in the namespace (Opaque ones; names and keys only)"
 # OpenShift adds its own dockercfg and token Secrets to every project; only Opaque ones hold app data.
 "$K" -n "$NS" get secrets -o go-template='{{range .items}}{{if eq .type "Opaque"}}  {{.metadata.name}}: {{range $k, $v := .data}}{{$k}} {{end}}{{"\n"}}{{end}}{{end}}'
 others=$("$K" -n "$NS" get secrets -o go-template='{{range .items}}{{if eq .type "Opaque"}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | grep -v '^local-bootstrap-' | grep . || true)
-[ -z "$others" ] && pass "the only Secret is the one-time bootstrap; the app's credentials are not stored in Kubernetes" || fail "unexpected Secrets: $others"
+mode=$(curl -fsS "$BASE/api/config" | jq -r '.secretsMode // empty')
+if [ "$mode" = file ] && [ "$others" = secure-notes-credentials ]; then
+  owner=$("$K" -n "$NS" get secret secure-notes-credentials -o jsonpath='{.metadata.ownerReferences[0].kind}/{.metadata.ownerReferences[0].name}')
+  echo "  info  file mode: secure-notes-credentials holds the app's credentials BY DESIGN (owner $owner): RBAC on Secrets and etcd encryption now matter"
+  pass "no other Secret: only the one-time bootstrap and the one External Secrets Operator manages"
+else
+  [ -z "$others" ] && pass "the only Secret is the one-time bootstrap; the app's credentials are not stored in Kubernetes" || fail "unexpected Secrets: $others"
+fi
 
 echo "== the bootstrap passwords were burned by the seed job"
 # redis-cli, or valkey-cli on the OpenBao steps
@@ -81,7 +88,51 @@ echo "== NetworkPolicies"
 "$K" -n "$NS" get networkpolicy --no-headers | awk '{print "  " $1}'
 
 provider=$(curl -fsS "$BASE/api/config" | jq -r '.secretsProvider // "aws"')
-if [ "$provider" = openbao ]; then
+if [ "$provider" = openbao ] && [ "$mode" = file ]; then
+  echo "== step v3, file mode: External Secrets Operator, a mounted Secret, a watched directory"
+  es=$("$K" -n "$NS" get externalsecret secure-notes-credentials -o jsonpath='{.status.conditions[?(@.type=="Ready")].status} {.status.conditions[?(@.type=="Ready")].reason}' 2>/dev/null)
+  case "$es" in True*) pass "ExternalSecret secure-notes-credentials is Ready (${es#True })" ;; *) fail "ExternalSecret not ready: '$es'" ;; esac
+  keys=$("$K" -n "$NS" get secret secure-notes-credentials -o go-template='{{range $k, $v := .data}}{{$k}} {{end}}' 2>/dev/null)
+  [ "$keys" = "db redis " ] && pass "its Secret has the keys db and redis (names only shown)" || fail "unexpected Secret keys: '$keys'"
+  spec=$("$K" -n "$NS" get deploy secure-notes -o json)
+  if jq -e '[.spec.template.spec.containers[] | (.env // [])[] | select(.valueFrom.secretKeyRef)] + [.spec.template.spec.containers[] | (.envFrom // [])[] | select(.secretRef)] | length == 0' <<< "$spec" >/dev/null \
+     && jq -e '[.spec.template.spec.containers[].volumeMounts[]? | select(.name == "credentials" and (.subPath == null))] | length == 1' <<< "$spec" >/dev/null; then
+    pass "the Secret is mounted as a volume: no env, no envFrom, no subPath (a subPath file never updates)"
+  else
+    fail "the credentials reach the app another way than a whole-volume mount"
+  fi
+  if "$K" -n "$NS" exec deploy/secure-notes -- test -e /var/run/secrets/openbao/token 2>/dev/null; then
+    fail "the app pod has an OpenBao token mounted in file mode"
+  else
+    pass "the app pod has no OpenBao token: it has no identity in OpenBao at all"
+  fi
+  before=$(curl -fsS "$BASE/api/secrets" | jq -r '.secrets[] | select(.alias == "db") | .versionId')
+  echo "  info  the app holds db version $before (the kubelet's directory name)"
+  echo "== rotate in OpenBao from OUTSIDE the app (a Job as the seed job's service account)"
+  "$K" -n "$NS" delete job rotate-db --ignore-not-found --wait=true >/dev/null 2>&1
+  "$K" apply -f deploy/k8s/jobs/rotate-db.yaml >/dev/null
+  if "$K" -n "$NS" wait --for=condition=complete job/rotate-db --timeout=180s >/dev/null; then
+    "$K" -n "$NS" logs job/rotate-db | sed 's/^/  /'
+    t0=$(date +%s); after="$before"
+    while [ "$after" = "$before" ] && [ $(( $(date +%s) - t0 )) -lt 240 ]; do
+      sleep 5
+      after=$(curl -fsS "$BASE/api/secrets" | jq -r '.secrets[] | select(.alias == "db") | .versionId')
+    done
+    reason=$(curl -fsS "$BASE/api/secrets" | jq -r '.secrets[] | select(.alias == "db") | .lastReason')
+    if [ "$after" != "$before" ]; then
+      pass "the new version reached the app in $(( $(date +%s) - t0 )) s without a restart: $before -> $after ($reason)"
+    else
+      fail "the app still holds $before 240 s after the rotation"
+    fi
+    if curl -fsS -X POST -H 'Content-Type: application/json' -d '{"body":"written after the rotation arrived as a file"}' "$BASE/api/notes" >/dev/null; then
+      pass "the app writes to Postgres after the rotation"
+    else
+      fail "writing a note failed after the rotation"
+    fi
+  else
+    fail "the rotation job did not complete"; "$K" -n "$NS" logs job/rotate-db 2>&1 | tail -5 | sed 's/^/  /'
+  fi
+elif [ "$provider" = openbao ]; then
   echo "== step v3: OpenBao in the cluster, Kubernetes auth, users with leases"
   st=$("$K" -n openbao exec openbao-0 -- bao status -format=json 2>/dev/null)
   if [ "$(jq -r '.initialized and (.sealed | not)' <<< "$st")" = true ]; then

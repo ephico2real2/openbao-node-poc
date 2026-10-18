@@ -1,7 +1,7 @@
 // Runtime security posture checks, shown on the dashboard. Each returns
 // pass | warn | fail | info | skip with a plain-language explanation.
 
-import { access, readFile, stat } from 'node:fs/promises';
+import { access, readFile, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
@@ -85,7 +85,20 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
   else add('imdsv2', 'IMDSv2 required', 'skip', 'No instance metadata service reachable; not running on EC2 (or a container blocked by hop limit 1, which is good).');
 
   // 5. Identity in use
-  if (bao) {
+  if (bao && config.secretsMode === 'file') {
+    // The app holds no identity in the secrets manager: External Secrets
+    // Operator reads it and writes a Secret that Kubernetes mounts as files.
+    add('identity', `No ${product} identity in the app`, 'pass', `SECRETS_MODE=file: the app reads ${config.secretsDir}. External Secrets Operator logs in to ${product} with its own service account and keeps the mounted Secret in sync.`);
+    try {
+      const names = (await readdir(config.secretsDir)).filter((f) => !f.startsWith('..'));
+      const modes = await Promise.all(names.map(async (f) => (await stat(join(config.secretsDir, f))).mode & 0o777));
+      const loose = modes.some((m) => (m & 0o007) !== 0);
+      add('secret-files', 'Mounted credential files protected', loose ? 'fail' : 'pass',
+        `${names.length} file(s) in ${config.secretsDir}, mode ${[...new Set(modes.map((m) => m.toString(8)))].join('/')}${loose ? ': readable by any user in the container' : ': owner and group only'}. Mounted as a volume (not env, not subPath), so updates arrive in place.`);
+    } catch {
+      add('secret-files', 'Mounted credential files protected', 'fail', `Cannot read ${config.secretsDir}.`);
+    }
+  } else if (bao) {
     const st = baoClient?.status();
     if (st?.loggedIn) {
       add('identity', `Logged in to ${product} with its own identity`, 'pass', `${config.bao.auth === 'kubernetes' ? 'Kubernetes' : 'AppRole'} role "${st.roleId}", policies ${st.policies.join(', ')}; token valid ${st.tokenTtlSeconds} s, renewed ${st.renewals} time(s), ${st.logins} login(s).`);
@@ -155,7 +168,9 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
   }
 
   // 9. Transport to the secrets manager
-  if (bao) {
+  if (bao && config.secretsMode === 'file') {
+    add('sm-transport', 'Secret retrieval channel', 'info', `A file the kubelet mounts. External Secrets Operator talks to ${product} (${config.bao.addr ?? 'its ClusterSecretStore'}); the app never does.`);
+  } else if (bao) {
     const tls = String(config.bao.addr).startsWith('https://');
     add('sm-transport', 'Secret retrieval channel', tls ? 'pass' : 'info',
       tls ? `${product} over HTTPS (${config.bao.addr}).` : `Plain HTTP to ${product} on the lab network (${config.bao.addr}). Production requires https:// (the app refuses anything else).`);

@@ -23,7 +23,7 @@ const short = (id) => String(id).slice(0, 8);
 
 export function createRotator({ config, redactor, logger, events, store, provider, leases }) {
   const log = logger.child({ component: 'rotator' });
-  const L = store.labels;
+  const L = store?.labels ?? {};
   let busy = false;
 
   const pgSsl = config.db.ssl
@@ -138,9 +138,15 @@ export function createRotator({ config, redactor, logger, events, store, provide
 
   const isDynamic = (secretId) => Boolean(leases && provider?.status().find((s) => s.secretId === secretId)?.lease);
 
+  // SECRETS_MODE=file: the app has no identity in the secrets manager, so the
+  // demo can't rotate from here. Rotation happens there (k8s-check runs a Job)
+  // and arrives as a changed file.
+  const noStore = () => new HttpError(409, 'SECRETS_MODE=file: the app has no OpenBao identity, so it cannot rotate. Rotate in OpenBao; External Secrets Operator updates the mounted file and the app re-reads it.', 'file_mode');
+
   async function rotate(alias) {
     const target = targets[alias];
     if (!target) throw new HttpError(404, `unknown secret alias '${alias}'`);
+    if (!store) throw noStore();
     const secretId = config.secretIds[alias];
     if (isDynamic(secretId)) return revokeLease(alias, secretId);
     const adminId = target.adminSecretId();
@@ -209,6 +215,7 @@ export function createRotator({ config, redactor, logger, events, store, provide
 
   /** Kill the app's open DB/Redis connections so the next request must reconnect. */
   async function dropConnections() {
+    if (!store) throw noStore();
     // The users the app is logged in as right now (static or dynamic).
     const dbApp = (await provider.get(config.secretIds.db)).reveal();
     const redisApp = (await provider.get(config.secretIds.redis)).reveal();

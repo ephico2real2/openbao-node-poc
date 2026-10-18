@@ -56,7 +56,12 @@ await check('notes: write to postgres, read through redis', async () => {
 const dynamic = (await call('GET', '/api/secrets')).secrets.some((s) => s.lease);
 let since = Math.max(0, ...(await call('GET', '/api/events')).events.map((e) => e.id));
 
-for (const alias of ['db', 'redis']) {
+// SECRETS_MODE=file: the app has no identity in the secrets manager, so it
+// can't rotate; k8s-check rotates in OpenBao and watches the file change.
+const fileMode = cfg.secretsMode === 'file';
+if (fileMode) console.log('  skip  rotation and drop-connections: SECRETS_MODE=file (the rotation happens in OpenBao; k8s-check runs it)');
+
+for (const alias of fileMode ? [] : ['db', 'redis']) {
   const what = dynamic ? `revoke the ${alias} lease (OpenBao drops the user)` : `rotate ${alias} secret (createSecret -> setSecret -> testSecret -> finishSecret)`;
   await check(what, async () => {
     const r = await call('POST', `/api/demo/rotate/${alias}`);
@@ -68,7 +73,7 @@ for (const alias of ['db', 'redis']) {
   });
 }
 
-await check('drop connections, then app recovers with the rotated credentials', async () => {
+if (!fileMode) await check('drop connections, then app recovers with the rotated credentials', async () => {
   await call('POST', '/api/demo/drop-connections');
   await call('POST', '/api/notes', { body: 'written after rotation + dropped connections' });
   const notes = await call('GET', '/api/notes');

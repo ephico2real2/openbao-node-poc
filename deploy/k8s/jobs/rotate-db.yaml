@@ -1,0 +1,59 @@
+# LAB ONLY (step v3, file mode): rotate the app's Postgres password from
+# OUTSIDE the app, as the seed job's service account. scripts/k8s-check.sh
+# applies it and then watches the new version arrive in the app's files.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rotate-db
+  namespace: secure-notes
+  labels:
+    app.kubernetes.io/name: secure-notes-seed # the seed job's NetworkPolicies apply
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: secure-notes-seed
+    spec:
+      restartPolicy: Never
+      serviceAccountName: secure-notes-seed
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: rotate
+          image: secure-notes-app:dev
+          imagePullPolicy: IfNotPresent
+          command: ["node", "scripts/rotate-kv.js"]
+          env:
+            - { name: BAO_ADDR, value: "http://openbao.openbao.svc:8200" }
+            - { name: BAO_K8S_ROLE, value: secure-notes-seed }
+            - { name: BAO_K8S_TOKEN_FILE, value: /var/run/secrets/openbao/token }
+            - { name: SECRETS_ENV, value: dev }
+            - { name: DB_SECRET_RESOURCE, value: notes-db }
+            - { name: REDIS_SECRET_RESOURCE, value: notes-cache }
+            - { name: SEED_PG_HOST, value: postgres }
+          volumeMounts:
+            - name: openbao-token
+              mountPath: /var/run/secrets/openbao
+              readOnly: true
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 192Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: openbao-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: openbao
+                  expirationSeconds: 600

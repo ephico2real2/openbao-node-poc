@@ -159,6 +159,7 @@ export const RECORD_EVENTS = Object.freeze({
   'bao.lease.renewed': 'A database lease was renewed (step v2)',
   'bao.lease.reissue': 'A lease is near its end; the app asks for a new user (step v2)',
   'bao.lease.revoked': 'A lease was revoked: replaced, at shutdown, or by the demo (step v2)',
+  'secrets.file.changed': 'The mounted Secret changed (External Secrets Operator, kubelet swap); re-reading (step v3)',
 });
 
 export const ALL_EVENTS = Object.freeze(new Set([

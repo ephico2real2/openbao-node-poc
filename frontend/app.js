@@ -63,8 +63,8 @@ async function loadConfig() {
   const product = { aws: 'AWS Secrets Manager', openbao: 'OpenBao', vault: 'HashiCorp Vault' }[cfg.secretsProvider ?? 'aws'];
   const b = $('badges');
   b.replaceChildren(
-    el('span', { class: 'pill pill-accent' }, bao ? `${product} · KV v2 API` : cfg.secretsMode === 'agent' ? 'Workload Credentials Provider' : 'AWS SDK direct'),
-    bao ? el('span', { class: 'pill' }, `${/^kubernetes/.test(cfg.bao?.authMethod ?? '') ? 'Kubernetes auth' : 'AppRole'} ${cfg.bao?.roleId ?? ''}`.trim()) : el('span', { class: 'pill' }, cfg.region),
+    el('span', { class: 'pill pill-accent' }, bao ? (cfg.secretsMode === 'file' ? `${product} · via External Secrets` : `${product} · KV v2 API`) : cfg.secretsMode === 'agent' ? 'Workload Credentials Provider' : 'AWS SDK direct'),
+    bao && cfg.secretsMode === 'file' ? el('span', { class: 'pill' }, 'mounted Secret, watched') : bao ? el('span', { class: 'pill' }, `${/^kubernetes/.test(cfg.bao?.authMethod ?? '') ? 'Kubernetes auth' : 'AppRole'} ${cfg.bao?.roleId ?? ''}`.trim()) : el('span', { class: 'pill' }, cfg.region),
     bao ? el('span', { class: 'pill pill-info' }, cfg.environment === 'production' ? 'server' : 'lab server') : cfg.usingLocalMock ? el('span', { class: 'pill pill-info' }, 'local mock') : el('span', { class: 'pill' }, 'AWS'),
     cfg.demoMode ? el('span', { class: 'pill pill-warn' }, 'demo mode') : null,
     cfg.logLevel === 'debug'
@@ -76,7 +76,7 @@ async function loadConfig() {
   $('reveal-banner').hidden = !cfg.revealSecrets;
   const where = {
     compose: ['Docker Compose', bao ? 'container · AppRole secret ID in a file' : 'container · dummy keys, for the mock only'],
-    kubernetes: ['Kubernetes', bao ? 'pod · projected token for OpenBao · restricted PSA' : 'pod · no SA token · restricted PSA'],
+    kubernetes: ['Kubernetes', bao ? (cfg.secretsMode === 'file' ? 'pod · no OpenBao identity · restricted PSA' : 'pod · projected token for OpenBao · restricted PSA') : 'pod · no SA token · restricted PSA'],
     openshift: ['OpenShift', 'pod · arbitrary UID · restricted-v2'],
     ec2: ['EC2', 'EC2 instance role · IMDSv2'],
   }[cfg.platform] ?? ['', bao ? 'AppRole, no token in env' : 'IAM role, no keys'];
@@ -84,7 +84,9 @@ async function loadConfig() {
   $('flow-app').textContent = where[1];
   $('flow-cache').textContent = cfg.secretsMode === 'agent' ? 'agent cache + short app cache' : 'TTL + refresh on auth failure';
   $('flow-sm-title').textContent = bao ? product : 'Secrets Manager';
-  $('flow-channel').textContent = bao
+  $('flow-channel').textContent = bao && cfg.secretsMode === 'file'
+    ? 'External Secrets → mounted Secret → file watch'
+    : bao
     ? `${cfg.bao?.addr ?? ''} · token renewed`
     : cfg.usingLocalMock
       ? 'local mock (HTTP)'
@@ -190,7 +192,11 @@ async function loadSecrets() {
     const what = b.dataset.rotate === 'db' ? 'Postgres' : 'Redis';
     b.textContent = dynamic ? `Revoke ${what} lease` : `Rotate ${what} secret`;
   });
-  if (dynamic) {
+  if (cfg.secretsMode === 'file') {
+    $('rotation-hint').textContent =
+      'SECRETS_MODE=file: the app has no OpenBao identity, so it cannot rotate. A rotation happens in OpenBao; External Secrets Operator updates the Secret, the kubelet swaps the mounted files, and the app re-reads them.';
+    document.querySelectorAll('#rotation-card button').forEach((b) => (b.disabled = true));
+  } else if (dynamic) {
     $('rotation-hint').textContent =
       'Each login is a user OpenBao created for this instance, so there is no password to rotate. Revoke a lease as an operator would after a leak: OpenBao drops the user, and the app finds out on its next login, asks for a new user and retries.';
   }

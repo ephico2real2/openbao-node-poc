@@ -27,6 +27,7 @@ export function registerRoutes(router, { config, provider, db, cache, events, lo
     secretsProvider: config.secretsProvider,
     secretsMode: config.secretsMode,
     bao: baoClient ? baoClient.status() : null,
+    secretsDir: config.secretsMode === 'file' ? config.secretsDir : undefined,
     platform: config.platform,
     region: config.region,
     environment: config.nodeEnv,

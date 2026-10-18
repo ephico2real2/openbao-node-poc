@@ -45,6 +45,9 @@ export const config = Object.freeze({
   //   aws:           'sdk'   -> AWS SDK v3 GetSecretValue + in-process cache (default)
   //                  'agent' -> AWS Workload Credentials Provider on http://localhost:2773 (SSRF token)
   //   openbao/vault: 'api'   -> the HTTP API (KV v2), AppRole login, token renewal (default)
+  //                  'file'  -> files in SECRETS_DIR, a Secret that External Secrets Operator
+  //                             keeps in sync (step v3); the app has no OpenBao identity
+  secretsDir: env.SECRETS_DIR ?? '/var/run/secrets/secure-notes',
   secretsMode: env.SECRETS_MODE ?? ((env.SECRETS_PROVIDER ?? 'aws').toLowerCase() === 'aws' ? 'sdk' : 'api'),
 
   // OpenBao / Vault: an address, a role and a FILE for the secret ID. No token
@@ -164,9 +167,12 @@ export function assertSafeEnvironment() {
   } else if (config.secretsProvider === 'aws') {
     if (!['sdk', 'agent'].includes(config.secretsMode)) problems.push(`SECRETS_MODE must be 'sdk' or 'agent' with SECRETS_PROVIDER=aws`);
   } else {
-    if (config.secretsMode !== 'api') problems.push(`SECRETS_MODE must be 'api' with SECRETS_PROVIDER=${config.secretsProvider}`);
-    if (!config.bao.addr) problems.push('BAO_ADDR is required (the OpenBao or Vault address)');
-    if (config.bao.auth === 'kubernetes') {
+    if (!['api', 'file'].includes(config.secretsMode)) problems.push(`SECRETS_MODE must be 'api' or 'file' with SECRETS_PROVIDER=${config.secretsProvider}`);
+    if (config.secretsMode === 'file') {
+      if (!config.secretsDir) problems.push('SECRETS_DIR is required with SECRETS_MODE=file');
+    } else if (!config.bao.addr) {
+      problems.push('BAO_ADDR is required (the OpenBao or Vault address)');
+    } else if (config.bao.auth === 'kubernetes') {
       if (!config.bao.k8sRole) problems.push('BAO_K8S_ROLE is required with BAO_AUTH=kubernetes (the OpenBao role bound to this service account)');
     } else if (config.bao.auth === 'approle') {
       if (!config.bao.roleId) problems.push('BAO_ROLE_ID is required (the AppRole role ID; it is not a secret)');
@@ -183,7 +189,7 @@ export function assertSafeEnvironment() {
       problems.push('static AWS_ACCESS_KEY_ID found in production; use the EC2 instance role instead');
     }
     if (config.awsEndpoint) problems.push('AWS_MOCK_ENDPOINT must not be set in production');
-    if (config.secretsProvider !== 'aws' && config.bao.addr && !config.bao.addr.startsWith('https://')) {
+    if (config.secretsProvider !== 'aws' && config.secretsMode !== 'file' && config.bao.addr && !config.bao.addr.startsWith('https://')) {
       problems.push('BAO_ADDR must be https:// in production: the token and every secret travel on this connection');
     }
     if (config.demo.enabled) problems.push('DEMO_MODE must not be enabled in production');

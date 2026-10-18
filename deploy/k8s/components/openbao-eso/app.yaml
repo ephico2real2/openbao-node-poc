@@ -1,0 +1,26 @@
+# The app mounts the Secret as a VOLUME (never env, never subPath: a subPath
+# file is never updated) and gets no OpenBao token at all.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-notes
+spec:
+  template:
+    spec:
+      securityContext:
+        fsGroup: 1000 # the files are group-readable (0440) by the app's group
+      containers:
+        - name: app
+          volumeMounts:
+            - mountPath: /var/run/secrets/openbao
+              $patch: delete
+            - name: credentials
+              mountPath: /var/run/secrets/secure-notes
+              readOnly: true
+      volumes:
+        - name: openbao-token
+          $patch: delete
+        - name: credentials
+          secret:
+            secretName: secure-notes-credentials
+            defaultMode: 0440

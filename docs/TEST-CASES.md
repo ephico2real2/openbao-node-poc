@@ -176,3 +176,22 @@ users OpenBao creates for it, each with a lease. The C, D, F, S and L tests also
 | Y8 | At the max TTL the app switches to a new user without a failed request | the walk waits on the dashboard | `(lease-max-ttl)` and `New Postgres connections use the newly issued user` shown | walk |
 | Y9 | The leased passwords appear nowhere but the app's revealed log | `LOG_REVEAL_SECRETS=true`; the scan takes them from the app log | FOUND in the app log only | compose (openbao-dynamic) |
 
+## 13. Kubernetes with OpenBao (step v3)
+
+[Step v3](../steps/v3-k8s/README.md): OpenBao from its Helm chart on kind. `kind (openbao)`
+runs the app in api mode with Kubernetes auth; `kind (openbao-eso)` runs it in file mode
+with External Secrets Operator.
+
+| ID | What it proves | How | Pass rule | Runs in |
+| --- | --- | --- | --- | --- |
+| K8B1 | OpenBao comes up initialised and unsealed with no manual step | `bao status` in `openbao-0` | initialized, not sealed | kind (openbao, openbao-eso) |
+| K8B2 | The app logs in with Kubernetes auth, with a projected token for OpenBao and no Kubernetes API token | `/api/config`; the token's claims in the pod; no `/var/run/secrets/kubernetes.io` token | auth `kubernetes`; audience `openbao`; ≤ 60 min | kind (openbao) |
+| K8B3 | Kubernetes auth re-reads the rotated token file at each login | fake server, token file rewritten | the second login sends the new token | unit |
+| K8B4 | Leased Postgres users on Kubernetes | `pg_stat_activity` | every app session's user starts `v-` | kind (openbao) |
+| K8B5 | ESO's store authenticates to OpenBao and the ExternalSecret is Ready | `ClusterSecretStore` and `ExternalSecret` Ready conditions | `True` | kind (openbao-eso) |
+| K8B6 | The Secret reaches the app as a whole-volume mount only | the Deployment spec | no `env`/`envFrom` secret refs, no `subPath` | kind (openbao-eso) |
+| K8B7 | In file mode the app has no OpenBao identity | no OpenBao token file in the pod; posture "No OpenBao identity in the app" | absent; pass | kind (openbao-eso), walk |
+| K8B8 | A rotation in OpenBao reaches the app as a file, without a restart | the `rotate-db` Job, then `/api/secrets` | db version changes (`file-changed`) within 240 s; a note is written; restartCount 0 | kind (openbao-eso) |
+| K8B9 | A ..data swap triggers a re-read; a secret ID can't escape the directory | a kubelet-style directory in a temp dir | new version with reason `file-changed`; `../../etc/passwd` refused | unit |
+| K8B10 | Outside the ESO Secret and the mounted files, the values are nowhere | the credential scan (k8s) | clean; the two by-design places are reported as such | kind (openbao-eso) |
+

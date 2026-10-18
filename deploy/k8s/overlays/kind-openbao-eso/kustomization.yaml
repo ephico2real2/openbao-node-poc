@@ -1,0 +1,30 @@
+# Step v3, file mode, on kind: as kind-openbao, but the app reads its
+# credentials from a mounted Secret that External Secrets Operator keeps in
+# sync with OpenBao.
+#
+#   scripts/kind-up.sh && KIND_OPENBAO=1 scripts/images-build.sh
+#   scripts/openbao-k8s-up.sh && scripts/eso-k8s-up.sh
+#   scripts/k8s-deploy.sh deploy/k8s/overlays/kind-openbao-eso
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: secure-notes
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+components:
+  - ../../components/local-backing-services
+  - ../../components/openbao
+  - ../../components/openbao-eso
+
+patches:
+  - target: { kind: Service, name: secure-notes }
+    patch: |-
+      - op: add
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080
