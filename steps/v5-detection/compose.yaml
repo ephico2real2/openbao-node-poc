@@ -17,10 +17,8 @@ services:
     command: ["-storageDataPath=/vlogs", "-retentionPeriod=7d", "-loggerLevel=WARN"]
     volumes:
       - vlogs-data:/vlogs
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9428/health"]
-      interval: 2s
-      retries: 30
+    # No healthcheck: the image has no shell tools to run one. The shipper and
+    # vmalert retry until it answers.
 
   audit-shipper:
     image: secure-notes-app:dev # the app's image, another entry point
@@ -32,7 +30,7 @@ services:
       - bao-logs:/audit:ro
     depends_on:
       openbao: { condition: service_healthy }
-      victorialogs: { condition: service_healthy }
+      victorialogs: { condition: service_started }
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -48,7 +46,7 @@ services:
     volumes:
       - ./dev/detect/rules.yml:/rules/rules.yml:ro
     depends_on:
-      victorialogs: { condition: service_healthy }
+      victorialogs: { condition: service_started }
       alert-console: { condition: service_started }
 
   alert-console:

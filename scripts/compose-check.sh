@@ -140,7 +140,8 @@ if docker compose ps --services --status running 2>/dev/null | grep -qx alert-co
   echo "== step v5: OpenBao audit log -> VictoriaLogs -> vmalert -> alert console"
   ac() { curl -fsS "http://localhost:3100/api/alerts"; }
   shipped=$(docker compose logs --no-color audit-shipper 2>/dev/null | grep -c 'audit-ship')
-  stored=$(docker compose exec -T victorialogs wget -qO- 'http://127.0.0.1:9428/select/logsql/query?query=type:%3Dresponse%20%7C%20stats%20count()%20as%20n' 2>/dev/null | jq -r .n)
+  # Asked from the console's container (the app image has node; the VictoriaLogs image has no shell tools).
+  stored=$(docker compose exec -T alert-console node -e "fetch('http://victorialogs:9428/select/logsql/query?query='+encodeURIComponent('type:=response | stats count() as n')).then(r=>r.text()).then(t=>console.log(t))" 2>/dev/null | jq -r .n)
   [ "${stored:-0}" -gt 0 ] && ok "VictoriaLogs holds ${stored} audit response line(s) shipped from OpenBao's audit log" || fail "no audit lines in VictoriaLogs (shipper log lines: $shipped)"
   sleep 15 # one rule interval and a bit, so anything the app did would have fired by now
   n=$(ac | jq '[.alerts[] | select(.labels.alertname == "SecretReadByUnexpectedIdentity")] | length')
