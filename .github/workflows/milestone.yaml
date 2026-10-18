@@ -32,17 +32,32 @@ jobs:
 
       - name: Create the annotated tag
         env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
           REF: ${{ inputs.ref }}
           TITLE: ${{ inputs.title }}
+        # Each failure is also an ::error:: annotation, readable without the log.
+        # If git refuses the push, the tag is made through the REST API instead
+        # (an annotated tag object, then its ref).
         run: |
           set -euo pipefail
-          [[ "$TAG" =~ ^v[0-9]+-[a-z0-9-]+$ ]] || { echo "::error::tag must look like v2-alerts"; exit 1; }
-          sha=$(git rev-parse --verify "$REF^{commit}")
+          err() { echo "::error title=milestone::$*"; exit 1; }
+          [[ "$TAG" =~ ^v[0-9]+-[a-z0-9-]+$ ]] || err "tag must look like v2-alerts, got '$TAG'"
+          sha=$(git rev-parse --verify "$REF^{commit}" 2>/dev/null) || err "no commit '$REF' in this repository"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then err "tag $TAG exists already"; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" "$sha" -m "$TITLE"
-          git push origin "refs/tags/$TAG"
+          if out=$(git push origin "refs/tags/$TAG" 2>&1); then
+            echo "pushed $TAG -> $sha"
+          else
+            echo "::warning title=milestone::git push refused: $(tr '\n' ' ' <<< "$out" | cut -c1-600)"
+            obj=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/tags" -f tag="$TAG" -f message="$TITLE" -f object="$sha" -f type=commit --jq .sha 2>&1) \
+              || err "the API refused the tag object too: $(tr '\n' ' ' <<< "$obj" | cut -c1-600)"
+            out=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$obj" 2>&1) \
+              || err "the API refused the tag ref: $(tr '\n' ' ' <<< "$out" | cut -c1-600)"
+            echo "created $TAG -> $sha through the API"
+          fi
 
       - name: Publish the release
         env:
@@ -50,4 +65,7 @@ jobs:
           TAG: ${{ inputs.tag }}
           TITLE: ${{ inputs.title }}
           NOTES: ${{ inputs.notes_file }}
-        run: gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" --verify-tag
+        run: |
+          out=$(gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" --verify-tag 2>&1) \
+            || { echo "::error title=milestone::release not created: $(tr '\n' ' ' <<< "$out" | cut -c1-600)"; exit 1; }
+          echo "$out"
