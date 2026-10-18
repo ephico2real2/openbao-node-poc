@@ -51,25 +51,25 @@ Evidence: [HANDOVER.md](../../HANDOVER.md), [CLAUDE.md](../../CLAUDE.md), [scrip
 
 ### B2 — One switch: SECRETS_PROVIDER=aws|openbao|vault
 
-[#8](https://github.com/ephico2real2/openbao-node-poc/issues/8) · 🔜 · **Outcome:** The app chooses its secrets manager with one setting; everything above the fetcher (cache, rotation recovery, masking, reveal flag) is unchanged. Docs: [initiative](README.md)
+[#8](https://github.com/ephico2real2/openbao-node-poc/issues/8) · ✅ · **Outcome:** The app chooses its secrets manager with one setting; everything above the fetcher (cache, rotation recovery, masking, reveal flag) is unchanged. Docs: [initiative](README.md)
 
-**S2.1 · Providers for reading** · M · 🔜 · [#9](https://github.com/ephico2real2/openbao-node-poc/issues/9)
+**S2.1 · Providers for reading** · M · ✅ · [#9](https://github.com/ephico2real2/openbao-node-poc/issues/9)
 *As a developer, I want each secrets manager behind the same interface, so that the cache and the clients don't care which one is in use.*
 - [x] backend/src/secrets/index.js picks the fetcher by SECRETS_PROVIDER; fetchers.js (aws) and bao/kv.js (openbao, vault) return the same shape; for KV v2 the version is the KV version.
 - [x] bao: plain fetch against the HTTP API, no new dependency; openbao and vault share it.
 - [x] Unit tests against a fake HTTP server, and against a real OpenBao 2.7.1 started from the lab's own config.
-- [ ] SECRETS_MODE=file (a mounted directory, watched) arrives with B5 (S5.2).
+- [x] SECRETS_MODE=file reads a mounted directory and watches it (backend/src/secrets/file-fetcher.js), for External Secrets Operator (S5.2).
 
-Evidence: [backend/src/secrets/index.js](../../backend/src/secrets/index.js), [backend/src/secrets/bao/kv.js](../../backend/src/secrets/bao/kv.js), [backend/test/bao.test.js](../../backend/test/bao.test.js)
+Evidence: [backend/src/secrets/index.js](../../backend/src/secrets/index.js), [backend/src/secrets/bao/kv.js](../../backend/src/secrets/bao/kv.js), [backend/src/secrets/file-fetcher.js](../../backend/src/secrets/file-fetcher.js), [backend/test/bao.test.js](../../backend/test/bao.test.js), [backend/test/file-fetcher.test.js](../../backend/test/file-fetcher.test.js)
 
-**S2.2 · Authentication without a credential in the environment** · M · 🔜 · [#10](https://github.com/ephico2real2/openbao-node-poc/issues/10)
+**S2.2 · Authentication without a credential in the environment** · M · ✅ · [#10](https://github.com/ephico2real2/openbao-node-poc/issues/10)
 *As a security engineer, I want the app to log in to OpenBao without a token in its environment, so that the no-env rule still holds.*
 - [x] AppRole with the secret ID read from a file (mode 0400, never env), re-read at each login.
-- [ ] Kubernetes auth with a projected, audience-bound service-account token (with B5).
+- [x] Kubernetes auth with a projected, audience-bound service-account token (with B5).
 - [x] Token renew-self at 2/3 of its TTL; re-login at the max TTL and on 403; the token and secret ID are registered with the redactor and never logged.
 - [x] config.js refuses BAO_TOKEN, VAULT_TOKEN, BAO_SECRET_ID, VAULT_SECRET_ID and the existing credential variables; production refuses plain-HTTP BAO_ADDR.
 
-Evidence: [backend/src/secrets/bao/client.js](../../backend/src/secrets/bao/client.js), [backend/test/bao.test.js](../../backend/test/bao.test.js), [backend/test/config.test.js](../../backend/test/config.test.js)
+Evidence: [backend/src/secrets/bao/client.js](../../backend/src/secrets/bao/client.js), [backend/test/bao.test.js](../../backend/test/bao.test.js), [backend/test/config.test.js](../../backend/test/config.test.js), CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) kind (openbao): the app logged in with Kubernetes auth; its token is projected (audience openbao, valid 10 min); no Kubernetes API token in the pod
 
 **S2.3 · Stores for writing (seed and the demo rotation)** · M · ✅ · [#11](https://github.com/ephico2real2/openbao-node-poc/issues/11)
 *As a presenter, I want the seed job and the rotation lab to work on every provider, so that the same demos run on OpenBao.*
@@ -125,42 +125,53 @@ Evidence: CI run [39164263518](https://github.com/ephico2real2/openbao-node-poc/
 
 [#18](https://github.com/ephico2real2/openbao-node-poc/issues/18) · 🔜 · **Outcome:** On kind and OpenShift, credentials arrive as a mounted Secret (never env), or through Kubernetes auth, and refresh without a restart. Docs: [initiative](README.md)
 
-**S5.1 · OpenBao on Kubernetes** · M · 🔜 · [#19](https://github.com/ephico2real2/openbao-node-poc/issues/19)
+**S5.1 · OpenBao on Kubernetes** · M · ✅ · [#19](https://github.com/ephico2real2/openbao-node-poc/issues/19)
 *As a platform engineer, I want OpenBao installed by its Helm chart, so that the cluster lab matches production practice.*
-- [ ] Helm (raft) on kind in CI and on OpenShift (restricted-v2, Routes).
-- [ ] Kubernetes auth for SECRETS_MODE=api.
+- [x] The openbao chart (raft, one replica) on kind in CI, initialised and unsealed by itself (static seal, self-init); chart and app pinned in scripts/versions.env.
+- [x] Kubernetes auth for SECRETS_MODE=api: a projected service-account token (audience openbao, 10 min), TokenReview through system:auth-delegator, no Kubernetes API token in the app pod.
+- [x] Database users with leases, as in step v2; the seed job resumes when it runs again (the bootstrap passwords are burned).
 
-Evidence: [initiative](README.md)
+Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) kind (openbao): OpenBao 2.7.1 (Helm, raft storage) initialized and unsealed by itself; Kubernetes auth; leased Postgres user; k8s-check: all checks passed ([k8s-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2203Z_ci_run39169755271-1_kind-openbao-logs/k8s-check.txt)), [steps/v3-k8s/README.md](../../steps/v3-k8s/README.md), [demo test case 21](../../demo/test-case-21-kubernetes-auth.md)
 
-**S5.2 · External Secrets Operator and a watched volume** · L · 🔜 · [#20](https://github.com/ephico2real2/openbao-node-poc/issues/20)
+**S5.2 · External Secrets Operator and a watched volume** · L · ✅ · [#20](https://github.com/ephico2real2/openbao-node-poc/issues/20)
 *As a developer, I want ESO to deliver the credential as files, so that the app needs no OpenBao client in the cluster.*
-- [ ] ClusterSecretStore (Vault provider) and ExternalSecret; the Secret is mounted, no envFrom and no subPath.
-- [ ] SECRETS_MODE=file watches the ..data swap and re-reads on a timer; rotation in OpenBao reaches the app without a restart.
-- [ ] k8s-check and the credential scan extended.
+- [x] ClusterSecretStore (Vault provider) and ExternalSecret; the Secret is mounted, no envFrom and no subPath.
+- [x] SECRETS_MODE=file watches the ..data swap and re-reads on a timer; rotation in OpenBao reaches the app without a restart.
+- [x] k8s-check and the credential scan extended.
 
-Evidence: [initiative](README.md)
+Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) kind (openbao-eso): ExternalSecret Ready; mounted as a volume, no env, envFrom or subPath; no OpenBao token in the app pod; a rotation Job outside the app moved the KV version 1 -> 2 and the new version reached the app in 56 s without a restart ([k8s-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2204Z_ci_run39169755271-1_kind-openbao-eso-logs/k8s-check.txt)), [overlay kind-openbao-eso](../../deploy/k8s/overlays/kind-openbao-eso/kustomization.yaml), [demo test case 22](../../demo/test-case-22-external-secrets.md)
+
+**S5.3 · OpenBao and External Secrets on a real OpenShift** · M · 🔜 · [#32](https://github.com/ephico2real2/openbao-node-poc/issues/32)
+*As an OpenShift user, I want the step v3 lab proven on OpenShift, so that the restricted-v2 SCC and Routes are known to work.*
+- [x] steps/v3-k8s/openbao-values-openshift.yaml written (the chart's OpenShift mode; UIDs left to restricted-v2); openbao-k8s-up.sh adds it on OpenShift.
+- [ ] Run on OpenShift Local or a dev cluster: OpenBao up, Kubernetes auth, the ESO overlay, k8s-check green; captures from that run.
+- [ ] Images built on the cluster for Apple-silicon Macs (openshift-build.sh) checked with the OpenBao overlays.
+
+Evidence: [step v3: OpenShift (unproven)](../../steps/v3-k8s/README.md)
 
 ### B6 — The same app on HashiCorp Vault (steps/v4-vault)
 
-[#21](https://github.com/ephico2real2/openbao-node-poc/issues/21) · 🔜 · **Outcome:** SECRETS_PROVIDER=vault runs the same lab on Vault, including its Redis database plugin. Docs: [initiative](README.md)
+[#21](https://github.com/ephico2real2/openbao-node-poc/issues/21) · ✅ · **Outcome:** SECRETS_PROVIDER=vault runs the same lab on Vault, including its Redis database plugin. Docs: [initiative](README.md)
 
-**S6.1 · Vault variant** · M · 🔜 · [#22](https://github.com/ephico2real2/openbao-node-poc/issues/22)
+**S6.1 · Vault variant** · M · ✅ · [#22](https://github.com/ephico2real2/openbao-node-poc/issues/22)
 *As a Vault user, I want the same app on Vault, so that both products are covered.*
-- [ ] Vault 2.x server config (no dev mode); the same app and seed; the Redis database plugin.
-- [ ] CI job compose (vault).
+- [x] Vault 2.2.0 server config (no dev mode); Vault has no self-init, so dev/vault/entrypoint.sh initialises (one key share), unseals, configures with the root token in memory only, then revokes it.
+- [x] The same app image and seed with SECRETS_PROVIDER=vault; AppRole, KV v2, dynamic Postgres users, and Vault's Redis database plugin.
+- [x] CI job compose (vault) with captures; the checks job runs the entrypoint against the real Vault binary (dev/vault/test-entrypoint.sh).
 
-Evidence: [initiative](README.md)
+Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) compose (vault): logged in to Vault as secure-notes-app; bootstrap secret ID spent; both leases revoked and recovered; 6 attempts, 0 leaks; credential scan clean ([compose-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2203Z_ci_run39169755271-1_compose-vault-logs/compose-check.txt)), [steps/v4-vault/README.md](../../steps/v4-vault/README.md), [demo test case 23](../../demo/test-case-23-vault.md)
 
 ### B7 — Audit-based detection: an unexpected read raises an alert
 
-[#23](https://github.com/ephico2real2/openbao-node-poc/issues/23) · 🔜 · **Outcome:** OpenBao's audit log is the source of truth for who read what; a rule on the log store raises the alert, as CloudTrail does on AWS. Docs: [initiative](README.md)
+[#23](https://github.com/ephico2real2/openbao-node-poc/issues/23) · ✅ · **Outcome:** OpenBao's audit log is the source of truth for who read what; a rule on the log store raises the alert, as CloudTrail does on AWS. Docs: [initiative](README.md)
 
-**S7.1 · From the audit log to an alert** · L · 🔜 · [#24](https://github.com/ephico2real2/openbao-node-poc/issues/24)
+**S7.1 · From the audit log to an alert** · L · ✅ · [#24](https://github.com/ephico2real2/openbao-node-poc/issues/24)
 *As a security engineer, I want a read by an unexpected entity to page someone, so that a leaked token is noticed.*
-- [ ] File audit device → OpenTelemetry Collector → VictoriaLogs → vmalert → a webhook console.
-- [ ] A detection lab button reads a secret with another AppRole.
+- [x] File audit device → a tail shipper (backend/scripts/audit-ship.js) → VictoriaLogs → vmalert → a webhook console (backend/scripts/alert-console.js). A small shipper replaces the OpenTelemetry Collector of the plan: one dependency-free script, unit-tested.
+- [x] An intruder job (docker compose run --rm intruder) reads the app's secret as the over-broad ops-admin AppRole; the rule SecretReadByUnexpectedIdentity names the role and the path; nothing the app does alerts.
+- [x] CI job compose (openbao-detection); the checks job runs dev/detect/test-detection.sh with the real VictoriaLogs and vmalert binaries.
 
-Evidence: [initiative](README.md)
+Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) compose (openbao-detection): 107 audit lines shipped; no alert from the app; alert SecretReadByUnexpectedIdentity for ops-admin reading secret/data/rds/dev/notes-db/app ([compose-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2203Z_ci_run39169755271-1_compose-openbao-detection-logs/compose-check.txt)), [steps/v5-detection/README.md](../../steps/v5-detection/README.md), [dev/detect/rules.yml](../../dev/detect/rules.yml), [demo test case 24](../../demo/test-case-24-detection.md)
 
 ## Track TUTORIAL — building the tutorial
 
@@ -178,16 +189,17 @@ Evidence: [ADR-002](03-adr-002-openbao-first.md), Facts checked 2026-10-18 again
 
 ### B8 — Tutorial: learning chapters, guide and demos
 
-[#25](https://github.com/ephico2real2/openbao-node-poc/issues/25) · 🔜 · **Outcome:** Learners can follow the move from AWS Secrets Manager to OpenBao and Vault, step by step, with CI evidence. Docs: [initiative](README.md)
+[#25](https://github.com/ephico2real2/openbao-node-poc/issues/25) · ✅ · **Outcome:** Learners can follow the move from AWS Secrets Manager to OpenBao and Vault, step by step, with CI evidence. Docs: [initiative](README.md)
 
-**S8.1 · Chapters** · M · 🔜 · [#26](https://github.com/ephico2real2/openbao-node-poc/issues/26)
+**S8.1 · Chapters** · M · ✅ · [#26](https://github.com/ephico2real2/openbao-node-poc/issues/26)
 *As a junior engineer, I want the new ideas explained, so that I understand why each step exists.*
-- [ ] Secret zero and AppRole; leases and dynamic credentials; ESO and mounted secrets; OpenBao vs Vault.
+- [x] Secret zero and AppRole; leases and dynamic credentials; ESO and mounted secrets; OpenBao vs Vault; detection on the audit log (chapters 7–11).
 
-Evidence: [initiative](README.md)
+Evidence: [learning path](../learn/README.md), [chapter 7](../learn/07-secret-zero-and-approle.md), [chapter 11](../learn/11-detection-on-the-audit-log.md)
 
-**S8.2 · Guide, tutorial and demo pages from this repo's CI** · M · 🔜 · [#27](https://github.com/ephico2real2/openbao-node-poc/issues/27)
+**S8.2 · Guide, tutorial and demo pages from this repo's CI** · M · ✅ · [#27](https://github.com/ephico2real2/openbao-node-poc/issues/27)
 *As a presenter, I want demo pages with this repo's screenshots, so that the evidence is the code in front of me.*
-- [ ] Demo pages replaced with this repo's captures; GUIDE covers Compose, kind and OpenShift Local on a Mac.
+- [x] Demo pages 19–24 for steps v1–v5, and pages 1–12 and 18 pointed at this repo's CI run, each quoting its real output; a progression story in demo/README.md.
+- [x] GUIDE and TUTORIAL cover every step on Compose and kind; OpenShift stays labelled unproven (S5.3).
 
-Evidence: [initiative](README.md)
+Evidence: [demo pages](../../demo/README.md), [docs/GUIDE.md](../GUIDE.md), [docs/TUTORIAL.md](../TUTORIAL.md), Screenshots and output from CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271)

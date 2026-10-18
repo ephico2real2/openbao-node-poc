@@ -4,7 +4,7 @@
 
 **What it proves:** the app gets both credentials from Secrets Manager at startup and keeps them only in memory; the dashboard shows which secret and version it holds, never the value.
 
-**Catalogue IDs:** S1–S8 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `compose (sdk)`, `compose (agent)`, `kind` · **Evidence from:** [CI run 39093063634](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39093063634), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** S1–S8 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `compose (sdk)`, `compose (agent)`, `kind (aws)` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [captures](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2159Z_ci_run39169755271-1_compose-compose-sdk), [check output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_compose-sdk-logs/compose-check.txt)
 
 ## Steps
 
@@ -39,8 +39,8 @@ Smoke test against http://localhost:3000
   mode: sdk (local mock)
   ok    health: postgres and redis reachable
   ok    notes: write to postgres, read through redis  (postgres -> redis)
-  ok    rotate db secret (createSecret -> setSecret -> testSecret -> finishSecret)  (new version 2ca1634d)
-  ok    rotate redis secret (createSecret -> setSecret -> testSecret -> finishSecret)  (new version 38bf9dd6)
+  ok    rotate db secret (createSecret -> setSecret -> testSecret -> finishSecret)  (new version 02926556)
+  ok    rotate redis secret (createSecret -> setSecret -> testSecret -> finishSecret)  (new version b9d2cd05)
   ok    drop connections, then app recovers with the rotated credentials  (recovered: db, redis)
   ok    secrets dashboard shows the new versions in cache
   ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)

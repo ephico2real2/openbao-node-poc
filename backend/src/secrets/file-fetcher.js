@@ -21,6 +21,7 @@ import { createHash } from 'node:crypto';
 export function createFileFetcher({ dir, logger, watchImpl = watch }) {
   const log = logger?.child({ component: 'secrets-file' });
   const known = new Set();
+  const seen = new Map(); // file -> { hash, version }
   let handler = () => {};
   let watcher;
   let debounce;
@@ -56,16 +57,26 @@ export function createFileFetcher({ dir, logger, watchImpl = watch }) {
       const text = await readFile(join(dir, name), 'utf8');
       known.add(name);
       startWatch();
-      let version;
-      try {
-        version = basename(await readlink(join(dir, '..data'))); // the kubelet's timestamped directory
-      } catch {
-        version = createHash('sha256').update(text).digest('hex').slice(0, 12); // a plain directory (local runs)
+      // The version is when this CONTENT arrived: the time in the name of the
+      // kubelet's directory (..2026_10_18_22_03_24.3178266370 -> 22:03:24.317826).
+      // The kubelet swaps the whole volume, so an unchanged file keeps its
+      // version: only the secret that really changed shows a new one.
+      const hash = createHash('sha256').update(text).digest('hex');
+      let version = seen.get(name)?.hash === hash ? seen.get(name).version : undefined;
+      if (!version) {
+        try {
+          const d = basename(await readlink(join(dir, '..data')));
+          const m = /(\d{2})_(\d{2})_(\d{2})\.(\d{1,6})/.exec(d);
+          version = m ? `${m[1]}:${m[2]}:${m[3]}.${m[4]}` : d.replace(/^\.\./, '');
+        } catch {
+          version = hash.slice(0, 12); // a plain directory (local runs)
+        }
+        seen.set(name, { hash, version });
       }
       return {
         name: secretId,
         arn: undefined,
-        versionId: version.replace(/^\.\./, ''),
+        versionId: version,
         versionStages: ['file'],
         createdDate: undefined,
         secretString: text.trim(),

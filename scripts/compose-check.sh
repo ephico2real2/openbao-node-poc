@@ -103,7 +103,7 @@ if [ "$dynamic" = true ]; then
   pgq() { docker compose exec -T postgres psql -U postgres -d notes -tAc "$1" 2>/dev/null; }
   users=$(pgq "SELECT string_agg(DISTINCT usename, ' ') FROM pg_stat_activity WHERE application_name = 'secure-notes'")
   case "$users" in
-    v-*) if grep -q notes_app <<< "$users"; then fail "the app still logs in as the stored user notes_app"; else ok "the app's Postgres sessions use a user OpenBao created for it (${users:0:20}…), not a stored one"; fi ;;
+    v-*) if grep -q notes_app <<< "$users"; then fail "the app still logs in as the stored user notes_app"; else ok "the app's Postgres sessions use a user $SMNAME created for it (${users:0:20}…), not a stored one"; fi ;;
     *) fail "the app's Postgres sessions are not a leased user: '$users'" ;;
   esac
   # A renewal happens at 2/3 of the lease TTL (lab: 30 s).

@@ -28,10 +28,10 @@ the key ID as the caller's identity:
 | --- | --- | --- |
 | `local-app` | assumed role `secure-notes-app` | the app |
 | `local-seed` | the deployer | the seed job |
-| `local-intruder-user` | IAM user `mallory` | (kept for the detection lab of epic B7) |
-| `local-intruder-role` | assumed role `ops-admin` | (the same) |
+| `local-intruder-user` | IAM user `mallory` | nothing here yet: kept from the sibling, whose AWS detection lab uses it |
+| `local-intruder-role` | assumed role `ops-admin` | the same. Step v5 does its detection on OpenBao instead, with an AppRole also called `ops-admin` |
 | *(unsigned)* | `local-tooling` | the credential scan and health checks |
 
-OpenBao (`dev/openbao/`, epic B3) and later Vault (`dev/vault/`, epic B6) are real servers
-with lab configuration, not stand-ins. Lab-only parts are marked in the files: the seal key
-sits next to the data, and the listener is plain HTTP.
+OpenBao (`dev/openbao/`, epic B3) and Vault (`dev/vault/`, epic B6) are real servers with
+lab configuration, not stand-ins. Lab-only parts are marked in the files: the seal or unseal
+key sits next to the data, and the listener is plain HTTP.

@@ -4,7 +4,7 @@
 
 **What it proves:** the app can read its secrets through a local agent (the AWS Workload Credentials Provider on EC2) instead of calling Secrets Manager; the agent only answers requests carrying its token, which only the app can read.
 
-**Catalogue IDs:** A1–A4 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `compose (agent)` · **Evidence from:** [CI run 39093063634](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39093063634), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** A1–A4 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `compose (agent)` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [captures](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2200Z_ci_run39169755271-1_compose-compose-agent), [check output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2200Z_ci_run39169755271-1_compose-agent-logs/compose-check.txt), [app log](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2200Z_ci_run39169755271-1_compose-agent-logs/compose.log)
 
 ## Steps
 
@@ -25,7 +25,7 @@ unset COMPOSE_FILE
 ## Evidence from the run
 
 ```
-== secrets mode: agent
+== secrets provider: aws, mode: agent
   ok    the agent served 4 secret fetch(es) to the app
   ok    the agent token is visible only to the agent and the app
   ok    the agent rejects a request without the SSRF token (403)
@@ -40,7 +40,7 @@ The app's debug log records where each token came from, masked:
   "secretId": "/rds/dev/notes-db/app",
   "agent": "http://127.0.0.1:2773",
   "tokenFile": "/var/run/awssm/token",
-  "ssrfTokenMasked": "******** (43 chars, fp=5d3a5b56)",
+  "ssrfTokenMasked": "******** (43 chars, fp=aacef420)",
   "refreshNow": false
 }
 ```

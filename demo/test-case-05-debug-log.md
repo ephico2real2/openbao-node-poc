@@ -4,7 +4,7 @@
 
 **What it proves:** with `LOG_LEVEL=debug`, the log says exactly which secret, which version and which keys each part of the app used, and never shows a password.
 
-**Catalogue IDs:** D1–D7 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** unit tests, `compose`, `kind` · **Evidence from:** [CI run 39093063634](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39093063634), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** D1–D7 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** unit tests, `compose (sdk)`, `compose (agent)`, `kind (aws)` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [app log](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_compose-sdk-logs/compose.log), [captures](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2159Z_ci_run39169755271-1_compose-compose-sdk), [kind app log](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_kind-aws-logs/secure-notes.log)
 
 ## Steps
 
@@ -40,18 +40,18 @@ A secret loaded at startup:
   "msg": "secret consumed",
   "component": "secrets",
   "secretId": "/elasticache/dev/notes-cache/app",
-  "versionId": "38bf9dd6-9518-4bc3-9a42-bdd7290693c7",
+  "versionId": "b9d2cd05-a80c-4566-90cc-b58bfc815a39",
   "stages": [
     "AWSCURRENT"
   ],
   "source": "sdk",
   "reason": "cold-start",
-  "fingerprint": "0a0752e9903a",
+  "fingerprint": "e84bbf9a7fe1",
   "keys": [
     "host=redis",
     "port=6379",
     "username=no*****pp",
-    "password=******** (32 chars, fp=4cb66641)"
+    "password=******** (32 chars, fp=13599bd0)"
   ]
 }
 ```
@@ -63,13 +63,13 @@ Postgres and Redis logins, showing which secret key feeds which setting:
   "msg": "postgres connecting with",
   "component": "db",
   "secretId": "/rds/dev/notes-db/app",
-  "fingerprint": "243205d32c76",
+  "fingerprint": "aa30d6635bf4",
   "host": "postgres",
   "port": 5432,
   "database": "notes",
   "using": [
     "user<-username=no*****pp",
-    "password<-password=******** (32 chars, fp=9a17e064)"
+    "password<-password=******** (32 chars, fp=3fdd52f4)"
   ]
 }
 ```
@@ -79,13 +79,13 @@ Postgres and Redis logins, showing which secret key feeds which setting:
   "msg": "redis authenticating with",
   "component": "redis",
   "secretId": "/elasticache/dev/notes-cache/app",
-  "fingerprint": "0a0752e9903a",
+  "fingerprint": "e84bbf9a7fe1",
   "host": "redis",
   "port": 6379,
   "why": "first connection",
   "using": [
     "username<-username=no*****pp",
-    "password<-password=******** (32 chars, fp=4cb66641)"
+    "password<-password=******** (32 chars, fp=13599bd0)"
   ]
 }
 ```

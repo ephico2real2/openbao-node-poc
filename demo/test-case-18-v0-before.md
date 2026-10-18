@@ -4,7 +4,7 @@
 
 **What it proves:** the starting point is real. `versions/v0-env-file` is the app before the redesign: passwords in a `.env` file, passed in as environment variables, and Redis given its password on the command line. Running the same kinds of checks against it finds the passwords almost everywhere, which is the "before" picture for test case 6.
 
-**Catalogue IDs:** N14 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `v0-leak` · **Evidence from:** [CI run 39142364657](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39142364657), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** N14 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `v0-leak` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [leak output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2154Z_ci_run39169755271-1_v0-leak/v0-leak.txt), [env-file demo](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2158Z_ci_run39169755271-1_env-file-demo/env-file-demo.txt)
 
 ## Steps
 
@@ -35,4 +35,4 @@ The values in `v0.env` are fake. The folder is never published as an image.
 see scripts/credential-scan.sh and docs/learn/02-the-env-file-problem.md.
 ```
 
-Compare with [test case 6](test-case-06-credential-scan.md), where the scan finds no password anywhere, and with [chapter 2 of the learning path](../docs/learn/02-the-env-file-problem.md), which explains each of these places.
+Compare with [test case 6](test-case-06-credential-scan.md), where the scan finds no password anywhere, and with [chapter 2 of the learning path](../docs/learn/02-the-env-file-problem.md), which explains each of these places. The same run's `env-file-demo` job shows the same thing for any container started with `--env-file`, with Podman, then Secure Notes started the same way with nothing to steal; its output is linked above.

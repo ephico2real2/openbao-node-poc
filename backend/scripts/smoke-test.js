@@ -62,7 +62,8 @@ const fileMode = cfg.secretsMode === 'file';
 if (fileMode) console.log('  skip  rotation and drop-connections: SECRETS_MODE=file (the rotation happens in OpenBao; k8s-check runs it)');
 
 for (const alias of fileMode ? [] : ['db', 'redis']) {
-  const what = dynamic ? `revoke the ${alias} lease (OpenBao drops the user)` : `rotate ${alias} secret (createSecret -> setSecret -> testSecret -> finishSecret)`;
+  const product = { openbao: 'OpenBao', vault: 'Vault' }[cfg.secretsProvider] ?? 'the secrets manager';
+  const what = dynamic ? `revoke the ${alias} lease (${product} drops the user)` : `rotate ${alias} secret (createSecret -> setSecret -> testSecret -> finishSecret)`;
   await check(what, async () => {
     const r = await call('POST', `/api/demo/rotate/${alias}`);
     const names = r.steps.map((s) => s.name);

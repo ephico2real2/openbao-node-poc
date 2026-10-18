@@ -4,7 +4,7 @@
 
 **What it proves:** for troubleshooting a wrong password, `LOG_REVEAL_SECRETS=true` makes the debug credential lines print the real values; it is impossible to miss while on, never reaches the dashboard, and it proves the scan catches a real leak.
 
-**Catalogue IDs:** C11, F1–F6 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** unit tests, `compose (sdk)` · **Evidence from:** [CI run 39093063634](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39093063634), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** C11, F1–F6 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** unit tests, `compose (sdk)` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [captures](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_compose-compose-sdk-reveal), [scan output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_compose-sdk-logs/credential-scan-revealed.txt)
 
 ## Steps
 
@@ -48,7 +48,7 @@ With the flag on, the scan finds the passwords in the app's log, and **still now
   ok    redis: container config (env, command, labels: docker inspect) clean
   ok    seed: container config (env, command, labels: docker inspect)  clean
   ok    app: process environment values (/proc/1/environ)              clean
-  ok    app: every readable file (5828 files)                          clean
+  ok    app: every readable file (5845 files)                          clean
   ok    postgres: data directory and config (plaintext passwords?)     clean
   ok    redis: data and ACL files (plaintext passwords?)               clean
 -- logs
@@ -63,20 +63,17 @@ With the flag on, the scan finds the passwords in the app's log, and **still now
 credential-scan: no credential value found anywhere it must not be
 ```
 
-What a revealed line looks like (the value replaced here, of course):
+The walk confirms the dashboard side:
 
-```json
-{
-  "level": "debug",
-  "component": "secrets",
-  "secretId": "/rds/dev/notes-db/app",
-  "msg": "secret consumed (values revealed)",
-  "keys": [
-    "username=no*****pp value=notes_app",
-    "password=******** (32 chars, fp=e5fc7aa0) value=<the real password>",
-    "host=postgres value=postgres"
-  ],
-  "revealed": true,
-  "warning": "secret values in this line are NOT masked (LOG_REVEAL_SECRETS=true)"
-}
 ```
+07-reveal-banner: found "Secret values are being written to the log", "VALUES REVEALED" — expectations met
+08-reveal-posture: found "Secret values kept out of logs", "LOG_REVEAL_SECRETS=true" — expectations met
+09-reveal-log-panel: found "secret values will be written to this log" — expectations met
+```
+
+The revealed lines themselves are not published: CI turns the flag off again before it
+saves the app's log (the log quoted in [test case 5](test-case-05-debug-log.md) starts at
+that restart). A revealed line is the normal `secret consumed` line with `(values revealed)`
+added to `msg`, each key followed by `value=…`, and two extra fields, `"revealed": true` and
+`"warning": "secret values in this line are NOT masked (LOG_REVEAL_SECRETS=true)"`
+(`backend/src/log.js`). Run the `jq` command above to see one of yours.

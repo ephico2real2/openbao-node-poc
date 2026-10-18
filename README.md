@@ -17,9 +17,13 @@ and on **HashiCorp Vault**. AWS Secrets Manager keeps working, behind the same s
 | `aws` (default) | AWS Secrets Manager (a bundled stand-in locally) | ✅ copied from the sibling repo, CI green |
 | `openbao` | OpenBao 2.7.1: KV v2 with AppRole ([step v1](steps/v1-openbao-kv/README.md)) | ✅ step v1 on Docker Compose, CI job `compose (openbao)` |
 | | Database users OpenBao creates per instance, with leases; Valkey ([step v2](steps/v2-openbao-dynamic/README.md)) | ✅ step v2 on Docker Compose, CI job `compose (openbao-dynamic)` |
-| | Kubernetes: OpenBao from its Helm chart, Kubernetes auth with projected tokens ([step v3](steps/v3-k8s/README.md)); then External Secrets Operator | 🚧 step v3 on kind, CI job `kind (openbao)` |
-| detection | OpenBao's audit log → VictoriaLogs → vmalert → an alert when anyone but the app reads its secret ([step v5](steps/v5-detection/README.md)) | 🚧 CI job `compose (openbao-detection)` |
-| `vault` | HashiCorp Vault 2.2.0: the same app and client, dynamic users, Vault's Redis plugin ([step v4](steps/v4-vault/README.md)) | 🚧 CI job `compose (vault)` |
+| | Kubernetes: OpenBao from its Helm chart, Kubernetes auth with projected tokens; or External Secrets Operator and a mounted, watched Secret ([step v3](steps/v3-k8s/README.md)) | ✅ step v3 on kind, CI jobs `kind (openbao)` and `kind (openbao-eso)`; OpenShift unproven |
+| `vault` | HashiCorp Vault 2.2.0: the same app and client, dynamic users, Vault's Redis plugin ([step v4](steps/v4-vault/README.md)) | ✅ step v4 on Docker Compose, CI job `compose (vault)` |
+| detection | OpenBao's audit log → VictoriaLogs → vmalert → an alert when anyone but the app reads its secret ([step v5](steps/v5-detection/README.md)) | ✅ step v5 on Docker Compose, CI job `compose (openbao-detection)` |
+
+To see it run, start with the [demo pages](demo/README.md): test cases 19–24 walk the steps
+with screenshots from CI. To learn why each step exists, read
+[chapters 7–11](docs/learn/README.md) of the learning path.
 
 **Where the work stands:** [initiative and epics](docs/modernization/README.md) ·
 [GitHub issues](https://github.com/ephico2real2/openbao-node-poc/issues). Each step gets a
@@ -61,8 +65,8 @@ have every command. [HANDOVER.md](HANDOVER.md) is for a new contributor or AI ag
 | [`backend/`](backend/README.md) | The app (Node.js): secrets cache, rotation-aware clients, logging |
 | [`frontend/`](frontend/README.md) | The dashboard: static files, no build step |
 | [`deploy/`](deploy/README.md) | kind cluster config and Kubernetes overlays (kind, OpenShift, AWS) |
-| [`dev/`](dev/README.md) | Dev/CI only: the AWS Secrets Manager stand-in, and the OpenBao lab server's config |
-| [`steps/`](steps/v1-openbao-kv/README.md) | One folder per step: its Compose overlay and README ([v1: OpenBao KV](steps/v1-openbao-kv/README.md), [v2: dynamic users](steps/v2-openbao-dynamic/README.md)) |
+| [`dev/`](dev/README.md) | Dev/CI only: the AWS Secrets Manager stand-in, the OpenBao and Vault lab servers' config, and the detection rules |
+| [`steps/`](steps/v1-openbao-kv/README.md) | One folder per step: its Compose overlay and README ([v1: OpenBao KV](steps/v1-openbao-kv/README.md), [v2: dynamic users](steps/v2-openbao-dynamic/README.md), [v3: Kubernetes](steps/v3-k8s/README.md), [v4: Vault](steps/v4-vault/README.md), [v5: detection](steps/v5-detection/README.md)) |
 | [`scripts/`](scripts/README.md) | Set up, run, prove and generate: the same scripts on a laptop and in CI |
 | [`docs/`](docs/README.md) | Learning path, tutorial, guide, test catalogue, reference, the initiative |
 | [`demo/`](demo/README.md) | One page per test case, with CI screenshots |

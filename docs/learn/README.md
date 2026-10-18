@@ -1,8 +1,12 @@
 # Learning path: from `.env` files to a centralized secrets manager
 
-Seven short chapters, each building on the last. The principles apply to any language and
-any secrets manager; **Secure Notes** (Node.js, Postgres, Redis, AWS) is the worked
-example throughout. About 30 minutes in total.
+Eleven short chapters, each building on the last. The principles apply to any language and
+any secrets manager; **Secure Notes** (Node.js, Postgres, Redis) is the worked example
+throughout. Chapters 1–6 use AWS Secrets Manager; chapters 7–11 follow the app onto
+OpenBao and HashiCorp Vault, one step folder at a time. About an hour in total.
+
+The sibling repo's chapter on [alerts and audit on AWS](https://github.com/ephico2real2/aws-secrets-manager-node-poc/blob/main/docs/learn/07-alerts-and-audit.md)
+(CloudTrail, SNS) is the AWS counterpart of chapter 11.
 
 | # | Chapter | You'll learn |
 | --- | --- | --- |
@@ -12,7 +16,11 @@ example throughout. About 30 minutes in total.
 | 4 | [Secure Notes, before and after](04-secure-notes-app.md) | The app's architecture with `.env` and with Secrets Manager, and the code an app must add |
 | 5 | [System design review](05-system-design.md) | What the AWS design gets right, what to improve, and the target architecture |
 | 6 | [Inside the app: request flows](06-request-flows.md) | Startup retrieval, rotation recovery and log masking, step by step |
-| 7 | [Alerts and audit](https://github.com/ephico2real2/aws-secrets-manager-node-poc/blob/main/docs/learn/07-alerts-and-audit.md) | *(in the sibling repo)* From a log line or a CloudTrail record to an email, an SMS and a chat post, locally and on AWS |
+| 7 | [Secret zero and AppRole](07-secret-zero-and-approle.md) | The "secret zero" problem, and how step v1 solves it on Compose: a role ID, a secret ID in a mode-0400 file, a one-time bootstrap for the seed job, and a token the app renews |
+| 8 | [Leases and dynamic credentials](08-leases-and-dynamic-credentials.md) | Step v2: a Postgres and a Valkey user per app instance, with a lease the app renews, re-issues and revokes; only OpenBao knows the admin |
+| 9 | [Kubernetes auth and External Secrets](09-kubernetes-auth-and-external-secrets.md) | Step v3: OpenBao from its Helm chart on kind, projected service-account tokens instead of a secret zero, and file mode with External Secrets Operator and its trade-offs |
+| 10 | [OpenBao and HashiCorp Vault](10-openbao-and-vault.md) | Step v4 and ADR-002: the same app on both servers, and what differs: licence, start-up, audit device, cache plugin |
+| 11 | [Detection on the audit log](11-detection-on-the-audit-log.md) | Step v5: from an audit log line (values HMAC'd) through a shipper, VictoriaLogs and a vmalert rule to an alert when anyone but the app reads its secret |
 
 ## Words you'll meet
 

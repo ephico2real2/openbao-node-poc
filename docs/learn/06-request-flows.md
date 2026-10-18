@@ -1,6 +1,6 @@
 # 6. Inside the app: how a secret travels, and how logs stay clean
 
-[← 5. System design](05-system-design.md) · [Learning path](README.md) · Next: [7. Alerts and audit →](https://github.com/ephico2real2/aws-secrets-manager-node-poc/blob/main/docs/learn/07-alerts-and-audit.md)
+[← 5. System design](05-system-design.md) · [Learning path](README.md) · Next: [7. Secret zero and AppRole →](07-secret-zero-and-approle.md)
 
 **What you'll learn:** the exact path a credential takes from Secrets Manager into a
 database login, what happens when it is rotated, and how every log line is cleaned.

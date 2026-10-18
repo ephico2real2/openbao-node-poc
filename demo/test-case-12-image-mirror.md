@@ -4,7 +4,7 @@
 
 **What it proves:** a cluster that cannot reach ghcr.io or Docker Hub can run the stack from its own registry: one command copies all four images and writes an overlay that pulls only from there.
 
-**Catalogue IDs:** K4 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `mirror` · **Evidence from:** [CI run 39093063634](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39093063634), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** K4 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `mirror` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [mirror output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2159Z_ci_run39169755271-1_mirror-logs/mirror.txt), [layer check](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2159Z_ci_run39169755271-1_mirror-logs/mirror-check.txt), [generated overlay](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2159Z_ci_run39169755271-1_mirror-logs/mirror-overlay.yaml)
 
 ## Steps
 
@@ -40,7 +40,7 @@ Then CI compares each copy with the original, layer by layer (uncompressed diges
 
 ```
   ok    localhost:5001/secure-notes/secure-notes-app:latest (10 identical layers)
-  ok    localhost:5001/secure-notes/secure-notes-aws-mock:latest (7 identical layers)
+  ok    localhost:5001/secure-notes/secure-notes-aws-mock:latest (8 identical layers)
   ok    localhost:5001/secure-notes/postgres:16 (14 identical layers)
   ok    localhost:5001/secure-notes/redis:7-alpine (7 identical layers)
 ```

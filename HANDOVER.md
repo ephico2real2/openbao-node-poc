@@ -29,14 +29,13 @@ approved plan's decisions are summarised there.
 | --- | --- | --- |
 | B0 | Seed: the app copied with the AWS path kept, AWS-only alerting removed, CI green | ✅ done (first CI run 39155150999, all jobs green) |
 | B1 | ADR-002: OpenBao first, Vault second, accurate facts | ✅ [ADR-002](docs/modernization/03-adr-002-openbao-first.md), facts checked 2026-10-18 |
-| B2 | Provider switch: `SECRETS_PROVIDER`, the OpenBao client and KV fetcher/store, AppRole with the secret ID in a file | ✅ AppRole done; Kubernetes auth comes with B5, `SECRETS_MODE=file` with B5 |
+| B2 | Provider switch: `SECRETS_PROVIDER`, the OpenBao client and KV fetcher/store, AppRole with the secret ID in a file | ✅ AppRole, Kubernetes auth and `SECRETS_MODE=file` |
 | B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | ✅ CI run 39161016646, every job green including `compose (openbao)`; the tag `v2-openbao-kv` is for the owner to cut |
 | B4 | `steps/v2-openbao-dynamic`: leases, dynamic Postgres users, Valkey | ✅ CI run 39164263518 (`compose (openbao-dynamic)`); tag `v3-openbao-dynamic` is for the owner to cut |
-| B5 (part 1) | `steps/v3-k8s`: OpenBao Helm on kind, Kubernetes auth, leased users | built; CI job `kind (openbao)` |
-| B5 | `steps/v3-k8s`: OpenBao Helm, External Secrets Operator, a watched volume, OpenShift | to do |
-| B6 | `steps/v4-vault`: the same app on Vault | to do |
-| B7 | OpenBao audit log → alert on an unexpected read | to do |
-| B8 | Tutorial: chapters, guide, demo pages from this repo's CI | to do |
+| B5 | `steps/v3-k8s`: OpenBao Helm on kind with Kubernetes auth; External Secrets Operator and a watched volume | ✅ on kind, CI run 39169755271 (`kind (openbao)`, `kind (openbao-eso)`); tag `v4-k8s` is for the owner to cut. **Open:** S5.3, a run on real OpenShift (the values file exists, unproven) |
+| B6 | `steps/v4-vault`: the same app on Vault 2.2.0 | ✅ CI run 39169755271 (`compose (vault)`, and the entrypoint against the real binary in `checks`); tag `v5-vault` is for the owner to cut |
+| B7 | `steps/v5-detection`: OpenBao audit log → VictoriaLogs → vmalert → alert console | ✅ CI run 39169755271 (`compose (openbao-detection)`); the evaluation delay fix is PR #31 |
+| B8 | Tutorial: chapters 7–11, GUIDE, TUTORIAL, demo pages 19–24 from this repo's CI | ✅ the B8 PR; every demo page now links this repo's runs |
 
 ## 2. Working rules (the owner's instructions; they override defaults)
 
@@ -83,8 +82,8 @@ scripts/preflight.sh       # then: docker compose up --build -d && scripts/compo
 The AWS deploy path is documented in the sibling repo and linked from GUIDE Part C.
 
 **Inherited docs and evidence.**
-- Demo pages' "Evidence from" links still point at the sibling's CI runs. B8 replaces them with this repo's captures.
-- Learning chapters link the sibling where they cite its backlog or chapter 7.
+- Every demo page links this repo's CI runs (B8 replaced the sibling's).
+- Learning chapters link the sibling where they cite its backlog, and its chapter on alerts with CloudTrail and SNS.
 
 ## 5. Where the code will change (from the approved plan)
 
@@ -94,13 +93,16 @@ What B2 and B3 built (the layout differs a little from the plan's `providers/` a
 - **The write side.** `demo/rotator.js` and `scripts/seed-local.js` call a store: `aws-store.js` (AWSPENDING/AWSCURRENT) or `bao/kv.js` `createKvStore` (pending at `<name>/pending`, promote with check-and-set).
 - **Auth.** `bao/client.js`: AppRole login with the secret ID read from a file each time, renewal at 2/3 of the TTL, re-login at the max TTL or on 403. Plain `fetch`, no new dependency.
 - **The lab server.** `dev/openbao/config.hcl` (static seal, self-init, audit device in config, policies, roles) and `entrypoint.sh`. `backend/test/bao.test.js` starts the real binary with this same file when `BAO_BIN` is set.
-- **Still to come.** Kubernetes auth and `SECRETS_MODE=file` (B5); leases and dynamic credentials (B4).
+- **Leases (B4).** `bao/leases.js`: a database user per instance from `database/creds/<role>`, renewed at 2/3 of the TTL, re-issued before the max TTL, the old lease revoked after a 15 s drain. `db.js` and `cache.js` switch to the new user on a `loaded` event.
+- **Kubernetes auth and file mode (B5).** `bao/client.js` `auth: 'kubernetes'` logs in with the projected token file. `file-fetcher.js` reads one JSON file per secret from a mounted directory, watches it, and keeps the version stable while the content hash is unchanged. `naming.js` `resolveStoredSecretIds` keeps the seed job, `rotate-kv.js` and the scan off dynamic and file-mode IDs.
+- **Vault (B6).** The same client with `product: 'Vault'`; `dev/vault/entrypoint.sh` initialises, unseals and configures it, then revokes the root token.
+- **Detection (B7).** `detect/shipper.js` tails the audit log into VictoriaLogs; `dev/detect/rules.yml` holds the vmalert rules; `detect/console.js` is the webhook console; `scripts/intruder.js` is the lab's unexpected reader (role `ops-admin`).
 - **Settings.**
   - `SECRETS_PROVIDER` picks the secrets manager.
   - `SECRETS_MODE` picks how the app reads it: `sdk|agent` for aws, `api|file` for bao.
   - `BAO_ADDR`, `BAO_AUTH`, `BAO_ROLE_ID`, `BAO_SECRET_ID_FILE` and `BAO_KV_MOUNT` configure the bao provider.
   - `config.js` must refuse `VAULT_TOKEN` and `BAO_TOKEN`.
-- **Pins.** Every version goes in `scripts/versions.env`. OpenBao 2.7.1 is pinned there (image and release binary with its checksum). Vault 2.2.x and External Secrets Operator 2.x come with B6 and B5; re-check each on its release page.
+- **Pins.** Every version goes in `scripts/versions.env`: OpenBao 2.7.1 (image, and the release binary with its checksum), the openbao chart 0.30.4, External Secrets Operator chart 2.13.0, Vault 2.2.0, Valkey 8.1, VictoriaLogs v1.53.0 and vmalert v1.154.0. Re-check each on its release page before changing it.
 
 ## 6. CI
 
@@ -109,14 +111,14 @@ The pattern is the sibling's (and cilium-implementation-poc's).
 Jobs today:
 - `checks`
 - `build` (once; SBOM and grype)
-- `compose (sdk, agent, openbao)`, with captures, the check and the credential scan (openbao: step v1)
-- `kind` (bootstrap/linux.sh, a strict preflight, mapped port 3000)
+- `compose (sdk, agent, openbao, openbao-dynamic, openbao-detection, vault)`, with captures, the check and the credential scan (one leg per step on Compose)
+- `kind (aws, openbao, openbao-eso)` (bootstrap/linux.sh, a strict preflight, mapped port 3000; the OpenBao legs install the chart, and the ESO leg also runs the rotation Job)
 - `mirror`, `env-file-demo`, `v0-leak`, `docs`
 - `images` (main only: GHCR + cosign)
 
-The `checks` job downloads the OpenBao release binary (checksum-verified) so the unit tests run against a real server, and fails if any test is skipped.
+The `checks` job downloads the OpenBao release binary (checksum-verified) so the unit tests run against a real server, and fails if any test is skipped. It also runs `dev/vault/test-entrypoint.sh` with the real Vault binary and `dev/detect/test-detection.sh` with the real VictoriaLogs and vmalert binaries.
 
-Coming: `compose (vault)` (B6), and OpenBao + ESO on kind (B5).
+Concurrency is per branch with cancel-in-progress: a new push to a PR cancels its older run. Merging is a fast-forward of `main` to the PR's tip once its run is green (`git merge-base --is-ancestor`, then `git push origin <sha>:main`).
 
 ## 7. Lessons carried over from the sibling (don't repeat them)
 
@@ -130,6 +132,13 @@ Coming: `compose (vault)` (B6), and OpenBao + ESO on kind (B5).
 - **OpenBao won't create audit devices through the API** (since 2.3.2). Declare them in the config file.
 - **In an ACL policy the most specific path wins; rules are not merged.** A `+/pending` rule with only `delete` took `read` away from that path.
 - **Tags and repository creation are blocked in the sandbox.** The owner runs the `milestone` workflow and creates repos.
+- **CI runners are not root; the sandbox is.** A test that rewrites a mode-0400 file passed locally and hung CI. Tests clean up in `finally`, and `npm test` has a per-test timeout.
+- **`git add -A` takes every untracked file**, including another branch's work left in the tree. Add paths by name.
+- **Job logs can't be downloaded here** (the blob URL answers 403). Read annotations, or the files the job publishes to `ci-captures`.
+- **vmalert waits `-rule.evalDelay` (30 s by default) before it evaluates.** The lab sets 5 s, or a test waits past its deadline.
+- **VictoriaLogs flattens nested JSON** (`auth.metadata.role_name`), and alert labels turn the dots into underscores.
+- **The openbao chart's start script rewrites the words POD_IP, HOST_IP, HOSTNAME, API_ADDR and the like** anywhere in the server config, comments included. Keep them out of it.
+- **An unquoted shell heredoc runs every backtick in it.** Write docs with a file or a quoted heredoc (`<<'EOF'`).
 
 ## 8. Recreate the lab on a MacBook
 

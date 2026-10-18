@@ -107,7 +107,7 @@ if [ "$provider" = openbao ] && [ "$mode" = file ]; then
     pass "the app pod has no OpenBao token: it has no identity in OpenBao at all"
   fi
   before=$(curl -fsS "$BASE/api/secrets" | jq -r '.secrets[] | select(.alias == "db") | .versionId')
-  echo "  info  the app holds db version $before (the kubelet's directory name)"
+  echo "  info  the app holds db version $before (when the kubelet wrote that content)"
   echo "== rotate in OpenBao from OUTSIDE the app (a Job as the seed job's service account)"
   "$K" -n "$NS" delete job rotate-db --ignore-not-found --wait=true >/dev/null 2>&1
   "$K" apply -f deploy/k8s/jobs/rotate-db.yaml >/dev/null

@@ -25,7 +25,8 @@ function kubeletDir() {
         symlinkSync(join('..data', k), join(dir, k));
       } catch {}
     }
-    return ts.slice(2);
+    const m = /(\d{2})_(\d{2})_(\d{2})\.(\d{1,6})/.exec(ts);
+    return `${m[1]}:${m[2]}:${m[3]}.${m[4]}`;
   };
   return { dir, write };
 }
@@ -46,6 +47,13 @@ test('file mode: reads the JSON file, version = the kubelet directory; a ..data 
   assert.equal(e.reason, 'file-changed');
   assert.equal(e.versionId, v2);
   assert.equal(provider.peek('db').password, 'second-password-0123456789');
+
+  // The kubelet swaps the whole volume: a file whose content did not change keeps its version.
+  const r1 = await fetcher.fetch('redis').catch(() => null);
+  assert.equal(r1, null, 'no redis file in this volume');
+  const v3 = vol.write({ db: { username: 'notes_app', password: 'second-password-0123456789' } });
+  assert.notEqual(v3, v2);
+  assert.equal((await fetcher.fetch('db')).versionId, v2, 'same content, same version, even in a new directory');
   fetcher.close();
 });
 

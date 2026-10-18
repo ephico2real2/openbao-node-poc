@@ -4,7 +4,7 @@
 
 **What it proves:** the actual passwords, not just their names, appear nowhere outside the app's memory: not in container configuration, the process environment, any file, the databases (only hashes), or any log.
 
-**Catalogue IDs:** C1–C16 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `compose (sdk)`, `compose (agent)`, `kind` · **Evidence from:** [CI run 39093063634](https://github.com/ephico2real2/aws-secrets-manager-node-poc/actions/runs/39093063634), published on [`ci-captures`](https://github.com/ephico2real2/aws-secrets-manager-node-poc/tree/ci-captures)
+**Catalogue IDs:** C1–C16 ([TEST-CASES.md](../docs/TEST-CASES.md)) · **Proven in CI by:** `compose (sdk)`, `compose (agent)`, `kind (aws)` · **Evidence from:** [CI run 39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271): [compose check output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_compose-sdk-logs/compose-check.txt), [kind check output](https://github.com/ephico2real2/openbao-node-poc/blob/ci-captures/2026-10-18T2201Z_ci_run39169755271-1_kind-aws-logs/k8s-check.txt)
 
 ## Steps
 
@@ -31,7 +31,7 @@ scripts/credential-scan.sh compose      # or: scripts/credential-scan.sh k8s
   ok    redis: container config (env, command, labels: docker inspect) clean
   ok    seed: container config (env, command, labels: docker inspect)  clean
   ok    app: process environment values (/proc/1/environ)              clean
-  ok    app: every readable file (5828 files)                          clean
+  ok    app: every readable file (5845 files)                          clean
   ok    postgres: data directory and config (plaintext passwords?)     clean
   ok    redis: data and ACL files (plaintext passwords?)               clean
 -- logs
@@ -57,19 +57,19 @@ credential-scan: no credential value found anywhere it must not be
   ok    events                                                         clean
 -- inside the app pod
   ok    app: process environment values (/proc/1/environ)              clean
-  ok    app: every readable file (5829 files)                          clean
+  ok    app: every readable file (5846 files)                          clean
   ok    postgres pod: data directory (plaintext passwords?)            clean
   ok    redis pod: data and ACL files (plaintext passwords?)           clean
 -- logs (every container, current and previous)
-  ok    aws-mock-7dc6d4744f-8snlw: logs                                clean
-  ok    postgres-7f4f4f4bcc-qzvh5: logs                                clean
-  ok    redis-7cf5965cd7-k952r: logs                                   clean
-  ok    secure-notes-6648cc8b67-mvp4s: logs                            clean
-  ok    seed-nt9z4: logs                                               clean
+  ok    aws-mock-5465c4b6f4-vw8ws: logs                                clean
+  ok    postgres-76bdffdcf-76x4p: logs                                 clean
+  ok    redis-65c6ffd4cc-pbfxb: logs                                   clean
+  ok    secure-notes-644c47bfb6-8xzxt: logs                            clean
+  ok    seed-mq96c: logs                                               clean
 -- debug logging (LOG_LEVEL=debug)
   ok    app log names the secrets and keys it consumed                 6 line(s)
   ok    every password is shown as ******** (length, fingerprint)      yes
-        e.g. {"secretId":"/elasticache/dev/notes-cache/app","versionId":"77830568-80be-41f2-b8d1-17e03bf1ce9d","source":"sdk","keys":["host=redis","port=6379","username=no*****pp","password=******** (32 chars, fp=1a926a75)"]}
+        e.g. {"secretId":"/rds/dev/notes-db/app","versionId":"0c1b0cc8-e759-4bc4-b4fd-782a598e254f","source":"sdk","keys":["engine=postgres","host=postgres","port=5432","dbname=n****","username=no*****pp","password=******** (32 chars, fp=676b1a79)"]}
 credential-scan: no credential value found anywhere it must not be
 ```
 
