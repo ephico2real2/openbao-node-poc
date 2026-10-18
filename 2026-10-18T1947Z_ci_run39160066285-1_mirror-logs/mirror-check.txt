@@ -1,0 +1,4 @@
+  ok    localhost:5001/secure-notes/secure-notes-app:latest (10 identical layers)
+  ok    localhost:5001/secure-notes/secure-notes-aws-mock:latest (8 identical layers)
+  ok    localhost:5001/secure-notes/postgres:16 (14 identical layers)
+  ok    localhost:5001/secure-notes/redis:7-alpine (7 identical layers)
