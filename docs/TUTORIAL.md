@@ -1,20 +1,25 @@
 # Tutorial — see every feature work, and prove it yourself
 
-About 20 minutes, on your laptop. You need Docker with Compose v2, `jq`, and for the check scripts Node.js 22 and `curl`; step 9 also needs kind and `kubectl`. You will watch the app load
+About 20 minutes for steps 1 to 9, on your laptop, and about as long again for steps 10 to 14. You need Docker with Compose v2 (2.24 or later from step 10 on), `jq`, and for the check scripts Node.js 22 and `curl`; steps 9 and 12 also need kind and `kubectl`, and step 12 `helm` 3. You will watch the app load
 its credentials, rotate them from the dashboard, try to leak them, read the
 app's own log (with every password masked), then search the running containers
 for the real passwords and find nothing. Every screenshot below is taken by CI
 on every push, so they always match the current app.
+
+Steps 1 to 9 use the AWS path: a Secrets Manager stand-in in a container. Steps
+10 to 14 continue the story on OpenBao and HashiCorp Vault: stored secrets with
+AppRole, database users that expire, Kubernetes auth and External Secrets,
+the same app on Vault, and an alert when someone else reads the secret.
 
 For the list of every automated test behind these steps, see
 [TEST-CASES.md](TEST-CASES.md). To demo one feature at a time, with the CI
 output for each, see the [demo folder](../demo/README.md). For deploying to Kubernetes, OpenShift or AWS,
 see [GUIDE.md](GUIDE.md).
 
-**On OpenBao instead.** Every step below works the same on [step v1](../steps/v1-openbao-kv/README.md). Run
+**On OpenBao from the start.** Steps 1 to 6 and 8 work the same on [step v1](../steps/v1-openbao-kv/README.md) (step 7, agent mode, is AWS only). Run
 `export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml` before step 1.
 The dashboard then says **OpenBao**. The secrets are KV v2 versions, not AWS version stages.
-The step README covers what is different. The OpenBao chapters of this tutorial come with epic B8.
+The step README covers what is different, and step 10 below picks it up.
 
 ## 1. Start the stack
 
@@ -261,8 +266,154 @@ On Kubernetes the scan also checks the pod specs, ConfigMaps, the decoded
 Kubernetes Secrets (only the burned one-time bootstrap Secret may exist) and the
 namespace's events. `scripts/k8s-check.sh` runs it after the end-to-end test.
 
-## 10. Clean up
+Stop the cluster before you go on (`scripts/kind-down.sh`), so port 3000 is
+free for Compose again.
+
+## 10. The same lab on OpenBao (step v1)
+
+Swap the Secrets Manager stand-in for a real OpenBao 2.7.1 server. The secrets
+are KV v2 versions. The app logs in with AppRole: a role ID that isn't secret,
+plus a secret ID it reads from a mode-0400 file that the seed job minted for it.
+No one types a token.
 
 ```bash
 docker compose down -v
+export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml   # every compose command now uses both files
+docker compose up --build -d        # http://localhost:3000
+scripts/compose-check.sh            # the checks below, the smoke test, the credential scan
+docker compose exec app stat -c '%a %u %n' /home/node/bao-secret-id   # 400 1000 …
+curl -s localhost:3000/api/config | jq .bao                            # loggedIn, TTL, policies; never the token
+```
+
+The header says **OpenBao** and **AppRole secret ID in a file**; `aws-mock`
+isn't started. Repeat steps 2 to 6: a rotation writes the next KV version, and
+the secret's version number goes up by one. `compose-check.sh` adds its
+OpenBao lines: logged in as `secure-notes-app`, the seed's bootstrap secret ID
+is spent, another path gets 403, and the audit log holds only HMACs of the
+values.
+
+![The dashboard on OpenBao: a Postgres rotation, Postgres rejecting the stale password, the app picking up KV version 2 and recovering](images/openbao-rotation-and-recovery.png)
+
+[Step README](../steps/v1-openbao-kv/README.md) · [demo page](../demo/test-case-19-openbao-kv.md) · [chapter 7, secret zero and AppRole](learn/07-secret-zero-and-approle.md).
+
+## 11. Database users that expire (step v2)
+
+Now the app has no stored database password at all. On startup it asks OpenBao
+for a Postgres user and a Valkey user of its own, each with a 30-second lease
+that the app renews, and a 90-second max TTL after which it takes a new user.
+Valkey replaces Redis.
+
+```bash
+export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v2-openbao-dynamic/compose.yaml
+docker compose down -v               # start clean: the seed job sets up the database engine once
+docker compose up --build -d         # http://localhost:3000
+scripts/compose-check.sh
+```
+
+**Secrets in memory** shows a `lease` row per credential: the time left and
+the renewal count. **Security posture** passes **Database logins are
+short-lived**. The rotation buttons are now **Revoke Postgres lease** and
+**Revoke Redis lease**. Click the first, then add a note: the note is saved,
+and the timeline shows `revokeLease`, `auth-failed`, `new-lease`, `switched`
+and `recovered`. Leave it a few minutes and watch `new-lease … (lease-max-ttl)`
+arrive on its own.
+
+![The Postgres lease revoked, the next login rejected, a new user issued, the pool switched, the query retried](images/openbao-dynamic-revoke-and-recover.png)
+
+[Step README](../steps/v2-openbao-dynamic/README.md) · [demo page](../demo/test-case-20-dynamic-users.md) · [chapter 8, leases and dynamic credentials](learn/08-leases-and-dynamic-credentials.md).
+
+## 12. On Kubernetes: Kubernetes auth and External Secrets (step v3)
+
+The lab of step 11 on kind. OpenBao comes from its own Helm chart, in the
+`openbao` namespace. The app pod proves who it is with a service-account token
+projected for audience `openbao`, so there is no secret zero to hand over. You
+need `helm` 3; the bootstrap scripts don't install it. Stop Compose first so
+port 3000 is free.
+
+```bash
+docker compose down -v
+scripts/kind-up.sh
+KIND_OPENBAO=1 scripts/images-build.sh                    # also preloads OpenBao and Valkey
+scripts/openbao-k8s-up.sh                                 # OpenBao from its chart, initialised
+scripts/k8s-deploy.sh deploy/k8s/overlays/kind-openbao    # http://localhost:3000
+scripts/k8s-check.sh
+```
+
+`kubectl -n openbao exec openbao-0 -- bao status` shows `Initialized true` and
+`Sealed false`, with nobody having run `operator init`. The header says
+**Kubernetes auth secure-notes-app**. `k8s-check.sh` shows the app logged in
+with Kubernetes auth, no Kubernetes API token in its pod, and Postgres sessions
+under a user OpenBao created, then ends with `k8s-check: all checks passed`.
+
+**File mode.** Some apps can't call OpenBao. For those, External Secrets
+Operator reads OpenBao and writes a Kubernetes Secret, which the app mounts as
+a volume and watches. The app has no OpenBao identity at all:
+
+```bash
+scripts/openbao-k8s-up.sh
+scripts/eso-k8s-up.sh                                        # ESO from its chart, then its ClusterSecretStore
+scripts/k8s-deploy.sh deploy/k8s/overlays/kind-openbao-eso
+scripts/k8s-check.sh                                         # also rotates in OpenBao and watches it arrive
+```
+
+The dashboard says **via External Secrets** and **No OpenBao identity in the
+app**. `k8s-check.sh` runs the `rotate-db` Job and reports when the new version
+reached the app as a changed file, with no restart. In this mode the credentials
+are in a Kubernetes Secret, and the check says so. CI runs each overlay on a
+fresh cluster. Then `scripts/kind-down.sh`.
+
+[Step README](../steps/v3-k8s/README.md) · demo pages [21, Kubernetes auth](../demo/test-case-21-kubernetes-auth.md) and [22, External Secrets](../demo/test-case-22-external-secrets.md) · [chapter 9, Kubernetes auth and External Secrets](learn/09-kubernetes-auth-and-external-secrets.md).
+
+## 13. The same app on HashiCorp Vault (step v4)
+
+One setting, `SECRETS_PROVIDER=vault`, and the same image runs against Vault
+2.2.0, with the dynamic users of step 11. Vault has no self-init, so
+`dev/vault/entrypoint.sh` runs `operator init` with one key share, unseals,
+configures with the root token held only in memory, then revokes it.
+
+```bash
+export COMPOSE_FILE=docker-compose.yml:steps/v4-vault/compose.yaml
+docker compose down -v
+docker compose up --build -d          # http://localhost:3000
+scripts/compose-check.sh
+docker compose logs vault | grep vault-lab
+```
+
+The dashboard says **HashiCorp Vault**, and the timeline says "Vault issued
+this instance its own db user". The `vault-lab` lines are the entrypoint's
+three: initialised and unsealed, configured with the root token revoked, and
+after a restart, unsealed with the key from the data volume. The checks are
+step 11's, with Vault's container, audit log and storage in the scan.
+
+[Step README](../steps/v4-vault/README.md) · [demo page](../demo/test-case-23-vault.md) · [chapter 10, OpenBao and Vault](learn/10-openbao-and-vault.md).
+
+## 14. An alert when someone else reads the secret (step v5)
+
+Nothing leaked in steps 1 to 13. This step asks: if someone with access reads
+the credentials anyway, would you know? OpenBao's audit log (every value an
+HMAC) is shipped to VictoriaLogs, vmalert runs a rule on it every 10 seconds,
+and an alert console on port 3100 shows what fires.
+
+```bash
+docker compose down -v
+export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v5-detection/compose.yaml
+docker compose up --build -d          # the app on :3000, the alert console on :3100
+docker compose run --rm intruder      # role ops-admin reads the app's Postgres secret
+```
+
+Open <http://localhost:3100> before the intruder: **No alerts**, though the app
+has been reading its secrets all along. Within about a minute after it:
+**SecretReadByUnexpectedIdentity**, "An app credential was read by 'ops-admin',
+not by the app", with the path that was read. `scripts/compose-check.sh` does
+the same after the smoke test and the credential scan, and checks none of those
+raised an alert first.
+
+[Step README](../steps/v5-detection/README.md) · [demo page](../demo/test-case-24-detection.md) · [chapter 11, detection on the audit log](learn/11-detection-on-the-audit-log.md).
+
+## 15. Clean up
+
+```bash
+docker compose down -v
+unset COMPOSE_FILE          # back to the AWS path next time
+scripts/kind-down.sh        # if a cluster from step 9 or 12 is still running
 ```
