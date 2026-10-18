@@ -1,0 +1,17 @@
+# Added by scripts/openbao-k8s-up.sh on OpenShift (UNPROVEN in this repo's CI:
+# CI runs kind). The restricted-v2 SCC assigns the UID and fsGroup, so the
+# fixed ones of openbao-values.yaml are removed; the chart's OpenShift mode
+# leaves the security context to the SCC.
+global:
+  openshift: true
+server:
+  statefulSet:
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      container:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]

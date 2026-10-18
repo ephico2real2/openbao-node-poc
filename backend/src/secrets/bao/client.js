@@ -1,9 +1,13 @@
 // A small HTTP client for OpenBao and HashiCorp Vault (they share the API), with
 // AppRole login and token renewal. Plain fetch: no new dependency.
 //
-// No credential in the environment: the AppRole secret ID is read from a FILE
-// each time the client logs in (mode 0400, written by whoever provisions the
-// app: the seed job in the lab). The role ID is not a secret (like a username).
+// No credential in the environment. Two ways to log in, both from a FILE that
+// is read again at every login:
+//   approle     the AppRole secret ID (mode 0400, written by whoever provisions
+//               the app: the seed job in the lab). The role ID is not a secret.
+//   kubernetes  the pod's projected service-account token (short-lived,
+//               audience-bound; the kubelet rotates it in place). OpenBao checks
+//               it with the Kubernetes TokenReview API. No secret to hand over.
 //
 // Token lifecycle:
 //   login       POST /v1/auth/approle/login           -> token, TTL
@@ -39,12 +43,17 @@ export class BaoError extends Error {
  * @param {Function} [o.now]         for tests
  */
 export function createBaoClient({
-  addr, roleId, secretIdFile, authMount = 'approle', namespace, redactor, logger,
-  timeoutMs = 5000, fetchImpl = fetch, now = Date.now, scheduleRenewal = true,
+  addr, roleId, secretIdFile, auth = 'approle', authMount, k8sRole, k8sTokenFile = '/var/run/secrets/openbao/token',
+  namespace, redactor, logger, timeoutMs = 5000, fetchImpl = fetch, now = Date.now, scheduleRenewal = true,
 }) {
   if (!addr) throw new Error('BAO_ADDR is required');
-  if (!roleId) throw new Error('BAO_ROLE_ID is required');
-  if (!secretIdFile) throw new Error('BAO_SECRET_ID_FILE is required (the secret ID is read from a file, never from env)');
+  if (auth === 'kubernetes') {
+    if (!k8sRole) throw new Error('BAO_K8S_ROLE is required with BAO_AUTH=kubernetes');
+  } else {
+    if (!roleId) throw new Error('BAO_ROLE_ID is required');
+    if (!secretIdFile) throw new Error('BAO_SECRET_ID_FILE is required (the secret ID is read from a file, never from env)');
+  }
+  authMount ??= auth === 'kubernetes' ? 'kubernetes' : 'approle';
   const base = new URL(addr);
   const log = logger?.child({ component: 'bao' });
   const state = { token: undefined, expiresAt: 0, renewable: false, logins: 0, renewals: 0, lastError: undefined, accessor: undefined, policies: [] };
@@ -104,23 +113,30 @@ export function createBaoClient({
     schedule();
   }
 
+  /** The login request body, from the credential FILE (read at every login: it may have been rotated). */
+  async function loginBody() {
+    const file = auth === 'kubernetes' ? k8sTokenFile : secretIdFile;
+    let value;
+    try {
+      value = (await readFile(file, 'utf8')).trim();
+    } catch (err) {
+      const what = auth === 'kubernetes' ? 'service-account token' : 'AppRole secret ID';
+      throw new BaoError(`cannot read the ${what} file ${file}: ${err.code ?? err.message}`);
+    }
+    redactor?.register?.(value);
+    return auth === 'kubernetes' ? { role: k8sRole, jwt: value } : { role_id: roleId, secret_id: value };
+  }
+
   async function login(reason = 'startup') {
     if (loggingIn) return loggingIn;
     loggingIn = (async () => {
-      let secretId;
-      try {
-        secretId = (await readFile(secretIdFile, 'utf8')).trim();
-      } catch (err) {
-        throw new BaoError(`cannot read the AppRole secret ID file ${secretIdFile}: ${err.code ?? err.message}`);
-      }
-      redactor?.register?.(secretId);
-      const out = await raw('POST', `auth/${authMount}/login`, { body: { role_id: roleId, secret_id: secretId } });
+      const out = await raw('POST', `auth/${authMount}/login`, { body: await loginBody() });
       adopt(out.auth);
       state.logins++;
       state.lastError = undefined;
       log?.info(
-        { reason, roleId, authMount, policies: state.policies, ttlSeconds: out.auth.lease_duration, renewable: state.renewable, event: 'bao.login' },
-        'logged in to OpenBao with AppRole',
+        { reason, auth, role: auth === 'kubernetes' ? k8sRole : roleId, authMount, policies: state.policies, ttlSeconds: out.auth.lease_duration, renewable: state.renewable, event: 'bao.login' },
+        auth === 'kubernetes' ? 'logged in to OpenBao with the pod\'s service-account token' : 'logged in to OpenBao with AppRole',
       );
     })().finally(() => {
       loggingIn = undefined;
@@ -180,9 +196,10 @@ export function createBaoClient({
     /** Dashboard-safe: no token, no secret ID. */
     status: () => ({
       addr: base.origin,
-      authMethod: `approle (${authMount})`,
-      roleId,
-      secretIdFile,
+      authMethod: `${auth} (${authMount})`,
+      roleId: auth === 'kubernetes' ? k8sRole : roleId,
+      secretIdFile: auth === 'kubernetes' ? undefined : secretIdFile,
+      tokenFile: auth === 'kubernetes' ? k8sTokenFile : undefined,
       loggedIn: Boolean(state.token),
       tokenTtlSeconds: state.token ? Math.max(0, Math.round((state.expiresAt - now()) / 1000)) : 0,
       renewable: state.renewable,

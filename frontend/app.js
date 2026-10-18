@@ -64,7 +64,7 @@ async function loadConfig() {
   const b = $('badges');
   b.replaceChildren(
     el('span', { class: 'pill pill-accent' }, bao ? `${product} · KV v2 API` : cfg.secretsMode === 'agent' ? 'Workload Credentials Provider' : 'AWS SDK direct'),
-    bao ? el('span', { class: 'pill' }, `AppRole ${cfg.bao?.roleId ?? ''}`.trim()) : el('span', { class: 'pill' }, cfg.region),
+    bao ? el('span', { class: 'pill' }, `${/^kubernetes/.test(cfg.bao?.authMethod ?? '') ? 'Kubernetes auth' : 'AppRole'} ${cfg.bao?.roleId ?? ''}`.trim()) : el('span', { class: 'pill' }, cfg.region),
     bao ? el('span', { class: 'pill pill-info' }, cfg.environment === 'production' ? 'server' : 'lab server') : cfg.usingLocalMock ? el('span', { class: 'pill pill-info' }, 'local mock') : el('span', { class: 'pill' }, 'AWS'),
     cfg.demoMode ? el('span', { class: 'pill pill-warn' }, 'demo mode') : null,
     cfg.logLevel === 'debug'
@@ -76,7 +76,7 @@ async function loadConfig() {
   $('reveal-banner').hidden = !cfg.revealSecrets;
   const where = {
     compose: ['Docker Compose', bao ? 'container · AppRole secret ID in a file' : 'container · dummy keys, for the mock only'],
-    kubernetes: ['Kubernetes', 'pod · no SA token · restricted PSA'],
+    kubernetes: ['Kubernetes', bao ? 'pod · projected token for OpenBao · restricted PSA' : 'pod · no SA token · restricted PSA'],
     openshift: ['OpenShift', 'pod · arbitrary UID · restricted-v2'],
     ec2: ['EC2', 'EC2 instance role · IMDSv2'],
   }[cfg.platform] ?? ['', bao ? 'AppRole, no token in env' : 'IAM role, no keys'];
@@ -190,6 +190,10 @@ async function loadSecrets() {
     const what = b.dataset.rotate === 'db' ? 'Postgres' : 'Redis';
     b.textContent = dynamic ? `Revoke ${what} lease` : `Rotate ${what} secret`;
   });
+  if (dynamic) {
+    $('rotation-hint').textContent =
+      'Each login is a user OpenBao created for this instance, so there is no password to rotate. Revoke a lease as an operator would after a leak: OpenBao drops the user, and the app finds out on its next login, asks for a new user and retries.';
+  }
 }
 
 // ---------------------------------------------------------------- events ---

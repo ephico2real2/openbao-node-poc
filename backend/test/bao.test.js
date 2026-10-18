@@ -88,6 +88,27 @@ test('renew-self extends the token; at the max TTL the client logs in again', as
   srv.close();
 });
 
+test('kubernetes auth: logs in with the projected token from its file, re-read at each login (the kubelet rotates it)', async () => {
+  const { srv, calls, addr } = await fakeBao((req) => {
+    if (req.url === '/v1/auth/kubernetes/login') return [200, { auth: { client_token: `tok-k8s-${calls.length}-abcdefgh`, lease_duration: 900, renewable: true, policies: ['secure-notes-app'] } }];
+    return [404, {}];
+  });
+  const file = secretFile('eyJhbGciOiJSUzI1NiJ9.e30.sig-one');
+  const redactor = new Redactor();
+  const client = createBaoClient({ addr, auth: 'kubernetes', k8sRole: 'secure-notes-app', k8sTokenFile: file, redactor, scheduleRenewal: false });
+  await client.login();
+  assert.deepEqual(calls[0].body, { role: 'secure-notes-app', jwt: 'eyJhbGciOiJSUzI1NiJ9.e30.sig-one' });
+  writeFileSync(file, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-two', { mode: 0o600 }); // rotated in place
+  await client.login('forbidden');
+  assert.equal(calls[1].body.jwt, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-two');
+  assert.equal(redactor.scrubString('x eyJhbGciOiJSUzI1NiJ9.e30.sig-two'), 'x [REDACTED]');
+  const st = client.status();
+  assert.equal(st.authMethod, 'kubernetes (kubernetes)');
+  assert.equal(st.roleId, 'secure-notes-app');
+  assert.equal(st.secretIdFile, undefined);
+  srv.close();
+});
+
 test('a missing secret ID file is a clear error, not a request with an empty secret', async () => {
   const client = createBaoClient({ addr: 'http://127.0.0.1:1', roleId: 'r', secretIdFile: '/nonexistent/secret-id', scheduleRenewal: false });
   await assert.rejects(client.login(), /cannot read the AppRole secret ID file/);

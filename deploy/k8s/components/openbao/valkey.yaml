@@ -1,0 +1,20 @@
+# Valkey replaces Redis: OpenBao documents a database plugin for Valkey.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  template:
+    spec:
+      containers:
+        - name: redis
+          image: docker.io/valkey/valkey:8.1-alpine
+          args:
+            - |
+              set -eu
+              ACL=/data/users.acl
+              if [ ! -s "$ACL" ]; then
+                echo "user default on >${REDIS_BOOTSTRAP_PASSWORD} ~* &* +@all" > "$ACL"
+                chmod 600 "$ACL"
+              fi
+              exec valkey-server --aclfile "$ACL" --dir /data --appendonly no --save ""

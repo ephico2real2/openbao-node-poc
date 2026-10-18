@@ -47,22 +47,36 @@ const PROVIDER = (env.SECRETS_PROVIDER ?? 'aws').toLowerCase();
 const DYNAMIC = PROVIDER !== 'aws' && /^(1|true|yes)$/i.test(env.BAO_DYNAMIC ?? '');
 const DB_MOUNT = env.BAO_DB_MOUNT ?? 'database';
 const NAME = PROVIDER === 'aws' ? 'Secrets Manager' : PROVIDER === 'vault' ? 'Vault' : 'OpenBao';
-let bao; // the seed job's own OpenBao/Vault session (bootstrap AppRole)
+// The seed job's own OpenBao/Vault session: the one-time bootstrap AppRole
+// (Compose), or, on Kubernetes (step v3), its pod's service-account token.
+const K8S_AUTH = (env.BAO_AUTH ?? 'approle').toLowerCase() === 'kubernetes';
+let bao;
 const store =
   PROVIDER === 'aws'
     ? createAwsStore({ region: env.AWS_REGION ?? 'us-east-1', endpoint: must('AWS_MOCK_ENDPOINT') })
     : createKvStore(
-        (bao = createBaoClient({
-          addr: must('BAO_ADDR'),
-          roleId: env.BAO_SEED_ROLE_ID ?? 'secure-notes-seed',
-          secretIdFile: must('BAO_BOOTSTRAP_SECRET_ID_FILE'),
-          scheduleRenewal: false,
-        })),
+        (bao = K8S_AUTH
+          ? createBaoClient({
+              addr: must('BAO_ADDR'),
+              auth: 'kubernetes',
+              k8sRole: env.BAO_K8S_ROLE ?? 'secure-notes-seed',
+              k8sTokenFile: env.BAO_K8S_TOKEN_FILE,
+              scheduleRenewal: false,
+            })
+          : createBaoClient({
+              addr: must('BAO_ADDR'),
+              roleId: env.BAO_SEED_ROLE_ID ?? 'secure-notes-seed',
+              secretIdFile: must('BAO_BOOTSTRAP_SECRET_ID_FILE'),
+              scheduleRenewal: false,
+            })),
         { mount: env.BAO_KV_MOUNT ?? 'secret' },
       );
 
 // The same names the app will look up: explicit IDs, or the naming convention.
-const naming = resolveSecretIds(env);
+// A dynamic ID (database/creds/<role>, step v2) is the APP's way in; the seed
+// job still writes the stored secrets of the naming convention.
+const isDyn = (v) => /(^|\/)creds\//.test(v ?? '');
+const naming = resolveSecretIds({ ...env, DB_SECRET_ID: isDyn(env.DB_SECRET_ID) ? undefined : env.DB_SECRET_ID, REDIS_SECRET_ID: isDyn(env.REDIS_SECRET_ID) ? undefined : env.REDIS_SECRET_ID });
 if (naming.error) throw new Error(naming.error);
 const ids = naming.ids;
 for (const k of ['db', 'dbAdmin', 'redis', 'redisAdmin']) {
@@ -160,7 +174,10 @@ async function waitFor(name, fn, tries = 30) {
 }
 
 async function main() {
-  if (bao) {
+  if (bao && K8S_AUTH) {
+    await waitFor(NAME, () => bao.login('kubernetes'), 60);
+    console.log(`[seed] ${NAME}: logged in with this pod's service-account token (Kubernetes auth, role ${env.BAO_K8S_ROLE ?? 'secure-notes-seed'})`);
+  } else if (bao) {
     // The bootstrap secret ID works once. If it was already spent and the app
     // has its own secret ID, this stack was seeded on an earlier start.
     try {
@@ -179,7 +196,7 @@ async function main() {
 
   if (await store.exists(ids.db)) {
     console.log(`[seed] ${ids.db} already exists; nothing to do (reset with: docker compose down -v)`);
-    if (bao) await provisionAppSecretId();
+    if (bao && !K8S_AUTH) await provisionAppSecretId();
     return;
   }
 
@@ -276,7 +293,8 @@ async function main() {
   r.disconnect();
   console.log('[seed] redis: ACL user created (notes:* keys only); bootstrap password replaced');
   if (DYNAMIC) await configureDatabaseEngine(pw);
-  if (bao) await provisionAppSecretId();
+  // On Kubernetes the app logs in with its own service-account token: nothing to hand over.
+  if (bao && !K8S_AUTH) await provisionAppSecretId();
   console.log(`[seed] done. Every credential now lives only in ${NAME}.`);
 }
 

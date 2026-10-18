@@ -18,10 +18,13 @@ docker image inspect "$APP_IMAGE" "$MOCK_IMAGE" --format '{{index .RepoTags 0}} 
 
 if command -v kind >/dev/null && kind get clusters 2>/dev/null | grep -qx "$KIND_CLUSTER"; then
   echo "== loading into kind cluster '$KIND_CLUSTER' (the same image IDs as above)"
-  for img in "$POSTGRES_IMAGE" "$REDIS_IMAGE"; do
+  # KIND_OPENBAO=1 (step v3): also the OpenBao and Valkey images, so no pod waits on Docker Hub.
+  extra=()
+  [ "${KIND_OPENBAO:-0}" = 1 ] && extra=("$OPENBAO_IMAGE" "$VALKEY_IMAGE")
+  for img in "$POSTGRES_IMAGE" "$REDIS_IMAGE" "${extra[@]}"; do
     docker image inspect "$img" >/dev/null 2>&1 || docker pull -q "$img"
   done
-  kind load docker-image --name "$KIND_CLUSTER" "$APP_IMAGE" "$MOCK_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE"
+  kind load docker-image --name "$KIND_CLUSTER" "$APP_IMAGE" "$MOCK_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE" "${extra[@]}"
 else
   echo "== no kind cluster '$KIND_CLUSTER' running; images are ready for Docker Compose"
 fi

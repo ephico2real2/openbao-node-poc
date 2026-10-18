@@ -1,0 +1,62 @@
+# Step v3: the app and its seed job on OpenBao (installed by its Helm chart in
+# the "openbao" namespace: scripts/openbao-k8s-up.sh), instead of the
+# Secrets Manager mock. Use it AFTER local-backing-services, which it adjusts:
+#   - the mock is removed; Redis becomes Valkey (OpenBao's database plugin)
+#   - the app and the seed job log in with Kubernetes auth: each pod gets a
+#     projected service-account token for audience "openbao" (10 minutes, the
+#     kubelet rotates it). No AppRole secret ID, no token, nothing to hand over.
+#   - the app's database logins are users OpenBao creates for it, with leases
+#     (as in steps/v2-openbao-dynamic)
+# Never use this component in production: it keeps the demo and the lab TTLs.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - seed-serviceaccount.yaml
+  - networkpolicies.yaml
+
+patches:
+  # No AWS stand-in on this step.
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: aws-mock
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: aws-mock
+  - path: valkey.yaml
+  - path: app.yaml
+  - path: seed.yaml
+
+# Replaces the AWS settings: where OpenBao is, which roles to log in as, and
+# which OpenBao paths are the app's credentials. Never a password.
+configMapGenerator:
+  - name: secure-notes-config
+    behavior: replace
+    literals:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=3000
+      - DEMO_MODE=true
+      - LOG_LEVEL=debug
+      - SECRETS_PROVIDER=openbao
+      - SECRETS_MODE=api
+      - BAO_ADDR=http://openbao.openbao.svc:8200
+      - BAO_AUTH=kubernetes
+      - BAO_K8S_ROLE=secure-notes-app
+      - BAO_K8S_TOKEN_FILE=/var/run/secrets/openbao/token
+      # Dynamic users (the credentials carry no host, so these say where to connect).
+      - DB_SECRET_ID=database/creds/notes-app
+      - REDIS_SECRET_ID=database/creds/notes-cache
+      - DB_HOST=postgres
+      - DB_NAME=notes
+      - REDIS_HOST=redis
+      # The demo's admin logins (KV), by the naming convention.
+      - SECRETS_ENV=dev
+      - DB_SECRET_RESOURCE=notes-db
+      - REDIS_SECRET_RESOURCE=notes-cache

@@ -53,7 +53,12 @@ export const config = Object.freeze({
     addr: env.BAO_ADDR ?? env.VAULT_ADDR,
     roleId: env.BAO_ROLE_ID,
     secretIdFile: env.BAO_SECRET_ID_FILE,
-    authMount: env.BAO_AUTH_MOUNT ?? 'approle',
+    // How the app logs in: 'approle' (secret ID from a file) or 'kubernetes'
+    // (the pod's projected service-account token, step v3).
+    auth: (env.BAO_AUTH ?? 'approle').toLowerCase(),
+    authMount: env.BAO_AUTH_MOUNT || undefined, // default: the method's name
+    k8sRole: env.BAO_K8S_ROLE,
+    k8sTokenFile: env.BAO_K8S_TOKEN_FILE ?? '/var/run/secrets/openbao/token',
     kvMount: env.BAO_KV_MOUNT ?? 'secret',
     // Step v2: a secret ID under <dbMount>/creds/ is a dynamic database user with a lease.
     dbMount: env.BAO_DB_MOUNT ?? 'database',
@@ -161,8 +166,14 @@ export function assertSafeEnvironment() {
   } else {
     if (config.secretsMode !== 'api') problems.push(`SECRETS_MODE must be 'api' with SECRETS_PROVIDER=${config.secretsProvider}`);
     if (!config.bao.addr) problems.push('BAO_ADDR is required (the OpenBao or Vault address)');
-    if (!config.bao.roleId) problems.push('BAO_ROLE_ID is required (the AppRole role ID; it is not a secret)');
-    if (!config.bao.secretIdFile) problems.push('BAO_SECRET_ID_FILE is required (the AppRole secret ID is read from a file, never from env)');
+    if (config.bao.auth === 'kubernetes') {
+      if (!config.bao.k8sRole) problems.push('BAO_K8S_ROLE is required with BAO_AUTH=kubernetes (the OpenBao role bound to this service account)');
+    } else if (config.bao.auth === 'approle') {
+      if (!config.bao.roleId) problems.push('BAO_ROLE_ID is required (the AppRole role ID; it is not a secret)');
+      if (!config.bao.secretIdFile) problems.push('BAO_SECRET_ID_FILE is required (the AppRole secret ID is read from a file, never from env)');
+    } else {
+      problems.push(`BAO_AUTH must be 'approle' or 'kubernetes'`);
+    }
   }
   if (!['json', 'pretty'].includes(config.logging.format)) problems.push(`LOG_FORMAT must be 'json' or 'pretty'`);
 

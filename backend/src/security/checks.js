@@ -88,7 +88,7 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
   if (bao) {
     const st = baoClient?.status();
     if (st?.loggedIn) {
-      add('identity', `Logged in to ${product} with its own identity`, 'pass', `AppRole role "${st.roleId}", policies ${st.policies.join(', ')}; token valid ${st.tokenTtlSeconds} s, renewed ${st.renewals} time(s), ${st.logins} login(s).`);
+      add('identity', `Logged in to ${product} with its own identity`, 'pass', `${config.bao.auth === 'kubernetes' ? 'Kubernetes' : 'AppRole'} role "${st.roleId}", policies ${st.policies.join(', ')}; token valid ${st.tokenTtlSeconds} s, renewed ${st.renewals} time(s), ${st.logins} login(s).`);
     } else {
       add('identity', `Logged in to ${product} with its own identity`, 'fail', `Not logged in${st?.lastError ? `: ${st.lastError}` : ''}.`);
     }
@@ -99,13 +99,29 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
     } else {
       add('short-lived', 'Database logins are short-lived', 'info', `Stored passwords from ${product}'s KV store, rotated by the demo. Step v2 replaces them with users that expire.`);
     }
-    try {
-      const sid = await stat(config.bao.secretIdFile);
-      const loose = (sid.mode & 0o077) !== 0;
-      add('secret-id-file', 'AppRole secret ID file protected', loose ? 'fail' : 'pass',
-        loose ? `${config.bao.secretIdFile} is readable by others (mode ${(sid.mode & 0o777).toString(8)}).` : `${config.bao.secretIdFile} is mode ${(sid.mode & 0o777).toString(8)}: only its owner can read it. It is not in the environment.`);
-    } catch {
-      add('secret-id-file', 'AppRole secret ID file protected', 'fail', `Cannot read ${config.bao.secretIdFile}.`);
+    if (config.bao.auth === 'kubernetes') {
+      // The projected token: short-lived and bound to OpenBao's audience. Only
+      // its claims are read here (expiry, audience), never logged or shown.
+      try {
+        const jwt = (await readFile(config.bao.k8sTokenFile, 'utf8')).trim();
+        const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8'));
+        const life = Math.round((claims.exp - claims.iat) / 60);
+        const aud = [].concat(claims.aud ?? []);
+        const good = life <= 120 && !aud.some((a) => /kubernetes\.default/.test(a));
+        add('sa-token', 'Login token is short-lived and audience-bound', good ? 'pass' : 'warn',
+          `Projected service-account token: valid ${life} min, audience ${aud.join(', ') || 'none'}; the kubelet rotates it. No secret was handed to the pod.`);
+      } catch {
+        add('sa-token', 'Login token is short-lived and audience-bound', 'fail', `Cannot read the projected token at ${config.bao.k8sTokenFile}.`);
+      }
+    } else {
+      try {
+        const sid = await stat(config.bao.secretIdFile);
+        const loose = (sid.mode & 0o077) !== 0;
+        add('secret-id-file', 'AppRole secret ID file protected', loose ? 'fail' : 'pass',
+          loose ? `${config.bao.secretIdFile} is readable by others (mode ${(sid.mode & 0o777).toString(8)}).` : `${config.bao.secretIdFile} is mode ${(sid.mode & 0o777).toString(8)}: only its owner can read it. It is not in the environment.`);
+      } catch {
+        add('secret-id-file', 'AppRole secret ID file protected', 'fail', `Cannot read ${config.bao.secretIdFile}.`);
+      }
     }
   } else try {
     const sts = new STSClient({ region: config.region, endpoint: config.awsEndpoint, maxAttempts: 1 });

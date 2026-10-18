@@ -61,7 +61,7 @@
 
       <section class="card demo-only" id="rotation-card" hidden>
         <div class="card-head"><h2>Rotation lab</h2><span class="pill pill-warn">demo only</span></div>
-        <p class="hint">Runs the same four steps as a rotation function (create, set, test, finish), on whichever secrets manager the app uses. The app is not told: it finds out when Postgres or Redis rejects the old password, then refreshes and retries.</p>
+        <p class="hint" id="rotation-hint">Runs the same four steps as a rotation function (create, set, test, finish), on whichever secrets manager the app uses. The app is not told: it finds out when Postgres or Redis rejects the old password, then refreshes and retries.</p>
         <div class="btn-row">
           <button class="btn" data-rotate="db">Rotate Postgres secret</button>
           <button class="btn" data-rotate="redis">Rotate Redis secret</button>

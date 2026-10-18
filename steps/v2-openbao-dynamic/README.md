@@ -89,12 +89,49 @@ With dynamic users, the dashboard's rotation buttons become **Revoke Postgres le
 **Check:** click **Revoke Postgres lease**, then add a note. The note is saved. The
 timeline shows `revokeLease`, `auth-failed`, `new-lease`, `switched` and `recovered`.
 
+![CI capture: the Postgres lease revoked, the next login rejected, a new user issued, the pool switched, the query retried](../../docs/images/openbao-dynamic-revoke-and-recover.png)
+
+Left alone, the leases renew. Near the max TTL the app takes a new user before the old one
+ends. This CI capture shows the Postgres card one re-issue later (`lease-max-ttl`), while
+the Redis lease is about to hit its own max TTL (`max TTL reached: new user in 4s`):
+
+![CI capture: the max-TTL re-issue and the pool switch](../../docs/images/openbao-dynamic-max-ttl-reissue.png)
+
+The [full walk](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2036Z_ci_run39163651929-1_compose-compose-openbao-dynamic) is six pages. Each one fails the job if its text is missing.
+
 ## What the checks prove
 
 On this step, `scripts/compose-check.sh` adds:
 - the app's Postgres sessions use a user OpenBao created, never `notes_app`;
 - the app renewed both leases;
 - after the smoke test (which revokes both leases), at most two leased users are left in Postgres: the current one and at most one draining.
+
+From CI run [39164263518](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39164263518) ([full output](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2046Z_ci_run39164263518-1_compose-openbao-dynamic-logs/compose-check.txt)):
+
+```text
+== step v2: dynamic database users with leases
+  ok    the app's Postgres sessions use a user OpenBao created for it (v-approle-notes-ap-P…), not a stored one
+  ok    the app renewed both leases (sys/leases/renew)
+== end-to-end smoke test
+  ok    revoke the db lease (OpenBao drops the user)  (revoked lease Ny2PKILi)
+  ok    revoke the redis lease (OpenBao drops the user)  (revoked lease Lpcdu1cx)
+  ok    drop connections, then app recovers with the rotated credentials  (recovered: db, redis)
+  ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)
+  ok    security posture: no check fails  (15 checks, none failing)
+== step v2: revoked and replaced users are gone
+  ok    Postgres has 1 leased user(s) left: the app's current one (and at most one draining)
+  info  the app switched to a newly issued user 6 time(s) so far (revocations, and leases at their max TTL)
+```
+
+With the reveal flag ([output](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2046Z_ci_run39164263518-1_compose-openbao-dynamic-logs/credential-scan-revealed.txt)), the scan searched for
+6 values: the 4 stored ones, plus the 2 leased passwords taken from the app's own log.
+They turned up in that log and nowhere else:
+
+```text
+== credential scan (compose): searching for 6 secret values from OpenBao, read as the app's AppRole identity, plus the leased users' passwords from the app's revealed log (every version); the values are never printed
+  ok    app: log                                                       FOUND 4 (expected: LOG_REVEAL_SECRETS=true)
+credential-scan: no credential value found anywhere it must not be
+```
 
 `scripts/credential-scan.sh` searches for every KV value, as in step v1. The leased
 passwords exist only in the app's memory and in OpenBao (encrypted), so nothing can read

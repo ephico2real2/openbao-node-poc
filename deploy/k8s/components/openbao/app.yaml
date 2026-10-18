@@ -1,0 +1,25 @@
+# The app logs in to OpenBao with a projected service-account token: minted for
+# audience "openbao", valid 10 minutes, rotated by the kubelet in place (the app
+# reads the file again at every login). automountServiceAccountToken stays false:
+# the app never gets a token for the Kubernetes API.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-notes
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          volumeMounts:
+            - name: openbao-token
+              mountPath: /var/run/secrets/openbao
+              readOnly: true
+      volumes:
+        - name: openbao-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: openbao
+                  expirationSeconds: 600

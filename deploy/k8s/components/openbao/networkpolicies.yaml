@@ -1,0 +1,41 @@
+# On top of the base's default-deny and local-backing-services' policies.
+# The app and the seed job reach OpenBao; OpenBao reaches Postgres and Valkey
+# (its database plugins create and drop the app's users).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: to-openbao
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [secure-notes, secure-notes-seed]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openbao
+      ports:
+        - { port: 8200, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backing-services-from-openbao
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [postgres, redis]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openbao
+      ports:
+        - { port: 5432, protocol: TCP }
+        - { port: 6379, protocol: TCP }

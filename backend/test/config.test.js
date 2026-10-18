@@ -41,3 +41,10 @@ test('aws stays the default provider, with sdk mode', () => {
   assert.equal(check({}), 'OK');
   assert.match(check({ SECRETS_MODE: 'api' }), /SECRETS_MODE must be 'sdk' or 'agent'/);
 });
+
+test('openbao with kubernetes auth: a role and a token file, no secret ID file', () => {
+  const k8s = { SECRETS_PROVIDER: 'openbao', BAO_ADDR: 'http://openbao.openbao.svc:8200', BAO_AUTH: 'kubernetes', BAO_K8S_ROLE: 'secure-notes-app' };
+  assert.equal(check(k8s), 'OK');
+  assert.match(check({ ...k8s, BAO_K8S_ROLE: '' }), /BAO_K8S_ROLE is required/);
+  assert.match(check({ ...k8s, BAO_AUTH: 'token' }), /BAO_AUTH must be/);
+});

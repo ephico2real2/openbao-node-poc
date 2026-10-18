@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed
+spec:
+  template:
+    spec:
+      serviceAccountName: secure-notes-seed
+      containers:
+        - name: seed
+          env:
+            - name: AWS_ACCESS_KEY_ID # the mock's "who is calling" key: not used here
+              $patch: delete
+            - name: BAO_K8S_ROLE
+              value: secure-notes-seed
+            - name: BAO_DYNAMIC
+              value: "true"
+            # OpenBao connects to Postgres and Valkey from its own namespace.
+            - name: APP_PG_HOST
+              value: postgres.secure-notes.svc.cluster.local
+            - name: APP_REDIS_HOST
+              value: redis.secure-notes.svc.cluster.local
+          volumeMounts:
+            - name: openbao-token
+              mountPath: /var/run/secrets/openbao
+              readOnly: true
+      volumes:
+        - name: openbao-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  audience: openbao
+                  expirationSeconds: 600

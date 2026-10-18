@@ -1,0 +1,30 @@
+# Step v3 on kind: the app, Postgres and Valkey in "secure-notes" (Pod Security
+# restricted), OpenBao from its Helm chart in "openbao". Kubernetes auth with
+# projected tokens; database users OpenBao creates per pod, with leases.
+#
+#   scripts/kind-up.sh && scripts/images-build.sh
+#   scripts/openbao-k8s-up.sh                         # OpenBao (Helm), ready and initialised
+#   scripts/k8s-deploy.sh deploy/k8s/overlays/kind-openbao
+#   open http://localhost:3000
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: secure-notes
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+components:
+  - ../../components/local-backing-services
+  - ../../components/openbao
+
+patches:
+  - target: { kind: Service, name: secure-notes }
+    patch: |-
+      - op: add
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080

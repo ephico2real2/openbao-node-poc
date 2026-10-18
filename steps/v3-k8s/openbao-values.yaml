@@ -1,0 +1,211 @@
+# Step v3: OpenBao on Kubernetes, from its Helm chart (openbao-0.30.4, OpenBao 2.7.1).
+#   scripts/openbao-k8s-up.sh installs it with these values (see that script).
+#
+# One server with Raft storage, a static seal (the key comes from a Secret the
+# script creates) and self-initialisation, so it is ready with no manual step,
+# like the Compose lab. Differences from Compose:
+#   - apps log in with Kubernetes auth (their pods' projected service-account
+#     tokens), so there is no AppRole secret ID to hand over
+#   - the audit device writes to stdout: the pod log is the audit log
+# LAB ONLY: plain HTTP inside the cluster, and the seal key is a Secret in the
+# same cluster. In production use TLS and a KMS/HSM or transit seal.
+global:
+  openshift: false # scripts/openbao-k8s-up.sh sets true on OpenShift
+
+injector:
+  enabled: false
+
+ui:
+  enabled: false
+
+server:
+  image:
+    registry: docker.io # the same image as the Compose lab (scripts/versions.env OPENBAO_IMAGE)
+    repository: openbao/openbao
+    tag: "2.7.1"
+  # Pod Security "restricted" (the chart's defaults, written out, plus dropping
+  # all capabilities). The openshift values clear these for the SCC.
+  statefulSet:
+    securityContext:
+      pod:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      container:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }
+  dataStorage:
+    enabled: true
+    size: 1Gi
+  authDelegator:
+    enabled: true # TokenReview: OpenBao checks the apps' service-account tokens
+  volumes:
+    - name: seal-key
+      secret:
+        secretName: openbao-seal-key
+        defaultMode: 0440 # readable by the pod's group (fsGroup)
+  volumeMounts:
+    - name: seal-key
+      mountPath: /openbao/seal
+      readOnly: true
+  ha:
+    enabled: true
+    replicas: 1
+    raft:
+      enabled: true
+      setNodeId: true
+      # Rendered into a ConfigMap; the chart's start script replaces the words
+      # POD_IP, HOST_IP, HOSTNAME and API_ADDR in it, so they appear nowhere below.
+      config: |
+        ui            = false
+        disable_mlock = true
+
+        listener "tcp" {
+          tls_disable     = 1
+          address         = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+
+        storage "raft" {
+          path = "/openbao/data"
+        }
+
+        service_registration "kubernetes" {}
+
+        seal "static" {
+          current_key_id = "lab-k8s-1"
+          current_key    = "file:///openbao/seal/unseal.key"
+        }
+
+        audit "file" "stdout" {
+          options {
+            file_path = "stdout"
+          }
+        }
+
+        initialize "engines" {
+          request "enable-kv" {
+            operation = "update"
+            path      = "sys/mounts/secret"
+            data      = { type = "kv", options = { version = "2" } }
+          }
+          request "enable-database" {
+            operation = "update"
+            path      = "sys/mounts/database"
+            data      = { type = "database" }
+          }
+          request "enable-kubernetes-auth" {
+            operation = "update"
+            path      = "sys/auth/kubernetes"
+            data      = { type = "kubernetes" }
+          }
+          # In a pod, OpenBao uses its own CA file and service-account token to
+          # call TokenReview; only the API server's address is needed.
+          request "kubernetes-auth-config" {
+            operation = "update"
+            path      = "auth/kubernetes/config"
+            data      = { kubernetes_host = "https://kubernetes.default.svc:443" }
+          }
+        }
+
+        initialize "policies" {
+          request "app-policy" {
+            operation = "update"
+            path      = "sys/policies/acl/secure-notes-app"
+            data = {
+              policy = <<-EOT
+                path "secret/data/rds/+/notes-db/*"          { capabilities = ["read", "create", "update"] }
+                path "secret/data/elasticache/+/notes-cache/*" { capabilities = ["read", "create", "update"] }
+                path "secret/metadata/rds/+/notes-db/*"      { capabilities = ["read"] }
+                path "secret/metadata/elasticache/+/notes-cache/*" { capabilities = ["read"] }
+                path "secret/metadata/rds/+/notes-db/+/pending"      { capabilities = ["read", "delete"] }
+                path "secret/metadata/elasticache/+/notes-cache/+/pending" { capabilities = ["read", "delete"] }
+                path "sys/tools/random/*"                    { capabilities = ["update"] }
+                path "database/creds/notes-app"              { capabilities = ["read"] }
+                path "database/creds/notes-cache"            { capabilities = ["read"] }
+                path "sys/leases/renew"                      { capabilities = ["update"] }
+                path "sys/leases/revoke" {
+                  capabilities       = ["update"]
+                  allowed_parameters = { "lease_id" = ["database/creds/notes-app/*", "database/creds/notes-cache/*"] }
+                }
+              EOT
+            }
+          }
+          request "seed-policy" {
+            operation = "update"
+            path      = "sys/policies/acl/secure-notes-seed"
+            data = {
+              policy = <<-EOT
+                path "secret/data/rds/+/notes-db/*"          { capabilities = ["read", "create", "update"] }
+                path "secret/data/elasticache/+/notes-cache/*" { capabilities = ["read", "create", "update"] }
+                path "secret/metadata/*"                     { capabilities = ["read", "list"] }
+                path "sys/tools/random/*"                    { capabilities = ["update"] }
+                path "database/config/notes-db"              { capabilities = ["create", "update"] }
+                path "database/config/notes-cache"           { capabilities = ["create", "update"] }
+                path "database/roles/notes-app"              { capabilities = ["create", "update"] }
+                path "database/roles/notes-cache"            { capabilities = ["create", "update"] }
+                path "database/rotate-root/notes-db"         { capabilities = ["update"] }
+                path "database/rotate-root/notes-cache"      { capabilities = ["update"] }
+              EOT
+            }
+          }
+          # External Secrets Operator (step v3, file mode): read the app's two
+          # KV secrets, nothing else.
+          request "eso-policy" {
+            operation = "update"
+            path      = "sys/policies/acl/external-secrets"
+            data = {
+              policy = <<-EOT
+                path "secret/data/rds/+/notes-db/app"        { capabilities = ["read"] }
+                path "secret/data/elasticache/+/notes-cache/app" { capabilities = ["read"] }
+              EOT
+            }
+          }
+        }
+
+        # Who may log in as what: a service account in a namespace, and only
+        # with a token minted for OpenBao (audience "openbao").
+        initialize "roles" {
+          request "app-role" {
+            operation = "update"
+            path      = "auth/kubernetes/role/secure-notes-app"
+            data = {
+              bound_service_account_names      = ["secure-notes"]
+              bound_service_account_namespaces = ["secure-notes"]
+              audience                         = "openbao"
+              token_policies                   = ["secure-notes-app"]
+              token_ttl                        = "15m"
+              token_max_ttl                    = "4h"
+            }
+          }
+          request "seed-role" {
+            operation = "update"
+            path      = "auth/kubernetes/role/secure-notes-seed"
+            data = {
+              bound_service_account_names      = ["secure-notes-seed"]
+              bound_service_account_namespaces = ["secure-notes"]
+              audience                         = "openbao"
+              token_policies                   = ["secure-notes-seed"]
+              token_ttl                        = "10m"
+              token_max_ttl                    = "10m"
+            }
+          }
+          request "eso-role" {
+            operation = "update"
+            path      = "auth/kubernetes/role/external-secrets"
+            data = {
+              bound_service_account_names      = ["external-secrets"]
+              bound_service_account_namespaces = ["external-secrets"]
+              audience                         = "openbao"
+              token_policies                   = ["external-secrets"]
+              token_ttl                        = "10m"
+            }
+          }
+        }
