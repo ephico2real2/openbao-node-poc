@@ -1,0 +1,121 @@
+chmod: changing permissions of '/var/run/postgresql': Operation not permitted
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data/pgdata ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+syncing data to disk ... ok
+
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data/pgdata -l logfile start
+
+waiting for server to start....2026-10-18 23:42:52.850 UTC [53] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-18 23:42:52.850 UTC [53] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-18 23:42:52.853 UTC [56] LOG:  database system was shut down at 2026-10-18 23:42:52 UTC
+2026-10-18 23:42:52.857 UTC [53] LOG:  database system is ready to accept connections
+ done
+server started
+2026-10-18 23:42:52.996 UTC [64] LOG:  statement: CREATE DATABASE "notes" ;
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+2026-10-18 23:42:53.037 UTC [53] LOG:  received fast shutdown request
+waiting for server to shut down....2026-10-18 23:42:53.037 UTC [53] LOG:  aborting any active transactions
+2026-10-18 23:42:53.039 UTC [53] LOG:  background worker "logical replication launcher" (PID 59) exited with exit code 1
+2026-10-18 23:42:53.041 UTC [54] LOG:  shutting down
+2026-10-18 23:42:53.041 UTC [54] LOG:  checkpoint starting: shutdown immediate
+2026-10-18 23:42:53.056 UTC [54] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.012 s, sync=0.002 s, total=0.015 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E8, redo lsn=0/191F0E8
+2026-10-18 23:42:53.063 UTC [53] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2026-10-18 23:42:53.160 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-18 23:42:53.161 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-18 23:42:53.161 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-18 23:42:53.161 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-18 23:42:53.165 UTC [69] LOG:  database system was shut down at 2026-10-18 23:42:53 UTC
+2026-10-18 23:42:53.171 UTC [1] LOG:  database system is ready to accept connections
+2026-10-18 23:42:55.696 UTC [80] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:46XjUQd6BUIIj+G8yUPRXA==$D2xMnVin105gNiVE1RADBnia5OVPGeSVLnTNSCq++8s=:KxXBhUEdPJXk8Gm1+ye2A/Gh9srWjzbhh/GbKjv4Zfw='
+2026-10-18 23:42:55.700 UTC [80] LOG:  statement: 
+	  CREATE TABLE IF NOT EXISTS notes (
+	    id         bigserial PRIMARY KEY,
+	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+	    created_at timestamptz NOT NULL DEFAULT now()
+	  )
+2026-10-18 23:42:55.705 UTC [80] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+2026-10-18 23:42:55.706 UTC [80] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+2026-10-18 23:42:55.706 UTC [80] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+2026-10-18 23:42:55.707 UTC [80] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+2026-10-18 23:42:55.710 UTC [80] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+2026-10-18 23:42:55.710 UTC [80] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+2026-10-18 23:42:55.712 UTC [80] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:oCeZZprMr+tJWHiLXgxcfw==$DFqbWUYW3aLg85Enpstx5rz56zIr1VTFMK63yloCBak=:/p7/PEuM1G+0ANZMVvAH3JiTID/CZjvIn1Im2efgvqU='
+2026-10-18 23:42:55.716 UTC [80] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+2026-10-18 23:42:55.717 UTC [80] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+2026-10-18 23:42:55.718 UTC [80] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:2AxBChnNkt9taHgJhZBnwQ==$QMpkjXyZ+KmP2ePvrkYPR3qlbsUECQR2KrtG9JGQboY=:QLo3swZzU2+MTbgAsNnXAOhZeBbI6KeZ6wfniS7OmOo='
+2026-10-18 23:42:55.759 UTC [81] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:f6OwN+MZ1HKI/sBJhm4CoQ==$AVbn78udFFXVi6AfORut9o6rwU1sm3RDc/SG5eNGF+g=:pyyszqr+g+WXusLTNQi94Xtdf8ns9LA7vpwp6Evw2dY='
+2026-10-18 23:42:59.506 UTC [89] LOG:  statement: CREATE ROLE "v-kubernet-notes-ap-ReV6Po89CpTRIjIYwCGx-1792366979" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:vomBtWEBUiF12UO4FjuNwg==$eJSF0+elRDHH9amidoYD5++CKJuMZX9pxRyCSF0tnz0=:RmJ1JC5e3ewYNsoazvP61CMfzVRubWlsLwEhnCJYebA=' VALID UNTIL '2026-10-18 23:43:34+0000' IN ROLE notes_rw
+2026-10-18 23:43:05.891 UTC [105] FATAL:  password authentication failed for user "postgres"
+2026-10-18 23:43:05.891 UTC [105] DETAIL:  Connection matched file "/var/lib/postgresql/data/pgdata/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2026-10-18 23:43:05.918 UTC [106] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:8YsNlpt2DXvf6tu/hamYOg==$YSJfczXhybDdELH4HmbP3aVCqs/hMH+ZhhfYCz4mnqI=:Gp5cjM7vIvs/ibXuSILMi4zUBMi7OU+nMhFWZAb+cdI='
+2026-10-18 23:43:05.925 UTC [106] LOG:  statement: 
+	  CREATE TABLE IF NOT EXISTS notes (
+	    id         bigserial PRIMARY KEY,
+	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+	    created_at timestamptz NOT NULL DEFAULT now()
+	  )
+2026-10-18 23:43:05.926 UTC [106] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+2026-10-18 23:43:05.927 UTC [106] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+2026-10-18 23:43:05.927 UTC [106] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+2026-10-18 23:43:05.928 UTC [106] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+2026-10-18 23:43:05.933 UTC [106] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+2026-10-18 23:43:05.934 UTC [106] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+2026-10-18 23:43:05.936 UTC [106] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:Y3QogP/AWSWVZlgU6YJ8gQ==$me6PMKClqdZV2ZQqUEC0ITo64TlClKRk4saMQO/UnZk=:NquadCcFUNQ/n030sjGinKaL9gs+YyCdD+k+E9Q1888='
+2026-10-18 23:43:05.943 UTC [106] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+2026-10-18 23:43:05.943 UTC [106] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+2026-10-18 23:43:05.946 UTC [106] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:h/PtSG6i2uJNJcldQgme6w==$flNT7i1UlyaEENTRZCQLNMlUVJyL7RnCx/N+WPoMgi4=:GyREgRcuvcm09gVu6uFWytiNDB+02GQ0YoUiPJ5/2Y0='
+2026-10-18 23:43:05.997 UTC [107] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:EyU0scO+wLCpjO4Ixd+2sA==$o+A7of2OJhczRdgwX1RAVvRITUeRK24jJeVOA+4mhYc=:4SdOHrSCkBdf1dyBzkvWKB/oObfECarJW2+3RezBVrg='
+2026-10-18 23:43:19.534 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-ReV6Po89CpTRIjIYwCGx-1792366979" VALID UNTIL '2026-10-18 23:43:54+0000'
+2026-10-18 23:43:39.729 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-ReV6Po89CpTRIjIYwCGx-1792366979" VALID UNTIL '2026-10-18 23:44:14+0000'
+2026-10-18 23:43:46.540 UTC [90] FATAL:  terminating connection due to administrator command
+2026-10-18 23:43:46.540 UTC [142] LOG:  statement: DROP ROLE IF EXISTS "v-kubernet-notes-ap-ReV6Po89CpTRIjIYwCGx-1792366979"
+2026-10-18 23:43:46.633 UTC [209] FATAL:  password authentication failed for user "v-kubernet-notes-ap-ReV6Po89CpTRIjIYwCGx-1792366979"
+2026-10-18 23:43:46.633 UTC [209] DETAIL:  Role "v-kubernet-notes-ap-ReV6Po89CpTRIjIYwCGx-1792366979" does not exist.
+	Connection matched file "/var/lib/postgresql/data/pgdata/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2026-10-18 23:43:46.638 UTC [142] LOG:  statement: CREATE ROLE "v-kubernet-notes-ap-d64bPMExihqfUvqd4FyH-1792367026" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:suP2X/4uKVSxabzzWRtXmw==$ez6X9eUnc+H6d/X21GyOSWkYf6caL4Ik4AMidSlivW0=:seRqc3Yt+oErsem4FM6TrNMYwRntjlAd7I4DGPrehWQ=' VALID UNTIL '2026-10-18 23:44:21+0000' IN ROLE notes_rw
+2026-10-18 23:44:06.652 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-d64bPMExihqfUvqd4FyH-1792367026" VALID UNTIL '2026-10-18 23:44:41+0000'
+2026-10-18 23:44:26.660 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-d64bPMExihqfUvqd4FyH-1792367026" VALID UNTIL '2026-10-18 23:45:01+0000'
+2026-10-18 23:44:46.670 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-d64bPMExihqfUvqd4FyH-1792367026" VALID UNTIL '2026-10-18 23:45:21+0000'
+2026-10-18 23:45:06.678 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-d64bPMExihqfUvqd4FyH-1792367026" VALID UNTIL '2026-10-18 23:45:21+0000'
+2026-10-18 23:45:11.687 UTC [142] LOG:  statement: CREATE ROLE "v-kubernet-notes-ap-FcWVUc3cJ0Tfq2IyJ6aK-1792367111" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:LIgd1bFLL0edkxHFYJ7ffA==$ik57LLodi6H52Xwr/E6Q0kAUEJ6JexXvFQY1rIuqfI8=:AZFn38Cd57KrCfeyAotNzkEPfxuP1W/6/sOO9JMFE2w=' VALID UNTIL '2026-10-18 23:45:46+0000' IN ROLE notes_rw
+2026-10-18 23:45:16.680 UTC [142] LOG:  statement: DROP ROLE IF EXISTS "v-kubernet-notes-ap-d64bPMExihqfUvqd4FyH-1792367026"
+2026-10-18 23:45:31.699 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-FcWVUc3cJ0Tfq2IyJ6aK-1792367111" VALID UNTIL '2026-10-18 23:46:06+0000'
+2026-10-18 23:45:51.708 UTC [142] LOG:  statement: ALTER ROLE "v-kubernet-notes-ap-FcWVUc3cJ0Tfq2IyJ6aK-1792367111" VALID UNTIL '2026-10-18 23:46:26+0000'
+2026-10-18 23:46:06.961 UTC [553] FATAL:  password authentication failed for user "postgres"
+2026-10-18 23:46:06.961 UTC [553] DETAIL:  Connection matched file "/var/lib/postgresql/data/pgdata/pg_hba.conf" line 119: "host    all             all             127.0.0.1/32            scram-sha-256"
+2026-10-18 23:46:08.424 UTC [411] FATAL:  terminating connection due to administrator command
+2026-10-18 23:46:08.424 UTC [142] LOG:  statement: DROP ROLE IF EXISTS "v-kubernet-notes-ap-FcWVUc3cJ0Tfq2IyJ6aK-1792367111"
+2026-10-18 23:46:08.802 UTC [569] FATAL:  password authentication failed for user "v-kubernet-notes-ap-FcWVUc3cJ0Tfq2IyJ6aK-1792367111"
+2026-10-18 23:46:08.802 UTC [569] DETAIL:  Role "v-kubernet-notes-ap-FcWVUc3cJ0Tfq2IyJ6aK-1792367111" does not exist.
+	Connection matched file "/var/lib/postgresql/data/pgdata/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2026-10-18 23:46:08.805 UTC [142] LOG:  statement: CREATE ROLE "v-kubernet-notes-ap-MUVUKJt8v4r5YRGsaER4-1792367168" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:bjeOgq+aqoPyh+DBnJzQGQ==$6GMVXYud46BwI7g7uxeh48wHaqUFiz/V34YAnxBEy5Q=:aNBrzLvboBXrRNEaaBVDpqOmGsTIpdQNQdrIJXEI5+A=' VALID UNTIL '2026-10-18 23:46:43+0000' IN ROLE notes_rw
