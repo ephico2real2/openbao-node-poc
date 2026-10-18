@@ -68,11 +68,17 @@ read -r -d '' COLLECT_BAO <<'JS'
 const { config } = await import('/app/backend/src/config.js');
 const { createBaoClient } = await import('/app/backend/src/secrets/bao/client.js');
 const b = config.bao;
-const c = createBaoClient({ addr: b.addr, roleId: b.roleId, secretIdFile: b.secretIdFile, authMount: b.authMount, namespace: b.namespace, scheduleRenewal: false });
+const c = createBaoClient({ ...b, scheduleRenewal: false });
 const sensitive = (k) => /pass|secret|token|key/i.test(k) && !/(id|arn)$/i.test(k);
 const out = new Set();
 const walk = (o) => { for (const [k, v] of Object.entries(o)) { if (typeof v === 'string' && sensitive(k) && v.length >= 8) out.add(v); else if (v && typeof v === 'object') walk(v); } };
-const ids = [config.secretIds.db, config.secretIds.redis, config.demo.dbAdminSecretId, config.demo.redisAdminSecretId].filter(Boolean);
+const { resolveSecretIds } = await import('/app/backend/src/secrets/naming.js');
+// Every stored (KV) secret of the naming convention; a dynamic ID (database/creds/...)
+// has no stored value, so the conventional KV names are used for those slots.
+const dyn = (v) => /(^|\/)creds\//.test(v ?? '');
+const env = process.env;
+const named = resolveSecretIds({ ...env, DB_SECRET_ID: dyn(env.DB_SECRET_ID) ? undefined : env.DB_SECRET_ID, REDIS_SECRET_ID: dyn(env.REDIS_SECRET_ID) ? undefined : env.REDIS_SECRET_ID }).ids;
+const ids = [...new Set(Object.values(named).filter(Boolean))];
 for (const id of ids) {
   for (const p of [id.replace(/^\/+/, ''), `${id.replace(/^\/+/, '')}/pending`]) {
     const m = await c.request('GET', `${b.kvMount}/metadata/${p}`, { allow404: true });
@@ -110,6 +116,8 @@ JS
 dc() { docker compose "$@"; }
 if [ -z "$PROVIDER" ] && [ "$TARGET" = compose ]; then
   PROVIDER=$(dc exec -T app printenv SECRETS_PROVIDER 2>/dev/null || true)
+elif [ -z "$PROVIDER" ]; then
+  PROVIDER=$($K -n "$NS" exec deploy/secure-notes -- printenv SECRETS_PROVIDER 2>/dev/null || true)
 fi
 PROVIDER="${PROVIDER:-aws}"
 case "$TARGET:$PROVIDER" in
@@ -120,6 +128,8 @@ case "$TARGET:$PROVIDER" in
   compose:aws)
     dc exec -T aws-mock node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   compose:*) echo "SECRETS_PROVIDER must be aws or openbao (got '$PROVIDER')"; exit 1 ;;
+  k8s:openbao)
+    $K -n "$NS" exec deploy/secure-notes -- node --input-type=module -e "$COLLECT_BAO" > "$VALS" 2>/dev/null ;;
   k8s:*)
     $K -n "$NS" exec deploy/aws-mock -- node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   *) echo "target must be compose or k8s"; exit 1 ;;
@@ -129,7 +139,9 @@ esac
 # when the app runs with LOG_REVEAL_SECRETS=true: then they are taken from its
 # own log, and every OTHER place must still be clean of them.
 DYNAMIC=no
-if [ "$TARGET:$PROVIDER" = compose:openbao ] && dc exec -T app printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
+if [ "$TARGET:$PROVIDER" = k8s:openbao ] && $K -n "$NS" exec deploy/secure-notes -- printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
+  DYNAMIC=yes
+elif [ "$TARGET:$PROVIDER" = compose:openbao ] && dc exec -T app printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
   DYNAMIC=yes
   if [ "$EXPECT_REVEALED" = 1 ]; then
     dc logs --no-color app 2>/dev/null | sed 's/^[^{]*//' | jq -r 'select(.msg? == "secret consumed (values revealed)") | .keys[]? | select(startswith("password=")) | sub("^.* value="; "")' 2>/dev/null | sort -u >> "$VALS"
@@ -230,6 +242,12 @@ else
     report "${pod#pod/}: logs" "$( { $K -n "$NS" logs "$pod" --all-containers 2>/dev/null; $K -n "$NS" logs "$pod" --all-containers --previous 2>/dev/null; } | hits)" "$allowed"
   done
   applog=$($K -n "$NS" logs deploy/secure-notes 2>/dev/null)
+  if [ "$PROVIDER" = openbao ]; then
+    echo "-- OpenBao (namespace openbao): its audit device writes to the pod log"
+    report "openbao-0: log, with the audit log (values must be HMAC'd)" "$( { $K -n openbao logs openbao-0 2>/dev/null; $K -n openbao logs openbao-0 --previous 2>/dev/null; } | hits)"
+    report "openbao-0: raft storage and config (plaintext?)" "$($K -n openbao exec -i openbao-0 -- sh -c 'grep -rhoF -f - /openbao 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
+    report "openbao namespace: Secrets (decoded; the seal key is binary)" "$($K -n openbao get secrets -o json | jq -r '.items[].data // {} | .[]' | while read -r b; do echo "$b" | base64 -d 2>/dev/null; echo; done | hits)"
+  fi
 fi
 
 # --- 3. Debug logging works, and it is what keeps the values out --------------
