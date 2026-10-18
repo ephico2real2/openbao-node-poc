@@ -40,6 +40,9 @@ services:
     command:
       - -datasource.url=http://victorialogs:9428
       - -rule.defaultRuleType=vlogs
+      # Look at log lines 5 s old or older (the default, 30 s, suits metrics):
+      # an audit line is searchable within about a second of being shipped.
+      - -rule.evalDelay=5s
       - -rule=/rules/rules.yml
       - -notifier.url=http://alert-console:3100
       - -loggerLevel=WARN

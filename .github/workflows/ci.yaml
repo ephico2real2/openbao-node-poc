@@ -116,7 +116,15 @@ jobs:
           echo "$VMUTILS_LINUX_AMD64_SHA256  $d/$vu" | sha256sum -c -
           tar -xzf "$d/$vl" -C "$d" victoria-logs-prod
           tar -xzf "$d/$vu" -C "$d" vmalert-prod
-          BAO_BIN=/tmp/bao/bao VLOGS_BIN="$d/victoria-logs-prod" VMALERT_BIN="$d/vmalert-prod" dev/detect/test-detection.sh
+          mkdir -p output
+          BAO_BIN=/tmp/bao/bao VLOGS_BIN="$d/victoria-logs-prod" VMALERT_BIN="$d/vmalert-prod" dev/detect/test-detection.sh 2>&1 | tee output/test-detection.txt
+          { echo "## Detection on the audit log, end to end"; echo; echo '```'; cat output/test-detection.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: On failure, the test outputs as annotations and on ci-captures
+        if: failure()
+        run: |
+          grep -h 'FAIL' output/*.txt 2>/dev/null | head -10 | sed 's|^|::error::|' || true
+          scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_checks-logs" || true
 
       - name: Unit tests (secrets layer, logging; OpenBao against the real server)
         working-directory: backend

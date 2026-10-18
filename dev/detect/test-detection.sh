@@ -29,7 +29,7 @@ env -i PATH="$PATH" "$BAO_BIN" server -config="$T/config.hcl" > "$T/bao.log" 2>&
 "$VLOGS_BIN" -storageDataPath="$T/vl" -httpListenAddr="127.0.0.1:$VL" -loggerLevel=ERROR > "$T/vl.log" 2>&1 & pids+=($!)
 PORT=$CON node backend/scripts/alert-console.js > "$T/console.log" 2>&1 & pids+=($!)
 "$VMALERT_BIN" -datasource.url="http://127.0.0.1:$VL" -rule.defaultRuleType=vlogs -rule=dev/detect/rules.yml \
-  -notifier.url="http://127.0.0.1:$CON" -httpListenAddr="127.0.0.1:$VMA" -loggerLevel=ERROR > "$T/vmalert.log" 2>&1 & pids+=($!)
+  -rule.evalDelay=5s -notifier.url="http://127.0.0.1:$CON" -httpListenAddr="127.0.0.1:$VMA" -loggerLevel=ERROR > "$T/vmalert.log" 2>&1 & pids+=($!)
 AUDIT_FILE="$T/logs/audit.log" LOGS_URL="http://127.0.0.1:$VL/insert/jsonline?_time_field=time&_msg_field=request.id&_stream_fields=type" SHIP_INTERVAL_MS=500 \
   node backend/scripts/audit-ship.js > "$T/ship.log" 2>&1 & pids+=($!)
 
@@ -51,23 +51,26 @@ const app = createBaoClient({ addr, roleId: 'secure-notes-app', secretIdFile: '$
 for (let i = 0; i < 3; i++) await app.request('GET', 'secret/data/rds/dev/notes-db/app');
 console.log('  the app read secret/data/rds/dev/notes-db/app 3 times');
 "
-sleep 25
+sleep 30 # > one evaluation (10 s interval, 5 s delay): the app's reads have been looked at
+seen=$(curl -fsS "http://127.0.0.1:$VL/select/logsql/query" --data-urlencode 'query=type:=response request.operation:=read auth.metadata.role_name:="secure-notes-app" | stats count() as n' | jq -r '.n // 0')
+[ "${seen:-0}" -ge 3 ] && ok "the log store has the app's $seen reads, so the rule has looked at them" || fail "the app's reads are not in the log store yet ($seen)"
 n=$(curl -fsS "http://127.0.0.1:$CON/api/alerts" | jq '.alerts | length')
 [ "$n" = 0 ] && ok "no alert: the app reading its own secret is normal" || fail "$n alert(s) for the app's own reads: $(curl -fsS "http://127.0.0.1:$CON/api/alerts")"
 
 echo "== ops-admin reads the same secret"
 BAO_ADDR="http://127.0.0.1:$B" BAO_SECRET_ID_FILE="$T/config/ops-secret-id" node backend/scripts/intruder.js | sed 's/^/  /'
 got=""
-for _ in $(seq 1 30); do
+t0=$(date +%s)
+for _ in $(seq 1 45); do
   got=$(curl -fsS "http://127.0.0.1:$CON/api/alerts" | jq -c '[.alerts[] | select(.labels.alertname == "SecretReadByUnexpectedIdentity")][0] // empty')
   [ -n "$got" ] && break
   sleep 2
 done
 if [ -n "$got" ]; then
-  ok "alert SecretReadByUnexpectedIdentity: role $(jq -r '.labels.auth_metadata_role_name' <<< "$got"), path $(jq -r '.labels.request_path' <<< "$got")"
+  ok "alert SecretReadByUnexpectedIdentity after $(( $(date +%s) - t0 )) s: role $(jq -r '.labels.auth_metadata_role_name' <<< "$got"), path $(jq -r '.labels.request_path' <<< "$got")"
   [ "$(jq -r '.labels.auth_metadata_role_name' <<< "$got")" = ops-admin ] && ok "the alert names the role that read it" || fail "wrong role in the alert: $got"
 else
-  fail "no alert within 60 s"; tail -5 "$T/vmalert.log"; tail -3 "$T/ship.log"
+  fail "no alert within 90 s"; tail -5 "$T/vmalert.log"; tail -3 "$T/ship.log"
 fi
 
 echo "== the log store"
