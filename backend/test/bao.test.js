@@ -127,8 +127,10 @@ test('real OpenBao: the lab config self-initialises; bootstrap once; app reads, 
     await seedStore.create(id, { username: 'notes_app', password: pw });
     await assert.rejects(seedStore.create(id, { username: 'x', password: 'y' }), /check-and-set/, 'create never overwrites');
 
-    const sid = await seed.request('POST', 'auth/approle/role/secure-notes-app/secret-id', { body: {} });
-    const appFile = secretFile(sid.data.secret_id);
+    // The same call the seed job makes (metadata must be a JSON string: CI run 39160066285 caught it).
+    const sid = await seed.mintSecretId('secure-notes-app', { issued_by: 'seed' });
+    assert.match(sid.accessor, /\S{8,}/);
+    const appFile = secretFile(sid.secretId);
     const app = createBaoClient({ addr, roleId: 'secure-notes-app', secretIdFile: appFile, scheduleRenewal: false });
     const fetcher = createKvFetcher(app);
     const v1 = await fetcher.fetch(id);
@@ -151,7 +153,7 @@ test('real OpenBao: the lab config self-initialises; bootstrap once; app reads, 
     assert.equal(app.status().renewals, 1);
 
     const audit = readFileSync(join(dir, 'logs', 'audit.log'), 'utf8');
-    for (const v of [pw, next, bootstrap, sid.data.secret_id]) assert.ok(!audit.includes(v), 'the audit log holds HMACs, never values');
+    for (const v of [pw, next, bootstrap, sid.secretId]) assert.ok(!audit.includes(v), 'the audit log holds HMACs, never values');
   } finally {
     server.kill('SIGTERM');
   }

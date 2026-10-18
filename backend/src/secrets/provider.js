@@ -154,7 +154,7 @@ export class SecretsProvider extends EventEmitter {
       name: entry.name,
       versionId: entry.versionId,
       stages: entry.versionStages,
-      source: this.mode, // sdk | agent
+      source: this.mode, // sdk | agent | bao
       reason,
       fingerprint: prevFingerprint ? `${prevFingerprint} -> ${entry.fingerprint}` : entry.fingerprint,
     };

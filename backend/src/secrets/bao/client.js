@@ -159,12 +159,23 @@ export function createBaoClient({
     }
   }
 
+  /**
+   * Mint a secret ID for another AppRole role (the seed job does this for the
+   * app). The server wants metadata as a JSON-encoded STRING, not an object.
+   */
+  async function mintSecretId(role, metadata = {}) {
+    const out = await request('POST', `auth/${authMount}/role/${role}/secret-id`, { body: { metadata: JSON.stringify(metadata) } });
+    redactor?.register?.(out.data.secret_id);
+    return { secretId: out.data.secret_id, accessor: out.data.secret_id_accessor };
+  }
+
   return {
     kind: 'bao',
     addr: base.origin,
     request,
     login,
     renew,
+    mintSecretId,
     health: () => raw('GET', 'sys/health', {}),
     /** Dashboard-safe: no token, no secret ID. */
     status: () => ({

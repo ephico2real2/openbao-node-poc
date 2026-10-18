@@ -9,7 +9,7 @@ import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 const SUSPICIOUS_NAME = /(PASSWORD|PASSWD|SECRET|TOKEN|PRIVATE_KEY|API_KEY|CREDENTIAL)/i;
 // Names that look sensitive but only hold identifiers, paths or settings.
 // The naming-convention parts (DB_SECRET_RESOURCE, SECRETS_NAME_PATTERN, SECRETS_ENV…) are names too.
-const BENIGN_NAME = /(_ID|_ARN|_FILE|_PATH|_SECONDS|_TTL|_MODE|_NAME|_RESOURCE|_SERVICE|_PATTERN|_ENV|_ENVS|_APP)$/i;
+const BENIGN_NAME = /(_ID|_ARN|_FILE|_PATH|_SECONDS|_TTL|_MODE|_NAME|_RESOURCE|_SERVICE|_PATTERN|_ENV|_ENVS|_APP|_PROVIDER)$/i;
 // A switch is not a credential: LOG_REVEAL_SECRETS=false names a secret but holds none.
 const SWITCH_VALUE = /^(true|false|yes|no|on|off|0|1)$/i;
 

@@ -67,11 +67,14 @@ try {
 
 logger.debug(
   {
+    secretsProvider: config.secretsProvider,
     secretsMode: config.secretsMode,
     secretIds: config.secretIds,
     secretIdSources: config.secretNaming.sources,
     namingPattern: config.secretNaming.pattern,
-    endpoint: config.awsEndpoint ?? (config.secretsMode === 'agent' ? config.agent.url : `secretsmanager.${config.region} (SDK default)`),
+    endpoint: config.secretsProvider !== 'aws'
+      ? config.bao.addr
+      : (config.awsEndpoint ?? (config.secretsMode === 'agent' ? config.agent.url : `secretsmanager.${config.region} (SDK default)`)),
     logLevel: config.logging.level,
   },
   'credential sources: which secrets this process will consume',

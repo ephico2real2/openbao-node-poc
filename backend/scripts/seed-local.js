@@ -80,11 +80,11 @@ const randomPassword = () => store.randomPassword();
 async function provisionAppSecretId() {
   const file = must('BAO_APP_SECRET_ID_FILE');
   const role = env.BAO_APP_ROLE ?? 'secure-notes-app';
-  const out = await bao.request('POST', `auth/approle/role/${role}/secret-id`, { body: { metadata: { issued_by: 'seed' } } });
+  const out = await bao.mintSecretId(role, { issued_by: 'seed' });
   const tmp = `${file}.tmp`;
-  await writeFile(tmp, `${out.data.secret_id}\n`, { mode: 0o400 });
+  await writeFile(tmp, `${out.secretId}\n`, { mode: 0o400 });
   await rename(tmp, file); // atomic: the app never reads a half-written file
-  console.log(`[seed] ${NAME}: minted the app's AppRole secret ID (accessor ${out.data.secret_id_accessor.slice(0, 8)}…) into ${file} (mode 0400)`);
+  console.log(`[seed] ${NAME}: minted the app's AppRole secret ID (accessor ${out.accessor.slice(0, 8)}…) into ${file} (mode 0400)`);
 }
 
 async function waitFor(name, fn, tries = 30) {
