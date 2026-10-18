@@ -1,0 +1,486 @@
+postgres-1  | The files belonging to this database system will be owned by user "postgres".
+postgres-1  | This user must also own the server process.
+postgres-1  | 
+postgres-1  | The database cluster will be initialized with locale "en_US.utf8".
+postgres-1  | The default database encoding has accordingly been set to "UTF8".
+redis-1     | 1:C 18 Oct 2026 21:50:57.378 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+redis-1     | 1:C 18 Oct 2026 21:50:57.378 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+redis-1     | 1:C 18 Oct 2026 21:50:57.378 * Redis version=7.4.11, bits=64, commit=00000000, modified=0, pid=1, just started
+redis-1     | 1:C 18 Oct 2026 21:50:57.378 * Configuration loaded
+redis-1     | 1:M 18 Oct 2026 21:50:57.379 * monotonic clock: POSIX clock_gettime
+redis-1     | 1:M 18 Oct 2026 21:50:57.380 * Running mode=standalone, port=6379.
+redis-1     | 1:M 18 Oct 2026 21:50:57.380 * Server initialized
+redis-1     | 1:M 18 Oct 2026 21:50:57.380 * Ready to accept connections tcp
+app-1       | {"time":"2026-10-18T21:51:11.363Z","level":"debug","app":"secure-notes","secretsProvider":"vault","secretsMode":"api","secretIds":{"db":"database/creds/notes-app","redis":"database/creds/notes-cache"},"secretIdSources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"namingPattern":"/{service}/{env}/{resource}/{name}","endpoint":"http://vault:8200","logLevel":"debug","msg":"credential sources: which secrets this process will consume"}
+app-1       | {"time":"2026-10-18T21:51:11.365Z","level":"info","app":"secure-notes","secretIds":{"db":"database/creds/notes-app","redis":"database/creds/notes-cache"},"sources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"environment":"dev","pattern":"/{service}/{env}/{resource}/{name}","msg":"secret IDs resolved"}
+app-1       | {"time":"2026-10-18T21:51:11.418Z","level":"info","app":"secure-notes","component":"bao","reason":"startup","auth":"approle","role":"secure-notes-app","authMount":"approle","policies":["default","secure-notes-app"],"ttlSeconds":900,"renewable":true,"event":"bao.login","msg":"logged in to Vault with AppRole"}
+app-1       | {"time":"2026-10-18T21:51:11.429Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"bPNazxL9","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T21:51:11.431Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","versionId":"bPNazxL9","reason":"cold-start","forced":false,"changed":false,"ms":63,"msg":"secret loaded"}
+app-1       | {"time":"2026-10-18T21:51:11.433Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","name":"database/creds/notes-cache","versionId":"bPNazxL9","stages":["lease"],"source":"bao","reason":"cold-start","fingerprint":"981404f590e8","keys":["username=V_*************************************************71","password=******** (20 chars, fp=1857866d)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T21:51:11.442Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"fThBocQb","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T21:51:11.443Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","versionId":"fThBocQb","reason":"cold-start","forced":false,"changed":false,"ms":76,"msg":"secret loaded"}
+app-1       | {"time":"2026-10-18T21:51:11.444Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","name":"database/creds/notes-app","versionId":"fThBocQb","stages":["lease"],"source":"bao","reason":"cold-start","fingerprint":"692c424f803e","keys":["username=v-**********************************************71","password=******** (20 chars, fp=9e716a41)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T21:51:11.447Z","level":"debug","app":"secure-notes","component":"redis","secretId":"database/creds/notes-cache","versionId":"bPNazxL9","fingerprint":"981404f590e8","host":"redis","port":6379,"tls":false,"why":"first connection","using":["username<-username=V_*************************************************71","password<-password=******** (20 chars, fp=1857866d)"],"msg":"redis authenticating with"}
+app-1       | {"time":"2026-10-18T21:51:11.457Z","level":"info","app":"secure-notes","component":"redis","msg":"redis connection ready"}
+app-1       | {"time":"2026-10-18T21:51:11.463Z","level":"debug","app":"secure-notes","component":"db","secretId":"database/creds/notes-app","versionId":"fThBocQb","fingerprint":"692c424f803e","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=v-**********************************************71","password<-password=******** (20 chars, fp=9e716a41)"],"msg":"postgres connecting with"}
+app-1       | {"time":"2026-10-18T21:51:11.487Z","level":"info","app":"secure-notes","host":"0.0.0.0","port":3000,"secretsProvider":"vault","secretsMode":"api","demoMode":true,"msg":"secure-notes listening"}
+app-1       | {"time":"2026-10-18T21:51:13.184Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":3.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:28.383Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":1.3,"msg":"request"}
+vault-1     | ==> Vault server configuration:
+vault-1     | 
+vault-1     | Administrative Namespace: 
+vault-1     |              Api Address: http://vault:8200
+vault-1     |                      Cgo: disabled
+vault-1     |          Cluster Address: https://vault:8201
+vault-1     |    Environment Variables: HOME, HOSTNAME, NAME, PATH, PWD, SHLVL, VAULT_ADDR
+vault-1     |               Go Version: go1.27.2
+vault-1     |               Listener 1: tcp (addr: "0.0.0.0:8200", cluster address: "0.0.0.0:8201", disable_request_limiter: "false", max_json_array_element_count: "10000", max_json_depth: "300", max_json_object_entry_count: "10000", max_json_string_value_length: "1048576", max_request_duration: "1m30s", max_request_size: "33554432", tls: "disabled")
+vault-1     |                Log Level: 
+vault-1     |                    Mlock: supported: true, enabled: false
+vault-1     |       Operator Namespace: 
+vault-1     |            Recovery Mode: false
+vault-1     |                  Storage: raft (HA available)
+vault-1     |                  Version: Vault v2.2.0, built 2026-10-14T15:24:08Z
+vault-1     |              Version Sha: 2891bfd23893ebd302307050edaf03d871ea8351
+vault-1     | 
+vault-1     | ==> Vault server started! Log data will stream in below:
+vault-1     | 
+vault-1     | 2026-10-18T21:50:57.478Z [INFO]  proxy environment: http_proxy="" https_proxy="" no_proxy=""
+vault-1     | 2026-10-18T21:50:57.480Z [INFO]  incrementing seal generation: generation=1
+vault-1     | 2026-10-18T21:50:57.480Z [INFO]  core: Initializing version history cache for core
+vault-1     | 2026-10-18T21:50:57.480Z [INFO]  events: Starting event system
+vault-1     | 2026-10-18T21:50:58.522Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:50:58.522Z [INFO]  core: seal configuration missing, not initialized
+vault-1     | 2026-10-18T21:50:58.566Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:50:58.566Z [INFO]  core: seal configuration missing, not initialized
+vault-1     | 2026-10-18T21:50:58.566Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:50:58.567Z [INFO]  storage.raft: creating Raft: config="&raft.Config{ProtocolVersion:3, HeartbeatTimeout:5000000000, ElectionTimeout:5000000000, CommitTimeout:50000000, MaxAppendEntries:64, BatchApplyCh:true, ShutdownOnRemove:true, TrailingLogs:0x2800, SnapshotInterval:120000000000, SnapshotThreshold:0x2000, LeaderLeaseTimeout:2500000000, LocalID:\"vault-0\", NotifyCh:(chan<- bool)(0x2ba69a8b0500), LogOutput:io.Writer(nil), LogLevel:\"DEBUG\", Logger:(*hclog.interceptLogger)(0x2ba69a21c3c0), NoSnapshotRestoreOnStart:true, PreVoteDisabled:false, NoLegacyTelemetry:false, skipStartup:false}"
+vault-1     | 2026-10-18T21:50:58.567Z [INFO]  storage.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:vault-0 Address:vault:8201}]"
+vault-1     | 2026-10-18T21:50:58.567Z [INFO]  storage.raft: entering follower state: follower="Node at vault-0 [Follower]" leader-address= leader-id=
+vault-1     | 2026-10-18T21:50:59.484Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:51:08.227Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+vault-1     | 2026-10-18T21:51:08.227Z [INFO]  storage.raft: entering candidate state: node="Node at vault-0 [Candidate]" term=2
+vault-1     | 2026-10-18T21:51:08.227Z [INFO]  storage.raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+vault-1     | 2026-10-18T21:51:08.228Z [INFO]  storage.raft: election won: term=2 tally=1
+vault-1     | 2026-10-18T21:51:08.228Z [INFO]  storage.raft: entering leader state: leader="Node at vault-0 [Leader]"
+vault-1     | 2026-10-18T21:51:08.236Z [INFO]  core: seal configuration missing, not initialized
+vault-1     | 2026-10-18T21:51:08.237Z [INFO]  core: security barrier initialized: stored=1 shares=1 threshold=1
+vault-1     | 2026-10-18T21:51:08.255Z [INFO]  core: post-unseal setup starting
+vault-1     | 2026-10-18T21:51:08.257Z [INFO]  core: loaded wrapping token key
+vault-1     | 2026-10-18T21:51:08.257Z [INFO]  core: successfully setup plugin runtime catalog
+app-1       | {"time":"2026-10-18T21:51:28.422Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+vault-1     | 2026-10-18T21:51:08.257Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+app-1       | {"time":"2026-10-18T21:51:28.423Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:28.425Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":1.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:28.431Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":12.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:28.438Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":12.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:30.466Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:30.466Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:30.467Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:31.434Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"bPNazxL9","ttlSeconds":30,"renewals":1,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:51:31.448Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"fThBocQb","ttlSeconds":30,"renewals":1,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:51:32.467Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.468Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.469Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.669Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.676Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.676Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.677Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.679Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":4.1,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:32.686Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:34.690Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:34.691Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:34.691Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:35.232Z","level":"warn","app":"secure-notes","component":"db","err":{"type":"error","message":"terminating connection due to administrator command","code":"57P01","stack":"error: terminating connection due to administrator command\n    at parseErrorMessage (/app/backend/node_modules/pg-protocol/dist/parser.js:306:11)\n    at Parser.handlePacket (/app/backend/node_modules/pg-protocol/dist/parser.js:143:27)\n    at Parser.parse (/app/backend/node_modules/pg-protocol/dist/parser.js:37:38)\n    at Socket.<anonymous> (/app/backend/node_modules/pg-protocol/dist/index.js:12:42)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at TCP.onStreamRead (node:internal/stream_base_commons:189:23)"},"msg":"idle database connection closed"}
+app-1       | {"time":"2026-10-18T21:51:35.234Z","level":"info","app":"secure-notes","component":"leases","lease":"fThBocQb","why":"demo","event":"bao.lease.revoked","msg":"lease revoked: Vault drops that database user"}
+app-1       | {"time":"2026-10-18T21:51:35.234Z","level":"info","app":"secure-notes","component":"rotator","alias":"db","secretId":"database/creds/notes-app","lease":"fThBocQb","event":"rotation.demo.revoked","msg":"demo: lease revoked"}
+app-1       | {"time":"2026-10-18T21:51:35.234Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/demo/rotate/db","status":200,"ms":11.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:35.238Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:35.238Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:35.239Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:35.308Z","level":"debug","app":"secure-notes","component":"db","secretId":"database/creds/notes-app","versionId":"fThBocQb","fingerprint":"692c424f803e","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=v-**********************************************71","password<-password=******** (20 chars, fp=9e716a41)"],"msg":"postgres connecting with"}
+app-1       | {"time":"2026-10-18T21:51:35.311Z","level":"warn","app":"secure-notes","component":"db","code":"28P01","event":"db.auth.rejected","msg":"database rejected cached credential; refreshing from Secrets Manager"}
+app-1       | {"time":"2026-10-18T21:51:35.324Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"874uDBw9","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T21:51:35.324Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","versionId":"874uDBw9","reason":"db-auth-failure","forced":true,"changed":true,"ms":13,"msg":"secret refreshed: new version"}
+app-1       | {"time":"2026-10-18T21:51:35.325Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","name":"database/creds/notes-app","versionId":"874uDBw9","stages":["lease"],"source":"bao","reason":"db-auth-failure","fingerprint":"692c424f803e -> 74c645f4957e","keys":["username=v-**********************************************95","password=******** (20 chars, fp=3cfcbe9a)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T21:51:35.325Z","level":"info","app":"secure-notes","component":"db","event":"db.pool.switched","msg":"switching to a pool for the newly issued Postgres user; the old pool drains"}
+app-1       | {"time":"2026-10-18T21:51:35.329Z","level":"debug","app":"secure-notes","component":"db","secretId":"database/creds/notes-app","versionId":"874uDBw9","fingerprint":"74c645f4957e","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=v-**********************************************95","password<-password=******** (20 chars, fp=3cfcbe9a)"],"msg":"postgres connecting with"}
+app-1       | {"time":"2026-10-18T21:51:35.338Z","level":"info","app":"secure-notes","component":"db","event":"db.auth.recovered","msg":"database accepted the refreshed credential"}
+app-1       | {"time":"2026-10-18T21:51:35.339Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/notes","status":201,"ms":35.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:35.345Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":2.6,"msg":"request"}
+postgres-1  | The default text search configuration will be set to "english".
+vault-1     | 2026-10-18T21:51:08.257Z [INFO]  core: no mounts; adding default mount table
+postgres-1  | 
+app-1       | {"time":"2026-10-18T21:51:36.689Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+postgres-1  | Data page checksums are disabled.
+app-1       | {"time":"2026-10-18T21:51:36.690Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+postgres-1  | 
+app-1       | {"time":"2026-10-18T21:51:36.691Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+postgres-1  | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+postgres-1  | creating subdirectories ... ok
+postgres-1  | selecting dynamic shared memory implementation ... posix
+vault-1     | 2026-10-18T21:51:08.259Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.2.0+builtin.vault" path=cubbyhole/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.259Z [INFO]  core: successfully mounted: type=system version="v2.2.0+builtin.vault" path=sys/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.261Z [INFO]  core: successfully mounted: type=identity version="v2.2.0+builtin.vault" path=identity/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.261Z [INFO]  core: successfully mounted: type=agent_registry version="v2.2.0+builtin.vault" path=agent-registry/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.269Z [INFO]  core: successfully mounted: type=token version="v2.2.0+builtin.vault" path=token/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.270Z [INFO]  rollback: Starting the rollback manager with 256 workers
+vault-1     | 2026-10-18T21:51:08.270Z [INFO]  core: restoring leases
+vault-1     | 2026-10-18T21:51:08.270Z [INFO]  rollback: starting rollback manager
+vault-1     | 2026-10-18T21:51:08.270Z [INFO]  expiration: lease restore complete
+vault-1     | 2026-10-18T21:51:08.275Z [INFO]  identity: entities restored
+vault-1     | 2026-10-18T21:51:08.275Z [INFO]  identity: groups restored
+vault-1     | 2026-10-18T21:51:08.275Z [INFO]  core: usage gauge collection is disabled
+vault-1     | 2026-10-18T21:51:08.282Z [INFO]  core: Recorded vault version: vault version=2.2.0 upgrade time="2026-10-18 21:51:08.27546264 +0000 UTC" build date=2026-10-14T15:24:08Z
+vault-1     | 2026-10-18T21:51:08.287Z [INFO]  core: post-unseal setup complete
+vault-1     | 2026-10-18T21:51:08.289Z [INFO]  core: root token generated
+vault-1     | 2026-10-18T21:51:08.296Z [INFO]  core: pre-seal teardown starting
+vault-1     | 2026-10-18T21:51:08.296Z [INFO]  core: stopping raft active node
+vault-1     | 2026-10-18T21:51:08.296Z [INFO]  rollback: stopping rollback manager
+vault-1     | 2026-10-18T21:51:08.296Z [INFO]  core: pre-seal teardown complete
+vault-1     | 2026-10-18T21:51:08.343Z [INFO]  core.cluster-listener.tcp: starting listener: listener_address=0.0.0.0:8201
+vault-1     | 2026-10-18T21:51:08.343Z [INFO]  core.cluster-listener: serving cluster requests: cluster_listen_address=[::]:8201
+vault-1     | 2026-10-18T21:51:08.343Z [INFO]  storage.raft: creating Raft: config="&raft.Config{ProtocolVersion:3, HeartbeatTimeout:15000000000, ElectionTimeout:15000000000, CommitTimeout:50000000, MaxAppendEntries:64, BatchApplyCh:true, ShutdownOnRemove:true, TrailingLogs:0x2800, SnapshotInterval:120000000000, SnapshotThreshold:0x2000, LeaderLeaseTimeout:2500000000, LocalID:\"vault-0\", NotifyCh:(chan<- bool)(0x2ba69aa62380), LogOutput:io.Writer(nil), LogLevel:\"DEBUG\", Logger:(*hclog.interceptLogger)(0x2ba69a21c3c0), NoSnapshotRestoreOnStart:true, PreVoteDisabled:false, NoLegacyTelemetry:false, skipStartup:false}"
+vault-1     | 2026-10-18T21:51:08.344Z [INFO]  storage.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:vault-0 Address:vault:8201}]"
+vault-1     | 2026-10-18T21:51:08.344Z [INFO]  storage.raft: entering follower state: follower="Node at vault:8201 [Follower]" leader-address= leader-id=
+vault-1     | 2026-10-18T21:51:08.344Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+vault-1     | 2026-10-18T21:51:08.344Z [INFO]  storage.raft: entering candidate state: node="Node at vault:8201 [Candidate]" term=3
+vault-1     | 2026-10-18T21:51:08.344Z [INFO]  storage.raft: pre-vote successful, starting election: term=3 tally=1 refused=0 votesNeeded=1
+vault-1     | 2026-10-18T21:51:08.344Z [INFO]  core: vault is unsealed
+vault-1     | 2026-10-18T21:51:08.344Z [INFO]  core: entering standby mode
+vault-1     | 2026-10-18T21:51:08.346Z [INFO]  storage.raft: election won: term=3 tally=1
+vault-1     | 2026-10-18T21:51:08.346Z [INFO]  storage.raft: entering leader state: leader="Node at vault:8201 [Leader]"
+vault-1     | 2026-10-18T21:51:08.347Z [INFO]  core: acquired lock, enabling active operation
+vault-1     | [vault-lab] initialised with one key share; unsealed
+vault-1     | 2026-10-18T21:51:08.354Z [INFO]  core: post-unseal setup starting
+vault-1     | 2026-10-18T21:51:08.355Z [INFO]  core: loaded wrapping token key
+vault-1     | 2026-10-18T21:51:08.355Z [INFO]  core: successfully setup plugin runtime catalog
+vault-1     | 2026-10-18T21:51:08.355Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+vault-1     | 2026-10-18T21:51:08.356Z [INFO]  core: successfully mounted: type=system version="v2.2.0+builtin.vault" path=sys/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.357Z [INFO]  core: successfully mounted: type=identity version="v2.2.0+builtin.vault" path=identity/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.357Z [INFO]  core: successfully mounted: type=agent_registry version="v2.2.0+builtin.vault" path=agent-registry/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.357Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.2.0+builtin.vault" path=cubbyhole/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.358Z [INFO]  core: successfully mounted: type=token version="v2.2.0+builtin.vault" path=token/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:51:08.358Z [INFO]  rollback: Starting the rollback manager with 256 workers
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  rollback: starting rollback manager
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  core: restoring leases
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  identity: entities restored
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  identity: groups restored
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  expiration: lease restore complete
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  core: starting raft active node
+vault-1     | 2026-10-18T21:51:08.359Z [INFO]  storage.raft: starting autopilot: config="CleanupDeadServers:false LastContactThreshold:10s DeadServerLastContactThreshold:24h0m0s MaxTrailingLogs:1000 MinQuorum:0 ServerStabilizationTime:10s DisableUpgradeMigration:false RedundancyZoneTag:redundancy_zone UpgradeVersionTag:upgrade_version"
+vault-1     | 2026-10-18T21:51:08.362Z [INFO]  core: usage gauge collection is disabled
+vault-1     | 2026-10-18T21:51:08.365Z [INFO]  core: post-unseal setup complete
+vault-1     | 2026-10-18T21:51:08.437Z [INFO]  core: enabled audit backend: path=file/ type=file
+vault-1     | 2026-10-18T21:51:08.483Z [INFO]  core: successful mount: namespace="" path=secret/ type=kv version="v0.27.0+builtin"
+vault-1     | 2026-10-18T21:51:08.750Z [INFO]  secrets.database.database_10185871: initializing database rotation queue
+vault-1     | 2026-10-18T21:51:08.752Z [INFO]  core: successful mount: namespace="" path=database/ type=database version="v2.2.0+builtin.vault"
+vault-1     | 2026-10-18T21:51:08.761Z [INFO]  secrets.database.database_10185871: populating role rotation queue
+vault-1     | 2026-10-18T21:51:08.762Z [INFO]  secrets.database.database_10185871: starting periodic ticker
+vault-1     | 2026-10-18T21:51:08.800Z [INFO]  core: enabled credential backend: path=approle/ type=approle version="v2.2.0+builtin.vault"
+vault-1     | 2026-10-18T21:51:08.844Z [WARN]  policy: you're using 'allowed_parameters' or 'denied_parameters' in one or more policies, note that Vault 1.21 introduced a behavior change. For details see https://developer.hashicorp.com/vault/docs/v1.21.x/updates/important-changes#item-by-item-list-comparison-for-allowed_parameters-and-denied_parameters
+vault-1     | 2026-10-18T21:51:09.171Z [INFO]  expiration: revoked lease: lease_id=auth/token/root/hc2bf7099eb10c76460bece54ef614d56f7a68c94d9bb05728518eae9cb8dbd56
+vault-1     | [vault-lab] configured: KV v2, database engine, AppRole, file audit device; the root token is revoked
+vault-1     | 2026-10-18T21:51:10.904Z [INFO]  secrets.database.database_10185871: successfully rotated root credential on user request: path=rotate-root/notes-db
+vault-1     | 2026-10-18T21:51:10.915Z [INFO]  secrets.database.database_10185871: successfully rotated root credential on user request: path=rotate-root/notes-cache
+vault-1     | 2026-10-18T21:51:35.231Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/fThBocQbshUV7ZoiZnaxpGrq
+vault-1     | 2026-10-18T21:51:42.909Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/bPNazxL9sRHMbCVPdbOufEF3
+vault-1     | 2026-10-18T21:53:05.350Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/874uDBw9O8OhLsoP8C79IP4U
+vault-1     | 2026-10-18T21:53:13.135Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/fmCy1IJc3StVlDEGXdsjeBiB
+app-1       | {"time":"2026-10-18T21:51:38.690Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:38.690Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:38.691Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:40.349Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:40.353Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:40.354Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:40.356Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":1,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:40.359Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:40.361Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":6.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.369Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.369Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.370Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.910Z","level":"info","app":"secure-notes","component":"leases","lease":"bPNazxL9","why":"demo","event":"bao.lease.revoked","msg":"lease revoked: Vault drops that database user"}
+app-1       | {"time":"2026-10-18T21:51:42.910Z","level":"info","app":"secure-notes","component":"rotator","alias":"redis","secretId":"database/creds/notes-cache","lease":"bPNazxL9","event":"rotation.demo.revoked","msg":"demo: lease revoked"}
+app-1       | {"time":"2026-10-18T21:51:42.910Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/demo/rotate/redis","status":200,"ms":6.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.916Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.918Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:42.919Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:43.110Z","level":"warn","app":"secure-notes","component":"redis","event":"cache.auth.rejected","msg":"redis rejected cached credential; refreshing from Secrets Manager"}
+app-1       | {"time":"2026-10-18T21:51:43.116Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"fmCy1IJc","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T21:51:43.116Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","versionId":"fmCy1IJc","reason":"redis-auth-failure","forced":true,"changed":true,"ms":6,"msg":"secret refreshed: new version"}
+app-1       | {"time":"2026-10-18T21:51:43.117Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","name":"database/creds/notes-cache","versionId":"fmCy1IJc","stages":["lease"],"source":"bao","reason":"redis-auth-failure","fingerprint":"981404f590e8 -> a92e52f94b0f","keys":["username=V_*************************************************03","password=******** (20 chars, fp=4b2384e7)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T21:51:43.117Z","level":"debug","app":"secure-notes","component":"redis","secretId":"database/creds/notes-cache","versionId":"fmCy1IJc","fingerprint":"a92e52f94b0f","host":"redis","port":6379,"tls":false,"why":"after refresh","using":["username<-username=V_*************************************************03","password<-password=******** (20 chars, fp=4b2384e7)"],"msg":"redis authenticating with"}
+app-1       | {"time":"2026-10-18T21:51:43.513Z","level":"info","app":"secure-notes","component":"redis","msg":"redis connection ready"}
+app-1       | {"time":"2026-10-18T21:51:43.513Z","level":"info","app":"secure-notes","component":"redis","event":"cache.auth.recovered","msg":"redis accepted the refreshed credential"}
+app-1       | {"time":"2026-10-18T21:51:44.369Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:44.369Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:44.370Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:46.369Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:46.369Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:46.370Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:47.998Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:48.004Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:48.006Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:48.007Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:48.008Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:48.011Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":6.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:50.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:50.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:50.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:50.328Z","level":"info","app":"secure-notes","component":"leases","lease":"fThBocQb","why":"replaced","event":"bao.lease.revoked","msg":"lease revoked: Vault drops that database user"}
+app-1       | {"time":"2026-10-18T21:51:52.025Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":1.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:52.026Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:52.028Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:54.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:54.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:54.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:55.329Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"874uDBw9","ttlSeconds":30,"renewals":1,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:51:56.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:56.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:56.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:58.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:58.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:58.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:51:58.119Z","level":"info","app":"secure-notes","component":"leases","lease":"bPNazxL9","why":"replaced","event":"bao.lease.revoked","msg":"lease revoked: Vault drops that database user"}
+app-1       | {"time":"2026-10-18T21:52:00.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:00.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:00.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:02.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:02.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:02.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:03.121Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"fmCy1IJc","ttlSeconds":30,"renewals":1,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:52:04.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:04.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:04.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:06.020Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:06.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:06.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:08.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:08.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:08.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:10.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:10.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:10.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:12.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:12.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:12.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:14.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:14.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:14.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:15.334Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"874uDBw9","ttlSeconds":30,"renewals":2,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:52:16.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:16.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:16.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:18.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:18.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:18.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:20.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:20.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:20.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:22.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:22.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:22.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:23.126Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"fmCy1IJc","ttlSeconds":30,"renewals":2,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:52:24.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:24.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:24.025Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:26.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:26.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:26.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:28.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:28.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:28.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:30.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:30.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:30.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:32.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:32.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:32.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:34.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:34.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:34.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:35.339Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"874uDBw9","ttlSeconds":30,"renewals":3,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:52:36.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:36.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:36.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:38.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:38.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:38.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+postgres-1  | selecting default max_connections ... 100
+postgres-1  | selecting default shared_buffers ... 128MB
+postgres-1  | selecting default time zone ... Etc/UTC
+postgres-1  | creating configuration files ... ok
+postgres-1  | running bootstrap script ... ok
+postgres-1  | performing post-bootstrap initialization ... ok
+postgres-1  | initdb: warning: enabling "trust" authentication for local connections
+postgres-1  | syncing data to disk ... ok
+postgres-1  | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+postgres-1  | 
+postgres-1  | 
+postgres-1  | Success. You can now start the database server using:
+postgres-1  | 
+postgres-1  |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+postgres-1  | 
+postgres-1  | waiting for server to start....2026-10-18 21:50:58.035 UTC [47] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1  | 2026-10-18 21:50:58.036 UTC [47] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1  | 2026-10-18 21:50:58.038 UTC [50] LOG:  database system was shut down at 2026-10-18 21:50:57 UTC
+postgres-1  | 2026-10-18 21:50:58.042 UTC [47] LOG:  database system is ready to accept connections
+postgres-1  |  done
+postgres-1  | server started
+postgres-1  | 2026-10-18 21:50:58.179 UTC [58] LOG:  statement: CREATE DATABASE "notes" ;
+postgres-1  | CREATE DATABASE
+postgres-1  | 
+postgres-1  | 
+postgres-1  | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+postgres-1  | 
+postgres-1  | 2026-10-18 21:50:58.223 UTC [47] LOG:  received fast shutdown request
+postgres-1  | waiting for server to shut down....2026-10-18 21:50:58.223 UTC [47] LOG:  aborting any active transactions
+postgres-1  | 2026-10-18 21:50:58.225 UTC [47] LOG:  background worker "logical replication launcher" (PID 53) exited with exit code 1
+postgres-1  | 2026-10-18 21:50:58.226 UTC [48] LOG:  shutting down
+postgres-1  | 2026-10-18 21:50:58.226 UTC [48] LOG:  checkpoint starting: shutdown immediate
+postgres-1  | 2026-10-18 21:50:58.246 UTC [48] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.015 s, sync=0.004 s, total=0.021 s; sync files=301, longest=0.002 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E8, redo lsn=0/191F0E8
+postgres-1  | 2026-10-18 21:50:58.252 UTC [47] LOG:  database system is shut down
+postgres-1  |  done
+postgres-1  | server stopped
+postgres-1  | 
+postgres-1  | PostgreSQL init process complete; ready for start up.
+postgres-1  | 
+postgres-1  | 2026-10-18 21:50:58.344 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1  | 2026-10-18 21:50:58.344 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1  | 2026-10-18 21:50:58.344 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1  | 2026-10-18 21:50:58.345 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1  | 2026-10-18 21:50:58.348 UTC [63] LOG:  database system was shut down at 2026-10-18 21:50:58 UTC
+postgres-1  | 2026-10-18 21:50:58.352 UTC [1] LOG:  database system is ready to accept connections
+postgres-1  | 2026-10-18 21:51:10.842 UTC [110] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:9cmh3haP+m7IdwDVn5H72A==$n7hRc9dQoANpNfZubogaP81KwmH6LCBdV5Ad19vakI0=:huOpmcjMh86BPPYakS7WYiFeKflvO9GH+xtzH0jHDjI='
+postgres-1  | 2026-10-18 21:51:10.846 UTC [110] LOG:  statement: 
+postgres-1  | 	  CREATE TABLE IF NOT EXISTS notes (
+postgres-1  | 	    id         bigserial PRIMARY KEY,
+postgres-1  | 	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+postgres-1  | 	    created_at timestamptz NOT NULL DEFAULT now()
+postgres-1  | 	  )
+postgres-1  | 2026-10-18 21:51:10.852 UTC [110] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+postgres-1  | 2026-10-18 21:51:10.852 UTC [110] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+postgres-1  | 2026-10-18 21:51:10.853 UTC [110] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+postgres-1  | 2026-10-18 21:51:10.853 UTC [110] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+postgres-1  | 2026-10-18 21:51:10.856 UTC [110] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+postgres-1  | 2026-10-18 21:51:10.857 UTC [110] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+postgres-1  | 2026-10-18 21:51:10.858 UTC [110] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:nSjrrCcb44RqelRB9ovyTA==$Re28GhrbLEeS62Tbttz7eUUp64bvma+oaBmUMY7la9c=:JVmlWZxq75+9ro9QbQdJgp842weCZddDaknIskzR+H4='
+postgres-1  | 2026-10-18 21:51:10.862 UTC [110] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+postgres-1  | 2026-10-18 21:51:10.863 UTC [110] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+postgres-1  | 2026-10-18 21:51:10.865 UTC [110] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:+/2xn9zlfIkHDxUML50dmg==$/7IsurYHIpu1yupMvvIwmFunY4Bvh4D4Kx5vN+pEFBs=:gqM30jtCclS9Hipue1veY4NjEgGtf91NQ2XItbVGzJY='
+postgres-1  | 2026-10-18 21:51:10.899 UTC [111] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:fN6C6yhwyb6Hh43kjWwzlg==$LtvEjbeMWSpmzrCW+bXCH5FckEocAL+DNW5nppszxV0=:QLlzY4f9kyVwkN4MCDAQAokP5v16JZHOXYrSQe6iZgo='
+postgres-1  | 2026-10-18 21:51:11.435 UTC [112] LOG:  statement: CREATE ROLE "v-approle-notes-ap-uVip2TJITzJzYyEgd8u7-1792360271" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:Uw38wEtPDHSyz+dh1gFoVQ==$gNI+BVWVbxeV4A+OMB6XX7CPBR19jGyr94O+XNuCpV8=:HADbqfDmvJ9DpZI0/yuiN+EwM1pb5630D46puLk7eIk=' VALID UNTIL '2026-10-18 21:51:46+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 21:51:31.445 UTC [112] LOG:  statement: ALTER ROLE "v-approle-notes-ap-uVip2TJITzJzYyEgd8u7-1792360271" VALID UNTIL '2026-10-18 21:52:06+0000'
+postgres-1  | 2026-10-18 21:51:35.229 UTC [113] FATAL:  terminating connection due to administrator command
+postgres-1  | 2026-10-18 21:51:35.229 UTC [112] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-uVip2TJITzJzYyEgd8u7-1792360271"
+postgres-1  | 2026-10-18 21:51:35.311 UTC [199] FATAL:  password authentication failed for user "v-approle-notes-ap-uVip2TJITzJzYyEgd8u7-1792360271"
+postgres-1  | 2026-10-18 21:51:35.311 UTC [199] DETAIL:  Role "v-approle-notes-ap-uVip2TJITzJzYyEgd8u7-1792360271" does not exist.
+postgres-1  | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+postgres-1  | 2026-10-18 21:51:35.315 UTC [112] LOG:  statement: CREATE ROLE "v-approle-notes-ap-MyZzqxOzzsNWD96S3RdG-1792360295" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:mkxShzG8migDuE2xf1u5pQ==$3T+atrPSsIhf1jGYFS6LfknjB1Rfgqee2fFrOZWUork=:F4YYmqokKM6tlm7fHCU7vAKYn1h6M6B90L76oaIgqBo=' VALID UNTIL '2026-10-18 21:52:10+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 21:51:55.326 UTC [112] LOG:  statement: ALTER ROLE "v-approle-notes-ap-MyZzqxOzzsNWD96S3RdG-1792360295" VALID UNTIL '2026-10-18 21:52:30+0000'
+postgres-1  | 2026-10-18 21:52:15.332 UTC [112] LOG:  statement: ALTER ROLE "v-approle-notes-ap-MyZzqxOzzsNWD96S3RdG-1792360295" VALID UNTIL '2026-10-18 21:52:50+0000'
+postgres-1  | 2026-10-18 21:52:35.336 UTC [112] LOG:  statement: ALTER ROLE "v-approle-notes-ap-MyZzqxOzzsNWD96S3RdG-1792360295" VALID UNTIL '2026-10-18 21:53:10+0000'
+postgres-1  | 2026-10-18 21:52:55.343 UTC [112] LOG:  statement: ALTER ROLE "v-approle-notes-ap-MyZzqxOzzsNWD96S3RdG-1792360295" VALID UNTIL '2026-10-18 21:53:10+0000'
+postgres-1  | 2026-10-18 21:53:00.349 UTC [112] LOG:  statement: CREATE ROLE "v-approle-notes-ap-UZpsJO3ihDcP27v0vJ9z-1792360380" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:1e6Pklk7yEDWrIc5zByLOA==$IYVADD7ogroT0TZJ9Yv2NLEsHlKl+MeXcts/zu8O3B4=:IITct4qhPcaxbBR76skB+fSSw5+i/r7ySaOG8wv3oWY=' VALID UNTIL '2026-10-18 21:53:35+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 21:53:05.346 UTC [112] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-MyZzqxOzzsNWD96S3RdG-1792360295"
+app-1       | {"time":"2026-10-18T21:52:40.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:40.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:40.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:42.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:42.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:42.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:43.130Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"fmCy1IJc","ttlSeconds":30,"renewals":3,"final":false,"event":"bao.lease.renewed","msg":"lease renewed"}
+app-1       | {"time":"2026-10-18T21:52:44.020Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:44.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:44.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:46.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:46.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:46.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:48.020Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:48.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:48.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:50.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:50.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:50.023Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:52.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:52.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:52.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:54.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:54.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:54.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:55.345Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"874uDBw9","ttlSeconds":10,"renewals":4,"final":true,"event":"bao.lease.renewed","msg":"lease renewed for the last time (max TTL reached)"}
+app-1       | {"time":"2026-10-18T21:52:56.020Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:56.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:56.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:58.020Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:58.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:52:58.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:00.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:00.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:00.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:00.346Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"874uDBw9","reason":"lease-max-ttl","event":"bao.lease.reissue","msg":"asking Vault for a new database user before the lease ends"}
+app-1       | {"time":"2026-10-18T21:53:00.355Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"p4KHGB2v","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T21:53:00.356Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","versionId":"p4KHGB2v","reason":"lease-max-ttl","forced":true,"changed":true,"ms":10,"msg":"secret refreshed: new version"}
+app-1       | {"time":"2026-10-18T21:53:00.357Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","name":"database/creds/notes-app","versionId":"p4KHGB2v","stages":["lease"],"source":"bao","reason":"lease-max-ttl","fingerprint":"74c645f4957e -> be463044498c","keys":["username=v-**********************************************80","password=******** (20 chars, fp=06add379)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T21:53:00.357Z","level":"info","app":"secure-notes","component":"db","event":"db.pool.switched","msg":"switching to a pool for the newly issued Postgres user; the old pool drains"}
+app-1       | {"time":"2026-10-18T21:53:02.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:02.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:02.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:03.133Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"fmCy1IJc","ttlSeconds":10,"renewals":4,"final":true,"event":"bao.lease.renewed","msg":"lease renewed for the last time (max TTL reached)"}
+app-1       | {"time":"2026-10-18T21:53:04.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+seed-1      | [seed] secret names (/{service}/{env}/{resource}/{name}): /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+seed-1      | [seed] Vault: logged in with the one-time bootstrap AppRole (that secret ID no longer works)
+seed-1      | [seed] created 4 secrets
+seed-1      | [seed] postgres: group role notes_rw and OpenBao's admin bao_admin created
+seed-1      | [seed] postgres: role, table, grants done; bootstrap password replaced
+seed-1      | [seed] redis: ACL user created (notes:* keys only); bootstrap password replaced
+seed-1      | [seed] Vault: database engine connected to Postgres as bao_admin; role notes-app (TTL 30s, max 90s); bao_admin's password rotated, only Vault knows it
+seed-1      | [seed] Vault: database engine (redis-database-plugin) connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated
+seed-1      | [seed] Vault: minted the app's AppRole secret ID (accessor 4ac2e156…) into /home/node/bao-secret-id (mode 0400)
+seed-1      | [seed] done. Every credential now lives only in Vault.
+app-1       | {"time":"2026-10-18T21:53:04.021Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:04.022Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:05.327Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:05.335Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:05.335Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:05.336Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:05.341Z","level":"debug","app":"secure-notes","component":"db","secretId":"database/creds/notes-app","versionId":"p4KHGB2v","fingerprint":"be463044498c","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=v-**********************************************80","password<-password=******** (20 chars, fp=06add379)"],"msg":"postgres connecting with"}
+app-1       | {"time":"2026-10-18T21:53:05.344Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":11.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:05.350Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":18.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.358Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.358Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.359Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.882Z","level":"error","app":"secure-notes","component":"api","err":{"type":"Error","message":"connect ECONNREFUSED postgres://v-approle-notes-ap-UZpsJO3ihDcP27v0vJ9z-1792360380:[REDACTED]@postgres:5432/notes","stack":"Error: connect ECONNREFUSED postgres://v-approle-notes-ap-UZpsJO3ihDcP27v0vJ9z-1792360380:[REDACTED]@postgres:5432/notes\n    at Object.handler (file:///app/backend/src/routes.js:152:17)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async Server.<anonymous> (file:///app/backend/src/http.js:140:22)"},"msg":"simulated: library error containing a connection string"}
+app-1       | {"time":"2026-10-18T21:53:07.882Z","level":"warn","app":"secure-notes","component":"api","user":"v-approle-notes-ap-UZpsJO3ihDcP27v0vJ9z-1792360380","dbPassword":"[REDACTED]","msg":"simulated: developer logs the credential"}
+app-1       | {"time":"2026-10-18T21:53:07.882Z","level":"info","app":"secure-notes","component":"api","msg":"simulated: password inlined into a message: [REDACTED]"}
+app-1       | {"time":"2026-10-18T21:53:07.883Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/demo/leak-test","status":200,"ms":1.9,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.897Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.897Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:07.898Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:08.133Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"fmCy1IJc","reason":"lease-max-ttl","event":"bao.lease.reissue","msg":"asking Vault for a new database user before the lease ends"}
+app-1       | {"time":"2026-10-18T21:53:08.138Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"jQx4jZtE","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T21:53:08.138Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","versionId":"jQx4jZtE","reason":"lease-max-ttl","forced":true,"changed":true,"ms":5,"msg":"secret refreshed: new version"}
+app-1       | {"time":"2026-10-18T21:53:08.139Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","name":"database/creds/notes-cache","versionId":"jQx4jZtE","stages":["lease"],"source":"bao","reason":"lease-max-ttl","fingerprint":"a92e52f94b0f -> d4be96d75411","keys":["username=V_*************************************************88","password=******** (20 chars, fp=2f94fecd)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T21:53:08.140Z","level":"debug","app":"secure-notes","component":"redis","secretId":"database/creds/notes-cache","versionId":"jQx4jZtE","fingerprint":"d4be96d75411","host":"redis","port":6379,"tls":false,"why":"new lease","using":["username<-username=V_*************************************************88","password<-password=******** (20 chars, fp=2f94fecd)"],"msg":"redis authenticating with"}
+app-1       | {"time":"2026-10-18T21:53:08.140Z","level":"info","app":"secure-notes","component":"redis","event":"cache.user.switched","msg":"switching the Redis connection to the newly issued user"}
+app-1       | {"time":"2026-10-18T21:53:08.342Z","level":"info","app":"secure-notes","component":"redis","msg":"redis connection ready"}
+app-1       | {"time":"2026-10-18T21:53:09.359Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.360Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.2,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.360Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.697Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.701Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.702Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.703Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.706Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:09.710Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":7.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:11.724Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:11.725Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:11.726Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:13.722Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:13.725Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:13.725Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.4,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:13.750Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:15.359Z","level":"info","app":"secure-notes","component":"leases","lease":"874uDBw9","why":"replaced","event":"bao.lease.revoked","msg":"lease revoked: Vault drops that database user"}
+app-1       | {"time":"2026-10-18T21:53:15.723Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:15.724Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+app-1       | {"time":"2026-10-18T21:53:15.725Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1.3,"msg":"request"}
