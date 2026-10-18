@@ -1,0 +1,67 @@
+== waiting for http://localhost:3000/api/health
+  ready after ~2 s
+SERVICE    IMAGE                              STATE
+app        secure-notes-app:dev               running
+postgres   docker.io/library/postgres:16      running
+redis      docker.io/library/redis:7-alpine   running
+vault      docker.io/hashicorp/vault:2.2.0    running
+== the seed job burned the bootstrap passwords
+  ok    Redis rejects the bootstrap password
+  ok    Postgres rejects the bootstrap password
+== secrets provider: vault, mode: api
+  ok    the app is logged in to Vault as role 'secure-notes-app' (policies: default,secure-notes-app)
+  ok    /api/config shows the login state, never the token
+  ok    the app's secret ID file is mode 0400, owned by the app user
+  ok    no token or secret ID in the app's environment
+  ok    the seed's bootstrap secret ID is spent (single use)
+  ok    the app's policy refuses a path outside its own (403)
+  ok    the audit log recorded 12 KV request/response entries
+== step v2: dynamic database users with leases
+  ok    the app's Postgres sessions use a user OpenBao created for it (v-approle-notes-ap-H…), not a stored one
+  ok    the app renewed both leases (sys/leases/renew)
+== end-to-end smoke test
+Smoke test against http://localhost:3000
+  mode: api
+  ok    health: postgres and redis reachable
+  ok    notes: write to postgres, read through redis  (postgres -> redis)
+  ok    revoke the db lease (OpenBao drops the user)  (revoked lease xbMX3w86)
+  ok    revoke the redis lease (OpenBao drops the user)  (revoked lease eypDV9Hf)
+  ok    drop connections, then app recovers with the rotated credentials  (recovered: db, redis)
+  ok    secrets dashboard shows the new versions in cache
+  ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)
+  ok    security posture: no check fails  (15 checks, none failing)
+
+All checks passed
+== step v2: revoked and replaced users are gone
+  ok    Postgres has 1 leased user(s) left: the app's current one (and at most one draining)
+  info  the app switched to a newly issued user 6 time(s) so far (revocations, and leases at their max TTL)
+== the actual credential values, searched for in every container, file and log
+== credential scan (compose): searching for 4 secret values from Vault, read as the app's own identity (every version); the values are never printed
+  info  dynamic users: their passwords are only in the app's memory; the LOG_REVEAL_SECRETS run searches for them
+-- containers
+  ok    app: container config (env, command, labels: docker inspect)   clean
+  ok    postgres: container config (env, command, labels: docker inspect) clean
+  ok    redis: container config (env, command, labels: docker inspect) clean
+  ok    seed: container config (env, command, labels: docker inspect)  clean
+  ok    vault: container config (env, command, labels: docker inspect) clean
+  ok    app: process environment values (/proc/1/environ)              clean
+  ok    app: every readable file (5846 files)                          clean
+  ok    postgres: data directory and config (plaintext passwords?)     clean
+  ok    redis: data and ACL files (plaintext passwords?)               clean
+  ok    vault: audit log (values must be HMAC'd)                       clean
+  ok    vault: raft storage, seal/unseal key, config, /tmp (plaintext?) clean
+-- logs
+  ok    app: log                                                       clean
+  ok    postgres: log                                                  clean
+  ok    redis: log                                                     clean
+  ok    seed: log                                                      clean
+  ok    vault: log                                                     clean
+-- the AppRole secret IDs (2: the app's, the seed's spent bootstrap one, and the lab's ops-admin one if present)
+  ok    every container's config (env, command, labels)                clean
+  ok    every container's log (the app log too, even when revealing)   clean
+  ok    app: process environment values (/proc/1/environ)              clean
+  ok    vault: audit log                                               clean
+-- debug logging (LOG_LEVEL=debug)
+  ok    app log names the secrets and keys it consumed                 8 line(s)
+  ok    every password is shown as ******** (length, fingerprint)      yes
+credential-scan: no credential value found anywhere it must not be
