@@ -1,0 +1,257 @@
+postgres-1  | The files belonging to this database system will be owned by user "postgres".
+postgres-1  | This user must also own the server process.
+postgres-1  | 
+postgres-1  | The database cluster will be initialized with locale "en_US.utf8".
+postgres-1  | The default database encoding has accordingly been set to "UTF8".
+postgres-1  | The default text search configuration will be set to "english".
+postgres-1  | 
+postgres-1  | Data page checksums are disabled.
+postgres-1  | 
+postgres-1  | fixing permissions on existing directory /var/lib/postgresql/data ... ok
+postgres-1  | creating subdirectories ... ok
+postgres-1  | selecting dynamic shared memory implementation ... posix
+postgres-1  | selecting default max_connections ... 100
+postgres-1  | selecting default shared_buffers ... 128MB
+postgres-1  | selecting default time zone ... Etc/UTC
+postgres-1  | creating configuration files ... ok
+postgres-1  | running bootstrap script ... ok
+postgres-1  | performing post-bootstrap initialization ... ok
+postgres-1  | syncing data to disk ... ok
+postgres-1  | 
+postgres-1  | 
+postgres-1  | Success. You can now start the database server using:
+redis-1     | 1:C 18 Oct 2026 21:59:02.510 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+redis-1     | 1:C 18 Oct 2026 21:59:02.511 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+redis-1     | 1:C 18 Oct 2026 21:59:02.511 * Redis version=7.4.11, bits=64, commit=00000000, modified=0, pid=1, just started
+redis-1     | 1:C 18 Oct 2026 21:59:02.511 * Configuration loaded
+redis-1     | 1:M 18 Oct 2026 21:59:02.511 * monotonic clock: POSIX clock_gettime
+redis-1     | 1:M 18 Oct 2026 21:59:02.512 * Running mode=standalone, port=6379.
+redis-1     | 1:M 18 Oct 2026 21:59:02.513 * Server initialized
+redis-1     | 1:M 18 Oct 2026 21:59:02.513 * Ready to accept connections tcp
+postgres-1  | 
+postgres-1  | initdb: warning: enabling "trust" authentication for local connections
+postgres-1  |     pg_ctl -D /var/lib/postgresql/data -l logfile start
+postgres-1  | initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+postgres-1  | 
+postgres-1  | waiting for server to start....2026-10-18 21:59:03.147 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1  | 2026-10-18 21:59:03.147 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1  | 2026-10-18 21:59:03.150 UTC [51] LOG:  database system was shut down at 2026-10-18 21:59:03 UTC
+postgres-1  | 2026-10-18 21:59:03.153 UTC [48] LOG:  database system is ready to accept connections
+postgres-1  |  done
+postgres-1  | server started
+postgres-1  | 2026-10-18 21:59:03.290 UTC [59] LOG:  statement: CREATE DATABASE "notes" ;
+postgres-1  | CREATE DATABASE
+postgres-1  | 
+postgres-1  | 
+postgres-1  | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+postgres-1  | 
+postgres-1  | 2026-10-18 21:59:03.331 UTC [48] LOG:  received fast shutdown request
+postgres-1  | waiting for server to shut down....2026-10-18 21:59:03.332 UTC [48] LOG:  aborting any active transactions
+postgres-1  | 2026-10-18 21:59:03.333 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+postgres-1  | 2026-10-18 21:59:03.335 UTC [49] LOG:  shutting down
+postgres-1  | 2026-10-18 21:59:03.335 UTC [49] LOG:  checkpoint starting: shutdown immediate
+postgres-1  | 2026-10-18 21:59:03.353 UTC [49] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.005 s, total=0.019 s; sync files=301, longest=0.003 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E8, redo lsn=0/191F0E8
+postgres-1  | 2026-10-18 21:59:03.359 UTC [48] LOG:  database system is shut down
+postgres-1  |  done
+postgres-1  | server stopped
+postgres-1  | 
+postgres-1  | PostgreSQL init process complete; ready for start up.
+postgres-1  | 
+postgres-1  | 2026-10-18 21:59:03.451 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1  | 2026-10-18 21:59:03.451 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1  | 2026-10-18 21:59:03.451 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1  | 2026-10-18 21:59:03.452 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1  | 2026-10-18 21:59:03.455 UTC [64] LOG:  database system was shut down at 2026-10-18 21:59:03 UTC
+postgres-1  | 2026-10-18 21:59:03.459 UTC [1] LOG:  database system is ready to accept connections
+postgres-1  | 2026-10-18 21:59:15.480 UTC [111] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:mdJfxKnEvWiTC1SNwTFlSA==$Gq+IioRKipOcZHp+iDkoeqJVyi3rkVJHqlHBHMxfeOI=:B66Qz/pUyV9IGRvoKYJrN/HGuNSoo/S2rCk0B+K+XYg='
+seed-1      | [seed] secret names (/{service}/{env}/{resource}/{name}): /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+seed-1      | [seed] Vault: logged in with the one-time bootstrap AppRole (that secret ID no longer works)
+seed-1      | [seed] created 4 secrets
+seed-1      | [seed] postgres: group role notes_rw and OpenBao's admin bao_admin created
+seed-1      | [seed] postgres: role, table, grants done; bootstrap password replaced
+seed-1      | [seed] redis: ACL user created (notes:* keys only); bootstrap password replaced
+seed-1      | [seed] Vault: database engine connected to Postgres as bao_admin; role notes-app (TTL 30s, max 90s); bao_admin's password rotated, only Vault knows it
+seed-1      | [seed] Vault: database engine (redis-database-plugin) connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated
+seed-1      | [seed] Vault: minted the app's AppRole secret ID (accessor b39e9eea…) into /home/node/bao-secret-id (mode 0400)
+seed-1      | [seed] done. Every credential now lives only in Vault.
+vault-1     | ==> Vault server configuration:
+vault-1     | 
+vault-1     | Administrative Namespace: 
+vault-1     |              Api Address: http://vault:8200
+vault-1     |                      Cgo: disabled
+vault-1     |          Cluster Address: https://vault:8201
+vault-1     |    Environment Variables: HOME, HOSTNAME, NAME, PATH, PWD, SHLVL, VAULT_ADDR
+vault-1     | 2026-10-18T21:59:02.600Z [INFO]  proxy environment: http_proxy="" https_proxy="" no_proxy=""
+vault-1     | 2026-10-18T21:59:02.603Z [INFO]  incrementing seal generation: generation=1
+vault-1     | 2026-10-18T21:59:02.604Z [INFO]  core: Initializing version history cache for core
+vault-1     | 2026-10-18T21:59:02.604Z [INFO]  events: Starting event system
+vault-1     | 2026-10-18T21:59:02.616Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:59:02.616Z [INFO]  core: seal configuration missing, not initialized
+vault-1     |               Go Version: go1.27.2
+vault-1     |               Listener 1: tcp (addr: "0.0.0.0:8200", cluster address: "0.0.0.0:8201", disable_request_limiter: "false", max_json_array_element_count: "10000", max_json_depth: "300", max_json_object_entry_count: "10000", max_json_string_value_length: "1048576", max_request_duration: "1m30s", max_request_size: "33554432", tls: "disabled")
+vault-1     |                Log Level: 
+vault-1     |                    Mlock: supported: true, enabled: false
+vault-1     |       Operator Namespace: 
+vault-1     |            Recovery Mode: false
+vault-1     |                  Storage: raft (HA available)
+vault-1     |                  Version: Vault v2.2.0, built 2026-10-14T15:24:08Z
+app-1       | {"time":"2026-10-18T22:03:36.652Z","level":"debug","app":"secure-notes","secretsProvider":"vault","secretsMode":"api","secretIds":{"db":"database/creds/notes-app","redis":"database/creds/notes-cache"},"secretIdSources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"namingPattern":"/{service}/{env}/{resource}/{name}","endpoint":"http://vault:8200","logLevel":"debug","msg":"credential sources: which secrets this process will consume"}
+app-1       | {"time":"2026-10-18T22:03:36.654Z","level":"info","app":"secure-notes","secretIds":{"db":"database/creds/notes-app","redis":"database/creds/notes-cache"},"sources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"environment":"dev","pattern":"/{service}/{env}/{resource}/{name}","msg":"secret IDs resolved"}
+app-1       | {"time":"2026-10-18T22:03:36.700Z","level":"info","app":"secure-notes","component":"bao","reason":"startup","auth":"approle","role":"secure-notes-app","authMount":"approle","policies":["default","secure-notes-app"],"ttlSeconds":900,"renewable":true,"event":"bao.login","msg":"logged in to Vault with AppRole"}
+app-1       | {"time":"2026-10-18T22:03:36.710Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-cache","lease":"AHBT5XwO","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T22:03:36.711Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","versionId":"AHBT5XwO","reason":"cold-start","forced":false,"changed":false,"ms":55,"msg":"secret loaded"}
+app-1       | {"time":"2026-10-18T22:03:36.712Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-cache","name":"database/creds/notes-cache","versionId":"AHBT5XwO","stages":["lease"],"source":"bao","reason":"cold-start","fingerprint":"af5c92a41f9a","keys":["username=V_*************************************************16","password=******** (20 chars, fp=074c134b)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T22:03:36.716Z","level":"info","app":"secure-notes","component":"leases","secretId":"database/creds/notes-app","lease":"xesM1z4g","ttlSeconds":30,"renewable":true,"event":"bao.lease.issued","msg":"Vault issued a database user for this instance"}
+app-1       | {"time":"2026-10-18T22:03:36.717Z","level":"info","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","versionId":"xesM1z4g","reason":"cold-start","forced":false,"changed":false,"ms":62,"msg":"secret loaded"}
+app-1       | {"time":"2026-10-18T22:03:36.718Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"database/creds/notes-app","name":"database/creds/notes-app","versionId":"xesM1z4g","stages":["lease"],"source":"bao","reason":"cold-start","fingerprint":"4043f8f1f607","keys":["username=v-**********************************************16","password=******** (20 chars, fp=14ee480b)"],"msg":"secret consumed"}
+app-1       | {"time":"2026-10-18T22:03:36.721Z","level":"debug","app":"secure-notes","component":"redis","secretId":"database/creds/notes-cache","versionId":"AHBT5XwO","fingerprint":"af5c92a41f9a","host":"redis","port":6379,"tls":false,"why":"first connection","using":["username<-username=V_*************************************************16","password<-password=******** (20 chars, fp=074c134b)"],"msg":"redis authenticating with"}
+app-1       | {"time":"2026-10-18T22:03:36.731Z","level":"info","app":"secure-notes","component":"redis","msg":"redis connection ready"}
+app-1       | {"time":"2026-10-18T22:03:36.736Z","level":"debug","app":"secure-notes","component":"db","secretId":"database/creds/notes-app","versionId":"xesM1z4g","fingerprint":"4043f8f1f607","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=v-**********************************************16","password<-password=******** (20 chars, fp=14ee480b)"],"msg":"postgres connecting with"}
+vault-1     |              Version Sha: 2891bfd23893ebd302307050edaf03d871ea8351
+vault-1     | 
+vault-1     | ==> Vault server started! Log data will stream in below:
+vault-1     | 
+postgres-1  | 2026-10-18 21:59:15.484 UTC [111] LOG:  statement: 
+postgres-1  | 	  CREATE TABLE IF NOT EXISTS notes (
+postgres-1  | 	    id         bigserial PRIMARY KEY,
+postgres-1  | 	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+postgres-1  | 	    created_at timestamptz NOT NULL DEFAULT now()
+postgres-1  | 	  )
+vault-1     | 2026-10-18T21:59:02.665Z [INFO]  core: security barrier not initialized
+app-1       | {"time":"2026-10-18T22:03:36.752Z","level":"info","app":"secure-notes","host":"0.0.0.0","port":3000,"secretsProvider":"vault","secretsMode":"api","demoMode":true,"msg":"secure-notes listening"}
+vault-1     | 2026-10-18T21:59:02.665Z [INFO]  core: seal configuration missing, not initialized
+app-1       | {"time":"2026-10-18T22:03:38.437Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":3.5,"msg":"request"}
+vault-1     | 2026-10-18T21:59:02.666Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:59:02.666Z [INFO]  storage.raft: creating Raft: config="&raft.Config{ProtocolVersion:3, HeartbeatTimeout:5000000000, ElectionTimeout:5000000000, CommitTimeout:50000000, MaxAppendEntries:64, BatchApplyCh:true, ShutdownOnRemove:true, TrailingLogs:0x2800, SnapshotInterval:120000000000, SnapshotThreshold:0x2000, LeaderLeaseTimeout:2500000000, LocalID:\"vault-0\", NotifyCh:(chan<- bool)(0x1e8643a36580), LogOutput:io.Writer(nil), LogLevel:\"DEBUG\", Logger:(*hclog.interceptLogger)(0x1e8643a12f30), NoSnapshotRestoreOnStart:true, PreVoteDisabled:false, NoLegacyTelemetry:false, skipStartup:false}"
+vault-1     | 2026-10-18T21:59:02.667Z [INFO]  storage.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:vault-0 Address:vault:8201}]"
+vault-1     | 2026-10-18T21:59:02.667Z [INFO]  storage.raft: entering follower state: follower="Node at vault-0 [Follower]" leader-address= leader-id=
+vault-1     | 2026-10-18T21:59:04.614Z [INFO]  core: security barrier not initialized
+vault-1     | 2026-10-18T21:59:12.539Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+vault-1     | 2026-10-18T21:59:12.539Z [INFO]  storage.raft: entering candidate state: node="Node at vault-0 [Candidate]" term=2
+vault-1     | 2026-10-18T21:59:12.539Z [INFO]  storage.raft: pre-vote successful, starting election: term=2 tally=1 refused=0 votesNeeded=1
+vault-1     | 2026-10-18T21:59:12.539Z [INFO]  storage.raft: election won: term=2 tally=1
+vault-1     | 2026-10-18T21:59:12.539Z [INFO]  storage.raft: entering leader state: leader="Node at vault-0 [Leader]"
+vault-1     | 2026-10-18T21:59:12.549Z [INFO]  core: seal configuration missing, not initialized
+vault-1     | 2026-10-18T21:59:12.551Z [INFO]  core: security barrier initialized: stored=1 shares=1 threshold=1
+vault-1     | 2026-10-18T21:59:12.567Z [INFO]  core: post-unseal setup starting
+vault-1     | 2026-10-18T21:59:12.569Z [INFO]  core: loaded wrapping token key
+postgres-1  | 2026-10-18 21:59:15.489 UTC [111] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+postgres-1  | 2026-10-18 21:59:15.490 UTC [111] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+postgres-1  | 2026-10-18 21:59:15.490 UTC [111] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+postgres-1  | 2026-10-18 21:59:15.491 UTC [111] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+postgres-1  | 2026-10-18 21:59:15.495 UTC [111] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+vault-1     | 2026-10-18T21:59:12.569Z [INFO]  core: successfully setup plugin runtime catalog
+postgres-1  | 2026-10-18 21:59:15.495 UTC [111] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+vault-1     | 2026-10-18T21:59:12.569Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+postgres-1  | 2026-10-18 21:59:15.497 UTC [111] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:2mK01007TvR9Y1Ea/DLdww==$qiJ5VRZzbAyk4+GpVj+l9tE0TfMeaKTw5EjNH84bNgQ=:ScvPMnjkzNtOZnsd881ixUQKHlhfT3d0aNR8nYBQlxg='
+postgres-1  | 2026-10-18 21:59:15.501 UTC [111] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+postgres-1  | 2026-10-18 21:59:15.502 UTC [111] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+postgres-1  | 2026-10-18 21:59:15.504 UTC [111] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:k5mHRY0aflMwd4lzibkfrg==$HOo+ZKy37XmaEmn1A1bc1M1nfTjc49zf7fFPqntCgm8=:xLOpgYFEMFzGBqDK7WYA5l+9WKA51gHrhYIXe8eidts='
+postgres-1  | 2026-10-18 21:59:15.537 UTC [112] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:UULrKp61YkybBZV0x0B8JQ==$C7fqAc6fKK6Z9oDqBeRqXnjsAiA7UV6NN+q5V3nBir4=:ZRzGQns5gZ+dTJKqsYQxIEKCuzpQesGDhgaRG/+j+9Y='
+vault-1     | 2026-10-18T21:59:12.569Z [INFO]  core: no mounts; adding default mount table
+vault-1     | 2026-10-18T21:59:12.571Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.2.0+builtin.vault" path=cubbyhole/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.572Z [INFO]  core: successfully mounted: type=system version="v2.2.0+builtin.vault" path=sys/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.573Z [INFO]  core: successfully mounted: type=identity version="v2.2.0+builtin.vault" path=identity/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.573Z [INFO]  core: successfully mounted: type=agent_registry version="v2.2.0+builtin.vault" path=agent-registry/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.579Z [INFO]  core: successfully mounted: type=token version="v2.2.0+builtin.vault" path=token/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.580Z [INFO]  rollback: Starting the rollback manager with 256 workers
+vault-1     | 2026-10-18T21:59:12.580Z [INFO]  core: restoring leases
+vault-1     | 2026-10-18T21:59:12.580Z [INFO]  rollback: starting rollback manager
+vault-1     | 2026-10-18T21:59:12.580Z [INFO]  expiration: lease restore complete
+postgres-1  | 2026-10-18 21:59:16.075 UTC [113] LOG:  statement: CREATE ROLE "v-approle-notes-ap-n7h13XusJCMTGfuO2fh5-1792360756" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:S+Osj9Crr1beDmJR8EEsXQ==$QY8MR29EAClWY0kV90TNB5FzfS9uAq6v9nBmCOhFCuE=:J5ILXVvbo1JIRQ6tCJ3bfXhOKnNGCeUb2N5N2u/Z3Ow=' VALID UNTIL '2026-10-18 21:59:51+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 21:59:36.094 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-n7h13XusJCMTGfuO2fh5-1792360756" VALID UNTIL '2026-10-18 22:00:11+0000'
+postgres-1  | 2026-10-18 21:59:40.487 UTC [114] FATAL:  terminating connection due to administrator command
+postgres-1  | 2026-10-18 21:59:40.488 UTC [113] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-n7h13XusJCMTGfuO2fh5-1792360756"
+postgres-1  | 2026-10-18 21:59:40.569 UTC [201] FATAL:  password authentication failed for user "v-approle-notes-ap-n7h13XusJCMTGfuO2fh5-1792360756"
+postgres-1  | 2026-10-18 21:59:40.569 UTC [201] DETAIL:  Role "v-approle-notes-ap-n7h13XusJCMTGfuO2fh5-1792360756" does not exist.
+postgres-1  | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+postgres-1  | 2026-10-18 21:59:40.573 UTC [113] LOG:  statement: CREATE ROLE "v-approle-notes-ap-oKD7fRZqWMTEaX06vEIy-1792360780" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:kUpOyvMsrY1PiefFqUbyQw==$tur4NvvO7W81WNic8tQDwmg5e5F0ewVrCT4sVVkbN54=:GSYcrcNta/I9CrlmHj6K8xBIeONnvEQ6yXoINA32uGQ=' VALID UNTIL '2026-10-18 22:00:15+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:00:00.587 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-oKD7fRZqWMTEaX06vEIy-1792360780" VALID UNTIL '2026-10-18 22:00:35+0000'
+postgres-1  | 2026-10-18 22:00:20.597 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-oKD7fRZqWMTEaX06vEIy-1792360780" VALID UNTIL '2026-10-18 22:00:55+0000'
+postgres-1  | 2026-10-18 22:00:40.602 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-oKD7fRZqWMTEaX06vEIy-1792360780" VALID UNTIL '2026-10-18 22:01:15+0000'
+postgres-1  | 2026-10-18 22:01:00.611 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-oKD7fRZqWMTEaX06vEIy-1792360780" VALID UNTIL '2026-10-18 22:01:15+0000'
+vault-1     | 2026-10-18T21:59:12.583Z [INFO]  identity: entities restored
+vault-1     | 2026-10-18T21:59:12.583Z [INFO]  identity: groups restored
+vault-1     | 2026-10-18T21:59:12.584Z [INFO]  core: Recorded vault version: vault version=2.2.0 upgrade time="2026-10-18 21:59:12.583420712 +0000 UTC" build date=2026-10-14T15:24:08Z
+vault-1     | 2026-10-18T21:59:12.585Z [INFO]  core: usage gauge collection is disabled
+postgres-1  | 2026-10-18 22:01:05.620 UTC [113] LOG:  statement: CREATE ROLE "v-approle-notes-ap-xndLHFRCjdoxplhrjKEH-1792360865" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:t026iLG77DQxW+W3EUOrJg==$tO9PlFr4W3TFazeptCxy0XQoz2CBbZzCTJh/2zgJKpE=:xFCV0Lb50Wn+DwiENN0mYPGZ1zRK0WVd0CO2P+oJYJw=' VALID UNTIL '2026-10-18 22:01:40+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:01:10.614 UTC [113] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-oKD7fRZqWMTEaX06vEIy-1792360780"
+postgres-1  | 2026-10-18 22:01:25.630 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-xndLHFRCjdoxplhrjKEH-1792360865" VALID UNTIL '2026-10-18 22:02:00+0000'
+postgres-1  | 2026-10-18 22:01:45.641 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-xndLHFRCjdoxplhrjKEH-1792360865" VALID UNTIL '2026-10-18 22:02:20+0000'
+postgres-1  | 2026-10-18 22:01:51.107 UTC [658] FATAL:  password authentication failed for user "postgres"
+postgres-1  | 2026-10-18 22:01:51.107 UTC [658] DETAIL:  Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 119: "host    all             all             127.0.0.1/32            scram-sha-256"
+postgres-1  | 2026-10-18 22:01:52.334 UTC [651] FATAL:  terminating connection due to administrator command
+postgres-1  | 2026-10-18 22:01:52.335 UTC [113] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-xndLHFRCjdoxplhrjKEH-1792360865"
+postgres-1  | 2026-10-18 22:01:52.690 UTC [674] FATAL:  password authentication failed for user "v-approle-notes-ap-xndLHFRCjdoxplhrjKEH-1792360865"
+postgres-1  | 2026-10-18 22:01:52.690 UTC [674] DETAIL:  Role "v-approle-notes-ap-xndLHFRCjdoxplhrjKEH-1792360865" does not exist.
+postgres-1  | 	Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+postgres-1  | 2026-10-18 22:01:52.693 UTC [113] LOG:  statement: CREATE ROLE "v-approle-notes-ap-rBOUmEvbV6KpF678MvG7-1792360912" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:Rv7kATfu852q4mtJFLAC1A==$uHIl79SJVL06xjx7XMVEQy60xIDHGNO6IxhHjjiQJgQ=:GyAJ3xv2xF1lek3t2l0lrJS/V77+RXwra/wNNkXUkH4=' VALID UNTIL '2026-10-18 22:02:27+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:02:12.703 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-rBOUmEvbV6KpF678MvG7-1792360912" VALID UNTIL '2026-10-18 22:02:47+0000'
+postgres-1  | 2026-10-18 22:02:26.566 UTC [113] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-rBOUmEvbV6KpF678MvG7-1792360912"
+postgres-1  | 2026-10-18 22:02:27.174 UTC [113] LOG:  statement: CREATE ROLE "v-approle-notes-ap-AYRRcSl9URO9P0HHnviu-1792360947" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:9BUdFBPvYEizh11suL5HHA==$aA6IlTHd4SAPmnSFdWMbcak87kQb8b5D28ZnCc8jc6Y=:jGAn/3CJxrcgnNpsKi5cOjYTxS4CZWx7IqoUUPgcRSY=' VALID UNTIL '2026-10-18 22:03:02+0000' IN ROLE notes_rw
+postgres-1  | 2026-10-18 22:02:47.195 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-AYRRcSl9URO9P0HHnviu-1792360947" VALID UNTIL '2026-10-18 22:03:22+0000'
+postgres-1  | 2026-10-18 22:03:07.204 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-AYRRcSl9URO9P0HHnviu-1792360947" VALID UNTIL '2026-10-18 22:03:42+0000'
+postgres-1  | 2026-10-18 22:03:27.230 UTC [113] LOG:  statement: ALTER ROLE "v-approle-notes-ap-AYRRcSl9URO9P0HHnviu-1792360947" VALID UNTIL '2026-10-18 22:04:02+0000'
+postgres-1  | 2026-10-18 22:03:36.154 UTC [113] LOG:  statement: DROP ROLE IF EXISTS "v-approle-notes-ap-AYRRcSl9URO9P0HHnviu-1792360947"
+postgres-1  | 2026-10-18 22:03:36.707 UTC [113] LOG:  statement: CREATE ROLE "v-approle-notes-ap-FRcRPg1izhmpgD5nNHz6-1792361016" WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:AnJOeW5rFyKRQIrQKx4M/Q==$dyjdFCvwYi8QKq2E/oxaaXlEMqCSVN1MqXqlDcjrrpk=:eIUxUhrh8t0xD2i0xgNDPgXvolSx7a7nTVUrNm3hwSc=' VALID UNTIL '2026-10-18 22:04:11+0000' IN ROLE notes_rw
+vault-1     | 2026-10-18T21:59:12.588Z [INFO]  core: post-unseal setup complete
+vault-1     | 2026-10-18T21:59:12.590Z [INFO]  core: root token generated
+vault-1     | 2026-10-18T21:59:12.596Z [INFO]  core: pre-seal teardown starting
+vault-1     | 2026-10-18T21:59:12.596Z [INFO]  core: stopping raft active node
+vault-1     | 2026-10-18T21:59:12.596Z [INFO]  rollback: stopping rollback manager
+vault-1     | 2026-10-18T21:59:12.596Z [INFO]  core: pre-seal teardown complete
+vault-1     | 2026-10-18T21:59:12.643Z [INFO]  core.cluster-listener.tcp: starting listener: listener_address=0.0.0.0:8201
+vault-1     | 2026-10-18T21:59:12.643Z [INFO]  core.cluster-listener: serving cluster requests: cluster_listen_address=[::]:8201
+vault-1     | 2026-10-18T21:59:12.643Z [INFO]  storage.raft: creating Raft: config="&raft.Config{ProtocolVersion:3, HeartbeatTimeout:15000000000, ElectionTimeout:15000000000, CommitTimeout:50000000, MaxAppendEntries:64, BatchApplyCh:true, ShutdownOnRemove:true, TrailingLogs:0x2800, SnapshotInterval:120000000000, SnapshotThreshold:0x2000, LeaderLeaseTimeout:2500000000, LocalID:\"vault-0\", NotifyCh:(chan<- bool)(0x1e8642c5a780), LogOutput:io.Writer(nil), LogLevel:\"DEBUG\", Logger:(*hclog.interceptLogger)(0x1e8643a12f30), NoSnapshotRestoreOnStart:true, PreVoteDisabled:false, NoLegacyTelemetry:false, skipStartup:false}"
+vault-1     | 2026-10-18T21:59:12.644Z [INFO]  storage.raft: initial configuration: index=1 servers="[{Suffrage:Voter ID:vault-0 Address:vault:8201}]"
+vault-1     | 2026-10-18T21:59:12.644Z [INFO]  storage.raft: entering follower state: follower="Node at vault:8201 [Follower]" leader-address= leader-id=
+vault-1     | 2026-10-18T21:59:12.644Z [INFO]  core: entering standby mode
+vault-1     | 2026-10-18T21:59:12.644Z [WARN]  storage.raft: heartbeat timeout reached, starting election: last-leader-addr= last-leader-id=
+vault-1     | 2026-10-18T21:59:12.644Z [INFO]  storage.raft: entering candidate state: node="Node at vault:8201 [Candidate]" term=3
+vault-1     | 2026-10-18T21:59:12.644Z [INFO]  storage.raft: pre-vote successful, starting election: term=3 tally=1 refused=0 votesNeeded=1
+vault-1     | 2026-10-18T21:59:12.644Z [INFO]  core: vault is unsealed
+vault-1     | 2026-10-18T21:59:12.645Z [INFO]  storage.raft: election won: term=3 tally=1
+vault-1     | 2026-10-18T21:59:12.645Z [INFO]  storage.raft: entering leader state: leader="Node at vault:8201 [Leader]"
+vault-1     | 2026-10-18T21:59:12.646Z [INFO]  core: acquired lock, enabling active operation
+vault-1     | [vault-lab] initialised with one key share; unsealed
+vault-1     | 2026-10-18T21:59:12.652Z [INFO]  core: post-unseal setup starting
+vault-1     | 2026-10-18T21:59:12.653Z [INFO]  core: loaded wrapping token key
+vault-1     | 2026-10-18T21:59:12.653Z [INFO]  core: successfully setup plugin runtime catalog
+vault-1     | 2026-10-18T21:59:12.653Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+vault-1     | 2026-10-18T21:59:12.654Z [INFO]  core: successfully mounted: type=system version="v2.2.0+builtin.vault" path=sys/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.656Z [INFO]  core: successfully mounted: type=identity version="v2.2.0+builtin.vault" path=identity/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.656Z [INFO]  core: successfully mounted: type=agent_registry version="v2.2.0+builtin.vault" path=agent-registry/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.656Z [INFO]  core: successfully mounted: type=cubbyhole version="v2.2.0+builtin.vault" path=cubbyhole/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.657Z [INFO]  core: successfully mounted: type=token version="v2.2.0+builtin.vault" path=token/ namespace="ID: root. Path: "
+vault-1     | 2026-10-18T21:59:12.657Z [INFO]  rollback: Starting the rollback manager with 256 workers
+vault-1     | 2026-10-18T21:59:12.657Z [INFO]  core: restoring leases
+vault-1     | 2026-10-18T21:59:12.658Z [INFO]  rollback: starting rollback manager
+vault-1     | 2026-10-18T21:59:12.658Z [INFO]  expiration: lease restore complete
+vault-1     | 2026-10-18T21:59:12.658Z [INFO]  identity: entities restored
+vault-1     | 2026-10-18T21:59:12.658Z [INFO]  identity: groups restored
+vault-1     | 2026-10-18T21:59:12.658Z [INFO]  core: starting raft active node
+vault-1     | 2026-10-18T21:59:12.658Z [INFO]  storage.raft: starting autopilot: config="CleanupDeadServers:false LastContactThreshold:10s DeadServerLastContactThreshold:24h0m0s MaxTrailingLogs:1000 MinQuorum:0 ServerStabilizationTime:10s DisableUpgradeMigration:false RedundancyZoneTag:redundancy_zone UpgradeVersionTag:upgrade_version"
+vault-1     | 2026-10-18T21:59:12.659Z [INFO]  core: usage gauge collection is disabled
+vault-1     | 2026-10-18T21:59:12.662Z [INFO]  core: post-unseal setup complete
+vault-1     | 2026-10-18T21:59:12.747Z [INFO]  core: enabled audit backend: path=file/ type=file
+vault-1     | 2026-10-18T21:59:12.805Z [INFO]  core: successful mount: namespace="" path=secret/ type=kv version="v0.27.0+builtin"
+vault-1     | 2026-10-18T21:59:12.977Z [INFO]  secrets.database.database_74b43e90: initializing database rotation queue
+vault-1     | 2026-10-18T21:59:12.980Z [INFO]  core: successful mount: namespace="" path=database/ type=database version="v2.2.0+builtin.vault"
+vault-1     | 2026-10-18T21:59:12.990Z [INFO]  secrets.database.database_74b43e90: populating role rotation queue
+vault-1     | 2026-10-18T21:59:12.991Z [INFO]  secrets.database.database_74b43e90: starting periodic ticker
+vault-1     | 2026-10-18T21:59:13.028Z [INFO]  core: enabled credential backend: path=approle/ type=approle version="v2.2.0+builtin.vault"
+vault-1     | 2026-10-18T21:59:13.074Z [WARN]  policy: you're using 'allowed_parameters' or 'denied_parameters' in one or more policies, note that Vault 1.21 introduced a behavior change. For details see https://developer.hashicorp.com/vault/docs/v1.21.x/updates/important-changes#item-by-item-list-comparison-for-allowed_parameters-and-denied_parameters
+vault-1     | 2026-10-18T21:59:13.395Z [INFO]  expiration: revoked lease: lease_id=auth/token/root/hcbe6e3c303a92cb09291f8c8b54688817b1c48f642c2e870daf8612e7f626f75
+vault-1     | [vault-lab] configured: KV v2, database engine, AppRole, file audit device; the root token is revoked
+vault-1     | 2026-10-18T21:59:15.542Z [INFO]  secrets.database.database_74b43e90: successfully rotated root credential on user request: path=rotate-root/notes-db
+vault-1     | 2026-10-18T21:59:15.556Z [INFO]  secrets.database.database_74b43e90: successfully rotated root credential on user request: path=rotate-root/notes-cache
+vault-1     | 2026-10-18T21:59:40.490Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/VPRugccREWVe1nctxsajBCdQ
+vault-1     | 2026-10-18T21:59:48.173Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/pHg15CBTgTnvinVaZELUOLAp
+vault-1     | 2026-10-18T22:01:10.615Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/0omj4iMMcx76JXi1bFkSpAYX
+vault-1     | 2026-10-18T22:01:18.405Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/sknS8ZOkszFalEVWgQS8ZE9G
+vault-1     | 2026-10-18T22:01:52.337Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/MXUtSY4OjRatchMRH5ZyOq53
+vault-1     | 2026-10-18T22:01:52.655Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/2TEJOUefCkQncKRZDgemKWac
+vault-1     | 2026-10-18T22:02:26.566Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/tLGiqEXG6SGREdqu5R0cAZb6
+vault-1     | 2026-10-18T22:02:26.567Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/o1KMLYJsI36VoCM0mNvN46K6
+vault-1     | 2026-10-18T22:03:36.154Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-cache/mKqXgnrshygI4z7LJik8DgUI
+vault-1     | 2026-10-18T22:03:36.155Z [INFO]  expiration: revoked lease: lease_id=database/creds/notes-app/Tlyg7jIyu0JFLP1MBJbWP6I8
