@@ -64,7 +64,8 @@ doc = [
 "Done items are closed with their evidence. This page and the issues are generated from",
 "the same list (`scripts/backlog/data.py`), so they say the same thing.",
 "",
-TRACKS = {"app": "Track APP — modernizing the app", "tutorial": "Track TUTORIAL — building the tutorial",
+]
+TRACKS = {"app": "Track APP — the app on any secrets manager", "tutorial": "Track TUTORIAL — building the tutorial",
           "parked": "Parked — planned, not scheduled"}
 def section(e): return "parked" if e.get("parked") else e["track"]
 for key in ["app", "tutorial", "parked"]:

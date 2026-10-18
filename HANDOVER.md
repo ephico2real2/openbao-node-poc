@@ -27,7 +27,7 @@ approved plan's decisions are summarised there.
 
 | Epic | What | State at handover |
 | --- | --- | --- |
-| B0 | Seed: the app copied with the AWS path kept, AWS-only alerting removed, CI green | in progress (this commit) |
+| B0 | Seed: the app copied with the AWS path kept, AWS-only alerting removed, CI green | ✅ done (first CI run 39155150999, all jobs green) |
 | B1 | ADR-002: OpenBao first, Vault second, accurate facts | to do |
 | B2 | Provider switch: `providers/`, `stores/`, AppRole/Kubernetes auth with no credential in env | to do |
 | B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | to do |

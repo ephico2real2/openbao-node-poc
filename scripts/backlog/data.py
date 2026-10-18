@@ -116,3 +116,22 @@ EPICS = [
      ["Demo pages replaced with this repo's captures; GUIDE covers Compose, kind and OpenShift Local on a Mac."]),
   ]),
 ]
+
+# ---- progress (evidence: commits on main, CI runs) ----
+RUN = "[CI run 39155150999](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39155150999)"
+_DONE = {
+    "S0.1": [d("README.md", "README (provenance)"), d("HANDOVER.md", "HANDOVER section 4")],
+    "S0.2": [RUN, "every job green on the first push, captures on the ci-captures branch"],
+    "S0.3": [d("HANDOVER.md"), d("CLAUDE.md"), d("scripts/backlog/README.md", "scripts/backlog")],
+}
+def _items():
+    for e in EPICS:
+        for f in e["children"]:
+            yield f
+            yield from f.get("children", [])
+for _it in _items():
+    if _it["id"] in _DONE:
+        _it["status"] = "done"
+        _it["criteria"] = [(True, t) for _, t in _it["criteria"]]
+        _it["evidence"] = _DONE[_it["id"]]
+

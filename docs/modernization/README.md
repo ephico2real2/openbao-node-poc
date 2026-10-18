@@ -1,6 +1,6 @@
 # Initiative: Secure Notes on any secrets manager
 
-[← Documentation](../README.md) · [Backlog](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Atype%3Aepic)
+[← Documentation](../README.md) · [Backlog](backlog.md) · [GitHub issues](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Atype%3Aepic)
 
 **Where this comes from.** [`aws-secrets-manager-node-poc`](https://github.com/ephico2real2/aws-secrets-manager-node-poc)
 took a Node.js app from passwords in a `.env` file to AWS Secrets Manager:

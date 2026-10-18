@@ -1,0 +1,184 @@
+# Backlog — epics, features and stories
+
+[← Initiative](README.md) · [GitHub issues](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Atype%3Aepic) · [Sibling repo's backlog (E0–E15)](https://github.com/ephico2real2/aws-secrets-manager-node-poc/blob/main/docs/modernization/backlog.md)
+
+**How to read it:** an **epic** is an outcome; a **feature** is a capability; a **story** is
+one deliverable with acceptance criteria (each one testable). Size: S ≤ 1 day, M ≤ 3
+days, L ≤ 1 week. Status: ✅ done, with evidence · 🔜 to do.
+
+Every item is also a GitHub issue (linked as #N), with sub-issues for the hierarchy and
+labels `app|tutorial`, `type:epic|feature|story`, `epic:B0…B8` and `size:S|M|L`.
+
+**Two tracks.** Issue titles start with the track:
+
+| Track | Prefix and label | What it is | Epics |
+| --- | --- | --- | --- |
+| **APP** | `APP:` · [`app`](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Aapp) | Making the app work on any secrets manager: AWS Secrets Manager, OpenBao, HashiCorp Vault | B0, B2–B7 |
+| **TUTORIAL** | `TUTORIAL:` · [`tutorial`](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Atutorial) | Teaching it: the ADR, chapters, guides and demos | B1, B8 |
+
+Done items are closed with their evidence. This page and the issues are generated from
+the same list (`scripts/backlog/data.py`), so they say the same thing.
+
+## Track APP — the app on any secrets manager
+
+### B0 — Seed the repo from aws-secrets-manager-node-poc
+
+[#1](https://github.com/ephico2real2/openbao-node-poc/issues/1) · ✅ · **Outcome:** The Secure Notes app runs here unchanged on AWS Secrets Manager (the bundled stand-in), with CI green, before any OpenBao code lands. Docs: [initiative](README.md)
+
+#### F0.1 · The core, copied and trimmed · ✅ · [#2](https://github.com/ephico2real2/openbao-node-poc/issues/2)
+
+**S0.1 · Copy the core app with the AWS path kept** · M · ✅ · [#3](https://github.com/ephico2real2/openbao-node-poc/issues/3)
+*As the owner, I want this repo to start from the working app, so that every OpenBao change is a visible diff against a known-good baseline.*
+- [x] Copied from the sibling repo at a recorded commit, with fresh history and a provenance note in the README.
+- [x] Removed: the AWS-only alerting (SNS, CloudTrail, EventBridge, the log pipeline), CloudFormation and the EC2 scripts; the dashboard's Detection lab.
+- [x] Kept: the app (SECRETS_PROVIDER=aws, sdk and agent modes), the dashboard, logging and redaction, the AWS stand-in (Secrets Manager + STS), kind and OpenShift, the check scripts, the credential scan, the CI pattern.
+
+Evidence: [README (provenance)](../../README.md), [HANDOVER section 4](../../HANDOVER.md)
+
+**S0.2 · CI green on the AWS provider** · S · ✅ · [#4](https://github.com/ephico2real2/openbao-node-poc/issues/4)
+*As a reviewer, I want CI to prove the copied app still works, so that later failures are OpenBao's, not the copy's.*
+- [x] checks, build, compose (sdk, agent), kind, mirror, env-file-demo, v0-leak and docs jobs green.
+- [x] Captures published to this repo's ci-captures branch.
+
+Evidence: [CI run 39155150999](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39155150999), every job green on the first push, captures on the ci-captures branch
+
+**S0.3 · Handover, CLAUDE.md and the backlog generator** · S · ✅ · [#5](https://github.com/ephico2real2/openbao-node-poc/issues/5)
+*As the owner, I want the working rules and the backlog in this repo from day one, so that any session can continue.*
+- [x] HANDOVER.md and CLAUDE.md (commits as the owner, no AI attribution).
+- [x] scripts/backlog generates the issues and docs/modernization/backlog.md.
+
+Evidence: [HANDOVER.md](../../HANDOVER.md), [CLAUDE.md](../../CLAUDE.md), [scripts/backlog](../../scripts/backlog/README.md)
+
+### B2 — One switch: SECRETS_PROVIDER=aws|openbao|vault
+
+[#8](https://github.com/ephico2real2/openbao-node-poc/issues/8) · 🔜 · **Outcome:** The app chooses its secrets manager with one setting; everything above the fetcher (cache, rotation recovery, masking, reveal flag) is unchanged. Docs: [initiative](README.md)
+
+**S2.1 · Providers for reading** · M · 🔜 · [#9](https://github.com/ephico2real2/openbao-node-poc/issues/9)
+*As a developer, I want each secrets manager behind the same interface, so that the cache and the clients don't care which one is in use.*
+- [ ] backend/src/secrets/providers/{aws,bao,file}.js return the same shape; for KV v2 the version is the KV version.
+- [ ] bao: plain fetch against the HTTP API, no new dependency; openbao and vault share it.
+- [ ] Unit tests against a fake HTTP server: KV v2 read, errors, timeouts.
+
+Evidence: [initiative](README.md)
+
+**S2.2 · Authentication without a credential in the environment** · M · 🔜 · [#10](https://github.com/ephico2real2/openbao-node-poc/issues/10)
+*As a security engineer, I want the app to log in to OpenBao without a token in its environment, so that the no-env rule still holds.*
+- [ ] AppRole with the secret ID read from a file (mode 0400, tmpfs); Kubernetes auth with a projected, audience-bound service-account token.
+- [ ] Token renew-self at 2/3 of its TTL; re-login on 403; all logged with masked values.
+- [ ] config.js refuses VAULT_TOKEN, BAO_TOKEN and the existing credential variables.
+
+Evidence: [initiative](README.md)
+
+**S2.3 · Stores for writing (seed and the demo rotation)** · M · 🔜 · [#11](https://github.com/ephico2real2/openbao-node-poc/issues/11)
+*As a presenter, I want the seed job and the rotation lab to work on every provider, so that the same demos run on OpenBao.*
+- [ ] backend/src/secrets/stores/{aws,bao}.js: put, promote, randomPassword.
+- [ ] The rotator's four steps unchanged; on OpenBao, promote writes a new KV version.
+
+Evidence: [initiative](README.md)
+
+### B3 — OpenBao KV on Docker Compose (steps/v1-openbao-kv)
+
+[#12](https://github.com/ephico2real2/openbao-node-poc/issues/12) · 🔜 · **Outcome:** The full lab runs on OpenBao: seed, rotation without restart, leak test, credential scan, reveal flag. Docs: [initiative](README.md)
+
+**S3.1 · OpenBao with no manual steps** · M · 🔜 · [#13](https://github.com/ephico2real2/openbao-node-poc/issues/13)
+*As a learner, I want OpenBao to start initialised and unsealed, so that I can focus on the app.*
+- [ ] Static seal and self-init (dev/openbao/config.hcl); KV v2, AppRole and policies created at start.
+- [ ] A file audit device; its log shows HMACs, never values.
+
+Evidence: [initiative](README.md)
+
+**S3.2 · The lab on OpenBao** · M · 🔜 · [#14](https://github.com/ephico2real2/openbao-node-poc/issues/14)
+*As a presenter, I want every existing demo to work on OpenBao, so that the comparison is fair.*
+- [ ] Rotate from the dashboard: auth-failed → new-version → recovered.
+- [ ] Leak test 0 of 6; credential scan clean, including the OpenBao container and its audit log.
+- [ ] CI job compose (openbao) with captures.
+
+Evidence: [initiative](README.md)
+
+### B4 — Dynamic credentials and leases (steps/v2-openbao-dynamic)
+
+[#15](https://github.com/ephico2real2/openbao-node-poc/issues/15) · 🔜 · **Outcome:** The database password is a lease: per-instance users that expire, renewed and re-issued without a failed request. Docs: [initiative](README.md)
+
+**S4.1 · Postgres dynamic credentials** · M · 🔜 · [#16](https://github.com/ephico2real2/openbao-node-poc/issues/16)
+*As a DBA, I want each app instance to get its own short-lived database user, so that a leaked password expires by itself.*
+- [ ] Database secrets engine with a Postgres role; leases renewed, re-issued before the max TTL; the pool drains old users.
+- [ ] The dashboard shows the lease countdown.
+
+Evidence: [initiative](README.md)
+
+**S4.2 · Valkey through OpenBao's plugin** · S · 🔜 · [#17](https://github.com/ephico2real2/openbao-node-poc/issues/17)
+*As an operator, I want the cache credential managed the same way, so that both credentials rotate without the app.*
+- [ ] Valkey replaces Redis here (OpenBao has a Valkey plugin and no Redis plugin); ioredis works unchanged.
+
+Evidence: [initiative](README.md)
+
+### B5 — Kubernetes and OpenShift: OpenBao Helm and External Secrets Operator
+
+[#18](https://github.com/ephico2real2/openbao-node-poc/issues/18) · 🔜 · **Outcome:** On kind and OpenShift, credentials arrive as a mounted Secret (never env), or through Kubernetes auth, and refresh without a restart. Docs: [initiative](README.md)
+
+**S5.1 · OpenBao on Kubernetes** · M · 🔜 · [#19](https://github.com/ephico2real2/openbao-node-poc/issues/19)
+*As a platform engineer, I want OpenBao installed by its Helm chart, so that the cluster lab matches production practice.*
+- [ ] Helm (raft) on kind in CI and on OpenShift (restricted-v2, Routes).
+- [ ] Kubernetes auth for SECRETS_MODE=api.
+
+Evidence: [initiative](README.md)
+
+**S5.2 · External Secrets Operator and a watched volume** · L · 🔜 · [#20](https://github.com/ephico2real2/openbao-node-poc/issues/20)
+*As a developer, I want ESO to deliver the credential as files, so that the app needs no OpenBao client in the cluster.*
+- [ ] ClusterSecretStore (Vault provider) and ExternalSecret; the Secret is mounted, no envFrom and no subPath.
+- [ ] SECRETS_MODE=file watches the ..data swap and re-reads on a timer; rotation in OpenBao reaches the app without a restart.
+- [ ] k8s-check and the credential scan extended.
+
+Evidence: [initiative](README.md)
+
+### B6 — The same app on HashiCorp Vault (steps/v4-vault)
+
+[#21](https://github.com/ephico2real2/openbao-node-poc/issues/21) · 🔜 · **Outcome:** SECRETS_PROVIDER=vault runs the same lab on Vault, including its Redis database plugin. Docs: [initiative](README.md)
+
+**S6.1 · Vault variant** · M · 🔜 · [#22](https://github.com/ephico2real2/openbao-node-poc/issues/22)
+*As a Vault user, I want the same app on Vault, so that both products are covered.*
+- [ ] Vault 2.x server config (no dev mode); the same app and seed; the Redis database plugin.
+- [ ] CI job compose (vault).
+
+Evidence: [initiative](README.md)
+
+### B7 — Audit-based detection: an unexpected read raises an alert
+
+[#23](https://github.com/ephico2real2/openbao-node-poc/issues/23) · 🔜 · **Outcome:** OpenBao's audit log is the source of truth for who read what; a rule on the log store raises the alert, as CloudTrail does on AWS. Docs: [initiative](README.md)
+
+**S7.1 · From the audit log to an alert** · L · 🔜 · [#24](https://github.com/ephico2real2/openbao-node-poc/issues/24)
+*As a security engineer, I want a read by an unexpected entity to page someone, so that a leaked token is noticed.*
+- [ ] File audit device → OpenTelemetry Collector → VictoriaLogs → vmalert → a webhook console.
+- [ ] A detection lab button reads a secret with another AppRole.
+
+Evidence: [initiative](README.md)
+
+## Track TUTORIAL — building the tutorial
+
+### B1 — ADR-002: OpenBao first, HashiCorp Vault second
+
+[#6](https://github.com/ephico2real2/openbao-node-poc/issues/6) · 🔜 · **Outcome:** The choice is recorded with accurate licensing and feature facts, checked against the projects' own pages. Docs: [initiative](README.md)
+
+**S1.1 · Write ADR-002** · S · 🔜 · [#7](https://github.com/ephico2real2/openbao-node-poc/issues/7)
+*As an architect, I want the decision and its facts in one page, so that the team doesn't rely on myths about either product.*
+- [ ] MPL-2.0 (OpenBao, OpenSSF sandbox) vs BSL 1.1 (Vault, IBM); each checked on the release page.
+- [ ] What OpenBao added (namespaces, standby reads, control groups) and lacks (replication, Sentinel, Transform).
+- [ ] The two common claims corrected: 'IBM removed Enterprise features' and 'OpenBao has all Enterprise features'.
+
+Evidence: [initiative](README.md)
+
+### B8 — Tutorial: learning chapters, guide and demos
+
+[#25](https://github.com/ephico2real2/openbao-node-poc/issues/25) · 🔜 · **Outcome:** Learners can follow the move from AWS Secrets Manager to OpenBao and Vault, step by step, with CI evidence. Docs: [initiative](README.md)
+
+**S8.1 · Chapters** · M · 🔜 · [#26](https://github.com/ephico2real2/openbao-node-poc/issues/26)
+*As a junior engineer, I want the new ideas explained, so that I understand why each step exists.*
+- [ ] Secret zero and AppRole; leases and dynamic credentials; ESO and mounted secrets; OpenBao vs Vault.
+
+Evidence: [initiative](README.md)
+
+**S8.2 · Guide, tutorial and demo pages from this repo's CI** · M · 🔜 · [#27](https://github.com/ephico2real2/openbao-node-poc/issues/27)
+*As a presenter, I want demo pages with this repo's screenshots, so that the evidence is the code in front of me.*
+- [ ] Demo pages replaced with this repo's captures; GUIDE covers Compose, kind and OpenShift Local on a Mac.
+
+Evidence: [initiative](README.md)
