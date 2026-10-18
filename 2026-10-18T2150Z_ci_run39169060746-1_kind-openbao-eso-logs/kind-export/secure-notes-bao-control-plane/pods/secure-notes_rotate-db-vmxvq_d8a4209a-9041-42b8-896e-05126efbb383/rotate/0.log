@@ -1,0 +1,2 @@
+2026-10-18T21:49:58.471065906Z stdout F [rotate] postgres: new password set on role notes_app (SCRAM verifier)
+2026-10-18T21:49:58.49969053Z stdout F [rotate] OpenBao: /rds/dev/notes-db/app version 1 -> 2 (check-and-set). External Secrets Operator copies it on its next refresh.
