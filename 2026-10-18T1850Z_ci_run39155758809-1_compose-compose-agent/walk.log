@@ -1,0 +1,6 @@
+01-dashboard: found "Secure Notes", "Secrets in memory", "Postgres credential", "Redis credential", "dummy keys, for the mock only" — expectations met
+02-rotation-and-recovery: found "createSecret", "setSecret", "testSecret", "finishSecret", "Reconnected to Postgres with the rotated credential" — expectations met
+03-redis-rotation: found "revokeOld", "Reconnected to Redis with the rotated credential" — expectations met
+04-leak-test: found "0 of 6 leaked", "[REDACTED]" — expectations met
+05-mobile: found "Secure Notes", "Notes" — expectations met
+06-debug-log: found "Application log", "secret consumed", "password=******** (", "connecting with" — expectations met
