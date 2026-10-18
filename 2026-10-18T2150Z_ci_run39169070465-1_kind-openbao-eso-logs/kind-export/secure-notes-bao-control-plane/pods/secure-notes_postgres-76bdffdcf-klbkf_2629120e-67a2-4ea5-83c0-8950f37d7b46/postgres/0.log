@@ -1,0 +1,99 @@
+2026-10-18T21:48:55.167961916Z stderr F chmod: changing permissions of '/var/run/postgresql': Operation not permitted
+2026-10-18T21:48:55.212904304Z stdout F The files belonging to this database system will be owned by user "postgres".
+2026-10-18T21:48:55.212938457Z stdout F This user must also own the server process.
+2026-10-18T21:48:55.212941723Z stdout F 
+2026-10-18T21:48:55.213286199Z stdout F The database cluster will be initialized with locale "en_US.utf8".
+2026-10-18T21:48:55.213292631Z stdout F The default database encoding has accordingly been set to "UTF8".
+2026-10-18T21:48:55.213296178Z stdout F The default text search configuration will be set to "english".
+2026-10-18T21:48:55.213309382Z stdout F 
+2026-10-18T21:48:55.213390884Z stdout F Data page checksums are disabled.
+2026-10-18T21:48:55.213603203Z stdout F 
+2026-10-18T21:48:55.213885932Z stdout F fixing permissions on existing directory /var/lib/postgresql/data/pgdata ... ok
+2026-10-18T21:48:55.215914071Z stdout F creating subdirectories ... ok
+2026-10-18T21:48:55.216762861Z stdout F selecting dynamic shared memory implementation ... posix
+2026-10-18T21:48:55.232817576Z stdout F selecting default max_connections ... 100
+2026-10-18T21:48:55.261484623Z stdout F selecting default shared_buffers ... 128MB
+2026-10-18T21:48:55.299130373Z stdout F selecting default time zone ... Etc/UTC
+2026-10-18T21:48:55.299842046Z stdout F creating configuration files ... ok
+2026-10-18T21:48:55.447986726Z stdout F running bootstrap script ... ok
+2026-10-18T21:48:55.883456578Z stdout F performing post-bootstrap initialization ... ok
+2026-10-18T21:48:55.938094338Z stdout F syncing data to disk ... ok
+2026-10-18T21:48:55.938107883Z stdout F 
+2026-10-18T21:48:55.938110318Z stdout F 
+2026-10-18T21:48:55.938113013Z stdout F Success. You can now start the database server using:
+2026-10-18T21:48:55.938115688Z stdout F 
+2026-10-18T21:48:55.938118203Z stdout F     pg_ctl -D /var/lib/postgresql/data/pgdata -l logfile start
+2026-10-18T21:48:55.938120357Z stdout F 
+2026-10-18T21:48:55.938112011Z stderr F initdb: warning: enabling "trust" authentication for local connections
+2026-10-18T21:48:55.938127259Z stderr F initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-18T21:48:55.977382481Z stdout F waiting for server to start....2026-10-18 21:48:55.977 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-18T21:48:55.977932912Z stdout F 2026-10-18 21:48:55.977 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-18T21:48:55.980284868Z stdout F 2026-10-18 21:48:55.980 UTC [51] LOG:  database system was shut down at 2026-10-18 21:48:55 UTC
+2026-10-18T21:48:55.983859745Z stdout F 2026-10-18 21:48:55.983 UTC [48] LOG:  database system is ready to accept connections
+2026-10-18T21:48:56.059914165Z stdout F  done
+2026-10-18T21:48:56.059929183Z stdout F server started
+2026-10-18T21:48:56.12051756Z stdout F 2026-10-18 21:48:56.120 UTC [59] LOG:  statement: CREATE DATABASE "notes" ;
+2026-10-18T21:48:56.179640088Z stdout F CREATE DATABASE
+2026-10-18T21:48:56.180220906Z stdout F 
+2026-10-18T21:48:56.18043628Z stdout F 
+2026-10-18T21:48:56.180451809Z stdout F /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-18T21:48:56.180457018Z stdout F 
+2026-10-18T21:48:56.181899771Z stdout F waiting for server to shut down...2026-10-18 21:48:56.181 UTC [48] LOG:  received fast shutdown request
+2026-10-18T21:48:56.182237193Z stdout F .2026-10-18 21:48:56.182 UTC [48] LOG:  aborting any active transactions
+2026-10-18T21:48:56.185018586Z stdout F 2026-10-18 21:48:56.184 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-10-18T21:48:56.185527807Z stdout F 2026-10-18 21:48:56.185 UTC [49] LOG:  shutting down
+2026-10-18T21:48:56.185859589Z stdout F 2026-10-18 21:48:56.185 UTC [49] LOG:  checkpoint starting: shutdown immediate
+2026-10-18T21:48:56.204583235Z stdout F 2026-10-18 21:48:56.204 UTC [49] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.016 s, sync=0.002 s, total=0.019 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E8, redo lsn=0/191F0E8
+2026-10-18T21:48:56.21272827Z stdout F 2026-10-18 21:48:56.212 UTC [48] LOG:  database system is shut down
+2026-10-18T21:48:56.282047685Z stdout F  done
+2026-10-18T21:48:56.282067702Z stdout F server stopped
+2026-10-18T21:48:56.283327402Z stdout F 
+2026-10-18T21:48:56.283341569Z stdout F PostgreSQL init process complete; ready for start up.
+2026-10-18T21:48:56.283344093Z stdout F 
+2026-10-18T21:48:56.302226925Z stderr F 2026-10-18 21:48:56.302 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-18T21:48:56.302452057Z stderr F 2026-10-18 21:48:56.302 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-18T21:48:56.302461053Z stderr F 2026-10-18 21:48:56.302 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-18T21:48:56.303183988Z stderr F 2026-10-18 21:48:56.303 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-18T21:48:56.305806871Z stderr F 2026-10-18 21:48:56.305 UTC [69] LOG:  database system was shut down at 2026-10-18 21:48:56 UTC
+2026-10-18T21:48:56.311201276Z stderr F 2026-10-18 21:48:56.311 UTC [1] LOG:  database system is ready to accept connections
+2026-10-18T21:48:59.79326789Z stderr F 2026-10-18 21:48:59.793 UTC [80] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:QXoUG8md/+bPjxX9GrV8bg==$s8kDiICZYKuRLXfY4zpoqGxu7KqFZT7hkZGHK0J9alY=:G2TzVwId7kAETocDARIUbcDHyKwQBrQN5EJHbGCZLGo='
+2026-10-18T21:48:59.797091483Z stderr F 2026-10-18 21:48:59.797 UTC [80] LOG:  statement: 
+2026-10-18T21:48:59.797105449Z stderr F 	  CREATE TABLE IF NOT EXISTS notes (
+2026-10-18T21:48:59.797108555Z stderr F 	    id         bigserial PRIMARY KEY,
+2026-10-18T21:48:59.797112643Z stderr F 	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+2026-10-18T21:48:59.797115718Z stderr F 	    created_at timestamptz NOT NULL DEFAULT now()
+2026-10-18T21:48:59.797118323Z stderr F 	  )
+2026-10-18T21:48:59.80156342Z stderr F 2026-10-18 21:48:59.801 UTC [80] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+2026-10-18T21:48:59.802102152Z stderr F 2026-10-18 21:48:59.802 UTC [80] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+2026-10-18T21:48:59.802689693Z stderr F 2026-10-18 21:48:59.802 UTC [80] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+2026-10-18T21:48:59.803169812Z stderr F 2026-10-18 21:48:59.803 UTC [80] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+2026-10-18T21:48:59.806541382Z stderr F 2026-10-18 21:48:59.806 UTC [80] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+2026-10-18T21:48:59.806932595Z stderr F 2026-10-18 21:48:59.806 UTC [80] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+2026-10-18T21:48:59.808260182Z stderr F 2026-10-18 21:48:59.808 UTC [80] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:FfspMGF0rAUJhdv4hg0TEg==$Ky1x1CZ+wmnECqHXMXUO4zuajJ53aeMR4fvd+pvdzkc=:695QMC5ZvYrJgVlASoyinyVNNQpYQtEv6fkPhrVGls8='
+2026-10-18T21:48:59.812062477Z stderr F 2026-10-18 21:48:59.811 UTC [80] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+2026-10-18T21:48:59.81272595Z stderr F 2026-10-18 21:48:59.812 UTC [80] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+2026-10-18T21:48:59.814219628Z stderr F 2026-10-18 21:48:59.814 UTC [80] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:5ncZEtHljXBoy0ojZ5D/uQ==$bX6cEPp9zQsrnof3s5LmVz9BFP76PNzEMnHgIupI2XE=:Zcca2Lo/OMLkppuu3avYbnafSVxj9LLDdf7cFZOd3v4='
+2026-10-18T21:48:59.862130239Z stderr F 2026-10-18 21:48:59.862 UTC [81] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:YvulVVNjjhShDqpSUo7png==$uH1eEKKWAeqPZFmYffrB3Is4E2VZBkI6NULqcJYhaF8=:eyKkyahnXLF3IU9nBzu4N92MKRuh67xEv0cb7dUyrLw='
+2026-10-18T21:49:11.059450636Z stderr F 2026-10-18 21:49:11.058 UTC [104] FATAL:  password authentication failed for user "postgres"
+2026-10-18T21:49:11.05947948Z stderr F 2026-10-18 21:49:11.058 UTC [104] DETAIL:  Connection matched file "/var/lib/postgresql/data/pgdata/pg_hba.conf" line 128: "host all all all scram-sha-256"
+2026-10-18T21:49:11.120060318Z stderr F 2026-10-18 21:49:11.119 UTC [105] LOG:  statement: ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:ZSwQpdTZhQXydSllKm0ifA==$e77Dkt3Y7nyxh2G9sXMHce2GGgpXYPWd7r3EnP/pirI=:YOlvVHmRJPAKvR6IHHpnHmxxrrXYCFmfPM/zZr9N4as='
+2026-10-18T21:49:11.135158229Z stderr F 2026-10-18 21:49:11.135 UTC [105] LOG:  statement: 
+2026-10-18T21:49:11.135175592Z stderr F 	  CREATE TABLE IF NOT EXISTS notes (
+2026-10-18T21:49:11.135178978Z stderr F 	    id         bigserial PRIMARY KEY,
+2026-10-18T21:49:11.135182114Z stderr F 	    body       text NOT NULL CHECK (length(body) BETWEEN 1 AND 280),
+2026-10-18T21:49:11.135184859Z stderr F 	    created_at timestamptz NOT NULL DEFAULT now()
+2026-10-18T21:49:11.135187654Z stderr F 	  )
+2026-10-18T21:49:11.136640284Z stderr F 2026-10-18 21:49:11.136 UTC [105] LOG:  statement: REVOKE ALL ON notes FROM notes_app
+2026-10-18T21:49:11.137280903Z stderr F 2026-10-18 21:49:11.137 UTC [105] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_app
+2026-10-18T21:49:11.138135853Z stderr F 2026-10-18 21:49:11.137 UTC [105] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_app
+2026-10-18T21:49:11.138950037Z stderr F 2026-10-18 21:49:11.138 UTC [105] LOG:  statement: REVOKE CREATE ON SCHEMA public FROM PUBLIC
+2026-10-18T21:49:11.143243778Z stderr F 2026-10-18 21:49:11.143 UTC [105] LOG:  statement: GRANT SELECT, INSERT ON notes TO notes_rw
+2026-10-18T21:49:11.143695463Z stderr F 2026-10-18 21:49:11.143 UTC [105] LOG:  statement: GRANT USAGE ON SEQUENCE notes_id_seq TO notes_rw
+2026-10-18T21:49:11.145120618Z stderr F 2026-10-18 21:49:11.145 UTC [105] LOG:  statement: ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:IIiZbcGLBYly2LP+O8svww==$oLS/EC36L6l8X5jlsSXXCkndMI0NoHg8XvKHXgX/+Aw=:5PQ+FA8NuJ6VTR/VagjGecNuiGYpTANWasQfAkr/5x8='
+2026-10-18T21:49:11.151512886Z stderr F 2026-10-18 21:49:11.151 UTC [105] LOG:  statement: GRANT notes_rw TO bao_admin WITH ADMIN OPTION
+2026-10-18T21:49:11.151896344Z stderr F 2026-10-18 21:49:11.151 UTC [105] LOG:  statement: GRANT pg_signal_backend TO bao_admin
+2026-10-18T21:49:11.154242773Z stderr F 2026-10-18 21:49:11.154 UTC [105] LOG:  statement: ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:KfFtlvBsiJTkZCBuuPJZDw==$94MEMtiqKO7DEPvW4vDhNpoM3kPfG+LghZiebN5oV0s=:ZJnm0Nz4foOCmvBToVI/z8GeUeKkw1xdVfX/fUKZJhU='
+2026-10-18T21:49:11.269966789Z stderr F 2026-10-18 21:49:11.269 UTC [112] LOG:  statement: ALTER ROLE "bao_admin" WITH PASSWORD 'SCRAM-SHA-256$4096:UhnKgvWP1m7baiRzoV/F4w==$l6vZKmmW4vFg75dj+UxtczGKmc98ZxEyvYDaNtlhkcE=:hlKx0iErRbJipfOwIMHkHL+5f7FcrKu6kXxKXdPnkFc='
+2026-10-18T21:50:04.993022532Z stderr F 2026-10-18 21:50:04.992 UTC [249] FATAL:  password authentication failed for user "postgres"
+2026-10-18T21:50:04.993052438Z stderr F 2026-10-18 21:50:04.992 UTC [249] DETAIL:  Connection matched file "/var/lib/postgresql/data/pgdata/pg_hba.conf" line 119: "host    all             all             127.0.0.1/32            scram-sha-256"
+2026-10-18T21:50:06.911779262Z stderr F 2026-10-18 21:50:06.911 UTC [258] LOG:  statement: ALTER ROLE "notes_app" WITH PASSWORD 'SCRAM-SHA-256$4096:zx97GSB4F1f0h9MfByHosA==$prQiAUaF4zdOwLKNXsYoZsY8RMFtniktRrMBVkNORqo=:8TBRHVNThsO3cZtTNHmjf79sV/LwhSY5PWEdAKEyV0o='
