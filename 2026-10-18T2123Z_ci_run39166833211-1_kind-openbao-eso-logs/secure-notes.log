@@ -1,0 +1,1 @@
+Error from server (BadRequest): container "app" in pod "secure-notes-7b5bb746c9-x2fht" is waiting to start: ContainerCreating

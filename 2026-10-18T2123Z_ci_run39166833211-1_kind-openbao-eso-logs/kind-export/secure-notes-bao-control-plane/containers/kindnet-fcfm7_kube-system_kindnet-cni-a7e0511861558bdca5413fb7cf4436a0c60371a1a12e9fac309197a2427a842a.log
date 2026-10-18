@@ -1,0 +1,130 @@
+2026-10-18T21:16:46.828218618Z stderr F I1018 21:16:46.828002       1 main.go:413] probe TCP address secure-notes-bao-control-plane:6443
+2026-10-18T21:16:46.829808681Z stderr F I1018 21:16:46.829730       1 main.go:114] connected to apiserver: https://secure-notes-bao-control-plane:6443
+2026-10-18T21:16:46.830769425Z stderr F I1018 21:16:46.830671       1 main.go:144] hostIP = 172.18.0.2
+2026-10-18T21:16:46.830779594Z stderr F podIP = 172.18.0.2
+2026-10-18T21:16:46.830994688Z stderr F I1018 21:16:46.830926       1 main.go:153] setting mtu 1500 for CNI 
+2026-10-18T21:16:46.831111147Z stderr F I1018 21:16:46.831035       1 main.go:183] kindnetd IP family: "ipv4"
+2026-10-18T21:16:46.831232795Z stderr F I1018 21:16:46.831092       1 main.go:187] noMask IPv4 subnets: [10.244.0.0/16]
+2026-10-18T21:16:46.854823391Z stderr F I1018 21:16:46.854494       1 controller.go:173] "Starting controller" name="kube-network-policies"
+2026-10-18T21:16:46.854837127Z stderr F I1018 21:16:46.854564       1 controller.go:178] "Waiting for the policy engine to become ready..."
+2026-10-18T21:16:47.35581917Z stderr F I1018 21:16:47.355570       1 controller.go:185] "Policy engine is ready."
+2026-10-18T21:16:47.355833336Z stderr F I1018 21:16:47.355604       1 metrics.go:72] Registering metrics
+2026-10-18T21:16:47.355908237Z stderr F I1018 21:16:47.355767       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:16:47.35604291Z stderr F E1018 21:16:47.355961       1 controller.go:194] "reading nfqueue stats" err="open /proc/net/netfilter/nfnetlink_queue: no such file or directory" logger="metrics-collector"
+2026-10-18T21:16:47.395483163Z stderr F I1018 21:16:47.395318       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="39.359954ms"
+2026-10-18T21:16:56.853624363Z stderr F I1018 21:16:56.853444       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:16:56.8536437Z stderr F I1018 21:16:56.853499       1 main.go:324] handling current node
+2026-10-18T21:17:06.855584946Z stderr F I1018 21:17:06.855427       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:17:06.855618378Z stderr F I1018 21:17:06.855463       1 main.go:324] handling current node
+2026-10-18T21:17:16.855661217Z stderr F I1018 21:17:16.855458       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:17:16.85568414Z stderr F I1018 21:17:16.855507       1 main.go:324] handling current node
+2026-10-18T21:17:26.861656715Z stderr F I1018 21:17:26.861535       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:17:26.861677203Z stderr F I1018 21:17:26.861564       1 main.go:324] handling current node
+2026-10-18T21:17:36.854035552Z stderr F I1018 21:17:36.853872       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:17:36.854060048Z stderr F I1018 21:17:36.853909       1 main.go:324] handling current node
+2026-10-18T21:17:46.854261457Z stderr F I1018 21:17:46.854148       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:17:46.854368648Z stderr F I1018 21:17:46.854326       1 main.go:324] handling current node
+2026-10-18T21:17:56.853564433Z stderr F I1018 21:17:56.853435       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:17:56.853595702Z stderr F I1018 21:17:56.853462       1 main.go:324] handling current node
+2026-10-18T21:18:06.85827799Z stderr F I1018 21:18:06.858134       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:18:06.858309199Z stderr F I1018 21:18:06.858167       1 main.go:324] handling current node
+2026-10-18T21:18:16.854883777Z stderr F I1018 21:18:16.854047       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:18:16.854905367Z stderr F I1018 21:18:16.854754       1 main.go:324] handling current node
+2026-10-18T21:18:16.951994265Z stderr F I1018 21:18:16.951880       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:16.959286343Z stderr F I1018 21:18:16.959203       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="7.285385ms"
+2026-10-18T21:18:17.959795478Z stderr F I1018 21:18:17.959440       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:17.971377113Z stderr F I1018 21:18:17.971239       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="11.666875ms"
+2026-10-18T21:18:18.971754301Z stderr F I1018 21:18:18.971609       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:18.984202607Z stderr F I1018 21:18:18.984122       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="12.476789ms"
+2026-10-18T21:18:20.708948903Z stderr F I1018 21:18:20.708741       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:20.716040625Z stderr F I1018 21:18:20.715951       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="7.169208ms"
+2026-10-18T21:18:21.716974189Z stderr F I1018 21:18:21.716220       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:21.722279178Z stderr F I1018 21:18:21.722180       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="5.923773ms"
+2026-10-18T21:18:22.723122061Z stderr F I1018 21:18:22.722998       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:22.727197195Z stderr F I1018 21:18:22.727120       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="4.089665ms"
+2026-10-18T21:18:26.854311562Z stderr F I1018 21:18:26.854190       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:18:26.854333163Z stderr F I1018 21:18:26.854227       1 main.go:324] handling current node
+2026-10-18T21:18:36.863224591Z stderr F I1018 21:18:36.863109       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:18:36.863251521Z stderr F I1018 21:18:36.863136       1 main.go:324] handling current node
+2026-10-18T21:18:37.3342239Z stderr F I1018 21:18:37.333995       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:37.339341762Z stderr F I1018 21:18:37.339186       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="5.155554ms"
+2026-10-18T21:18:38.340359277Z stderr F I1018 21:18:38.340232       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:38.345277255Z stderr F I1018 21:18:38.345208       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="4.846383ms"
+2026-10-18T21:18:39.347448264Z stderr F I1018 21:18:39.346583       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:18:39.351234095Z stderr F I1018 21:18:39.351153       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="4.53079ms"
+2026-10-18T21:18:46.853990856Z stderr F I1018 21:18:46.853838       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:18:46.854020793Z stderr F I1018 21:18:46.853874       1 main.go:324] handling current node
+2026-10-18T21:18:56.854312558Z stderr F I1018 21:18:56.854209       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:18:56.85434002Z stderr F I1018 21:18:56.854237       1 main.go:324] handling current node
+2026-10-18T21:19:00.331527719Z stderr F I1018 21:19:00.331439       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:19:00.337298672Z stderr F I1018 21:19:00.337174       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="5.701167ms"
+2026-10-18T21:19:01.337550623Z stderr F I1018 21:19:01.337434       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:19:01.350198929Z stderr F I1018 21:19:01.350125       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="12.657596ms"
+2026-10-18T21:19:02.351075238Z stderr F I1018 21:19:02.350962       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:19:02.359215715Z stderr F I1018 21:19:02.359139       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="8.148246ms"
+2026-10-18T21:19:06.856249598Z stderr F I1018 21:19:06.856130       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:19:06.856274235Z stderr F I1018 21:19:06.856168       1 main.go:324] handling current node
+2026-10-18T21:19:16.863242374Z stderr F I1018 21:19:16.863117       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:19:16.863259767Z stderr F I1018 21:19:16.863142       1 main.go:324] handling current node
+2026-10-18T21:19:26.861224761Z stderr F I1018 21:19:26.861117       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:19:26.861248525Z stderr F I1018 21:19:26.861147       1 main.go:324] handling current node
+2026-10-18T21:19:36.854115661Z stderr F I1018 21:19:36.854000       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:19:36.854133775Z stderr F I1018 21:19:36.854030       1 main.go:324] handling current node
+2026-10-18T21:19:46.853800317Z stderr F I1018 21:19:46.853670       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:19:46.853826907Z stderr F I1018 21:19:46.853695       1 main.go:324] handling current node
+2026-10-18T21:19:56.859307728Z stderr F I1018 21:19:56.859219       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:19:56.859333706Z stderr F I1018 21:19:56.859244       1 main.go:324] handling current node
+2026-10-18T21:19:57.332882712Z stderr F I1018 21:19:57.332763       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:19:57.341378659Z stderr F I1018 21:19:57.341250       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="8.445137ms"
+2026-10-18T21:19:58.341475347Z stderr F I1018 21:19:58.341325       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:19:58.356285144Z stderr F I1018 21:19:58.356196       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="14.835738ms"
+2026-10-18T21:19:59.357185777Z stderr F I1018 21:19:59.357082       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:19:59.370181059Z stderr F I1018 21:19:59.370116       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="13.008154ms"
+2026-10-18T21:20:06.859236898Z stderr F I1018 21:20:06.859131       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:20:06.859256214Z stderr F I1018 21:20:06.859159       1 main.go:324] handling current node
+2026-10-18T21:20:16.854002413Z stderr F I1018 21:20:16.853887       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:20:16.854029394Z stderr F I1018 21:20:16.853918       1 main.go:324] handling current node
+2026-10-18T21:20:26.862209969Z stderr F I1018 21:20:26.862106       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:20:26.862235988Z stderr F I1018 21:20:26.862136       1 main.go:324] handling current node
+2026-10-18T21:20:36.85955009Z stderr F I1018 21:20:36.859416       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:20:36.85957669Z stderr F I1018 21:20:36.859441       1 main.go:324] handling current node
+2026-10-18T21:20:46.862628417Z stderr F I1018 21:20:46.862492       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:20:46.86265669Z stderr F I1018 21:20:46.862525       1 main.go:324] handling current node
+2026-10-18T21:20:56.854039258Z stderr F I1018 21:20:56.853899       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:20:56.854068323Z stderr F I1018 21:20:56.853924       1 main.go:324] handling current node
+2026-10-18T21:21:06.860230321Z stderr F I1018 21:21:06.860116       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:21:06.860258163Z stderr F I1018 21:21:06.860142       1 main.go:324] handling current node
+2026-10-18T21:21:15.330204007Z stderr F I1018 21:21:15.330006       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:21:15.33821482Z stderr F I1018 21:21:15.338138       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="8.093583ms"
+2026-10-18T21:21:16.854116863Z stderr F I1018 21:21:16.853989       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:21:16.854141239Z stderr F I1018 21:21:16.854018       1 main.go:324] handling current node
+2026-10-18T21:21:18.4273344Z stderr F I1018 21:21:18.427186       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:21:18.433221294Z stderr F I1018 21:21:18.433143       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="5.917931ms"
+2026-10-18T21:21:19.433508291Z stderr F I1018 21:21:19.433351       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:21:19.44021162Z stderr F I1018 21:21:19.440127       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="6.738302ms"
+2026-10-18T21:21:26.859243034Z stderr F I1018 21:21:26.859119       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:21:26.859266679Z stderr F I1018 21:21:26.859147       1 main.go:324] handling current node
+2026-10-18T21:21:36.860735359Z stderr F I1018 21:21:36.860618       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:21:36.860760426Z stderr F I1018 21:21:36.860644       1 main.go:324] handling current node
+2026-10-18T21:21:46.854783622Z stderr F I1018 21:21:46.854671       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:21:46.854815802Z stderr F I1018 21:21:46.854699       1 main.go:324] handling current node
+2026-10-18T21:21:56.855419386Z stderr F I1018 21:21:56.855271       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:21:56.855449392Z stderr F I1018 21:21:56.855322       1 main.go:324] handling current node
+2026-10-18T21:22:06.854406774Z stderr F I1018 21:22:06.854268       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:22:06.854438844Z stderr F I1018 21:22:06.854303       1 main.go:324] handling current node
+2026-10-18T21:22:16.863154516Z stderr F I1018 21:22:16.863046       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:22:16.863181747Z stderr F I1018 21:22:16.863074       1 main.go:324] handling current node
+2026-10-18T21:22:26.860232986Z stderr F I1018 21:22:26.860117       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:22:26.860265667Z stderr F I1018 21:22:26.860145       1 main.go:324] handling current node
+2026-10-18T21:22:36.863207239Z stderr F I1018 21:22:36.863116       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:22:36.86322912Z stderr F I1018 21:22:36.863141       1 main.go:324] handling current node
+2026-10-18T21:22:46.863308427Z stderr F I1018 21:22:46.863141       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:22:46.863336671Z stderr F I1018 21:22:46.863172       1 main.go:324] handling current node
+2026-10-18T21:22:49.330335994Z stderr F I1018 21:22:49.330131       1 controller.go:462] "Syncing nftables rules" logger="nftables-sync"
+2026-10-18T21:22:49.335215583Z stderr F I1018 21:22:49.335131       1 controller.go:465] "Syncing nftables rules" logger="nftables-sync" elapsed="4.950883ms"
+2026-10-18T21:22:56.85460328Z stderr F I1018 21:22:56.854474       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:22:56.854634439Z stderr F I1018 21:22:56.854497       1 main.go:324] handling current node
+2026-10-18T21:23:06.855314325Z stderr F I1018 21:23:06.855167       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:23:06.85533793Z stderr F I1018 21:23:06.855208       1 main.go:324] handling current node
+2026-10-18T21:23:16.855127506Z stderr F I1018 21:23:16.855021       1 main.go:320] Handling node with IPs: map[172.18.0.2:{}]
+2026-10-18T21:23:16.855160007Z stderr F I1018 21:23:16.855051       1 main.go:324] handling current node

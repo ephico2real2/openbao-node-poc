@@ -1,0 +1,3 @@
+[seed] secret names (/{service}/{env}/{resource}/{name}): db, redis, /rds/dev/notes-db/admin, /elasticache/dev/notes-cache/admin
+[seed] OpenBao: logged in with this pod's service-account token (Kubernetes auth, role secure-notes-seed)
+[seed] failed: OpenBao POST secret/data/db: HTTP 403 (1 error occurred: * permission denied)
