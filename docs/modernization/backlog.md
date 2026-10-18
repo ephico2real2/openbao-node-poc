@@ -165,6 +165,17 @@ Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/
 
 Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) compose (openbao-detection): 107 audit lines shipped; no alert from the app; alert SecretReadByUnexpectedIdentity for ops-admin reading secret/data/rds/dev/notes-db/app ([compose-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2203Z_ci_run39169755271-1_compose-openbao-detection-logs/compose-check.txt)), [steps/v5-detection/README.md](../../steps/v5-detection/README.md), [dev/detect/rules.yml](../../dev/detect/rules.yml), [demo test case 24](../../demo/test-case-24-detection.md)
 
+### B10 — Upkeep: keep CI and the pins current
+
+[#43](https://github.com/ephico2real2/openbao-node-poc/issues/43) · 🔜 · **Outcome:** CI runs on supported runtimes and current pins, so a deprecation never turns into a red build. Docs: [initiative](README.md)
+
+**S10.1 · GitHub Actions on Node.js 24** · S · 🔜 · [#44](https://github.com/ephico2real2/openbao-node-poc/issues/44)
+*As the owner, I want no action on the retiring Node.js 20 runtime, so that CI keeps working when GitHub removes it.*
+- [ ] actions/cache v4 -> v5, upload-artifact v4 -> v6, download-artifact v4 -> v7: the first major of each whose action.yml says node24 (download-artifact v6 still says node20; v8 also makes a digest mismatch an error by default).
+- [ ] Every job green with the new versions, and no Node.js 20 deprecation annotation left.
+
+Evidence: [initiative](README.md)
+
 ## Track TUTORIAL — building the tutorial
 
 ### B1 — ADR-002: OpenBao first, HashiCorp Vault second

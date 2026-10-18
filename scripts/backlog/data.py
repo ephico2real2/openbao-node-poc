@@ -216,6 +216,14 @@ EPICS = [
      ["steps/v6-openshift-eso/README.md, demo page 25 and a chapter 9 section, from the real run's evidence.",
       "GUIDE (Part B) and TEST-CASES updated; the OpenShift parts of steps/v3-k8s stop saying 'unproven'; tag v7-openshift-eso."])),
   ]),
+ dict(id="B10", track="app", title="Upkeep: keep CI and the pins current",
+  outcome="CI runs on supported runtimes and current pins, so a deprecation never turns into a red build.",
+  docs=[PLAN], children=[
+   S("S10.1", "GitHub Actions on Node.js 24", "S",
+     "As the owner, I want no action on the retiring Node.js 20 runtime, so that CI keeps working when GitHub removes it.",
+     ["actions/cache v4 -> v5, upload-artifact v4 -> v6, download-artifact v4 -> v7: the first major of each whose action.yml says node24 (download-artifact v6 still says node20; v8 also makes a digest mismatch an error by default).",
+      "Every job green with the new versions, and no Node.js 20 deprecation annotation left."]),
+  ]),
 ]
 
 # ---- progress (evidence: commits on main, CI runs) ----
