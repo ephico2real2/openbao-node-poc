@@ -1,0 +1,6 @@
+NAME                          IMAGE                              COMMAND                  SERVICE    CREATED              STATUS                        PORTS
+secure-notes-bao-app-1        secure-notes-app:dev               "docker-entrypoint.s…"   app        About a minute ago   Up 56 seconds                 127.0.0.1:3000->3000/tcp
+secure-notes-bao-openbao-1    docker.io/openbao/openbao:2.7.1    "/bin/sh /lab/entryp…"   openbao    About a minute ago   Up About a minute (healthy)   127.0.0.1:8200->8200/tcp
+secure-notes-bao-postgres-1   docker.io/library/postgres:16      "docker-entrypoint.s…"   postgres   About a minute ago   Up About a minute (healthy)   5432/tcp
+secure-notes-bao-redis-1      docker.io/library/redis:7-alpine   "/bin/sh /dev-script…"   redis      About a minute ago   Up About a minute (healthy)   6379/tcp
+secure-notes-bao-seed-1       secure-notes-app:dev               "docker-entrypoint.s…"   seed       About a minute ago   Exited (0) 56 seconds ago     
