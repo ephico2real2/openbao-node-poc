@@ -1,0 +1,40 @@
+== waiting for http://localhost:3000/api/health
+  ready after ~2 s
+SERVICE    IMAGE                                STATE
+app        secure-notes-app:dev                 running
+openbao    docker.io/openbao/openbao:2.7.1      running
+postgres   docker.io/library/postgres:16        running
+redis      docker.io/valkey/valkey:8.1-alpine   running
+== the seed job burned the bootstrap passwords
+  ok    Redis rejects the bootstrap password
+  ok    Postgres rejects the bootstrap password
+== secrets provider: openbao, mode: api
+  ok    the app is logged in to OpenBao as role 'secure-notes-app' (policies: default,secure-notes-app)
+  ok    /api/config shows the login state, never the token
+  ok    the app's secret ID file is mode 0400, owned by the app user
+  ok    no token or secret ID in the app's environment
+  ok    the seed's bootstrap secret ID is spent (single use)
+  ok    the app's policy refuses a path outside its own (403)
+  ok    the audit log recorded 12 KV request/response entries
+== step v2: dynamic database users with leases
+  ok    the app's Postgres sessions use a user OpenBao created for it (v-approle-notes-ap-q…), not a stored one
+  ok    the app renewed both leases (sys/leases/renew)
+== end-to-end smoke test
+Smoke test against http://localhost:3000
+  mode: api
+  ok    health: postgres and redis reachable
+  ok    notes: write to postgres, read through redis  (postgres -> redis)
+  ok    revoke the db lease (OpenBao drops the user)  (revoked lease hI06Q6iU)
+  ok    revoke the redis lease (OpenBao drops the user)  (revoked lease XdfCeSkU)
+  ok    drop connections, then app recovers with the rotated credentials  (recovered: db, redis)
+  ok    secrets dashboard shows the new versions in cache
+  ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)
+  ok    security posture: no check fails  (15 checks, none failing)
+
+All checks passed
+== step v2: revoked and replaced users are gone
+  ok    Postgres has 1 leased user(s) left: the app's current one (and at most one draining)
+  info  the app switched to a newly issued user 6 time(s) so far (revocations, and leases at their max TTL)
+== the actual credential values, searched for in every container, file and log
+== credential scan (compose): searching for 0 secret values from OpenBao, read as the app's AppRole identity (every version); the values are never printed
+  FAIL  could not read the values from OpenBao, read as the app's AppRole identity (got 0, expected at least 4)
