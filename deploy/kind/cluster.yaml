@@ -1,0 +1,31 @@
+# The kind cluster for Secure Notes: one node, the same on a laptop (macOS or
+# Linux, Intel or Apple silicon) and on the CI runner.
+#
+#   scripts/kind-up.sh          creates it from this file (checks the machine first)
+#   scripts/kind-down.sh        deletes it
+#
+# What this file fixes, compared with a bare `kind create cluster`:
+#   - The node image is pinned by digest, so every machine runs the same
+#     Kubernetes. The digest is a multi-arch index (amd64 and arm64), so an
+#     Apple-silicon Mac pulls the arm64 image. kind and its node image are a
+#     pair: change KIND_VERSION in scripts/versions.env and this line together.
+#   - The app is reachable from the host with no port-forward: kind maps a host
+#     port to a node port, and the kind overlay makes the Service a NodePort
+#     (deploy/k8s/overlays/kind). The host port is bound to 127.0.0.1 only, so
+#     nothing else on your network can reach it. It is the port Docker Compose
+#     uses (3000), so stop Compose first, or set KIND_APP_PORT for kind-up.sh.
+#   - The pod network is written out (kind's default, 10.244.0.0/16).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: secure-notes-bao
+networking:
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/16"
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
+    extraPortMappings:
+      - containerPort: 30080   # Service secure-notes (NodePort) -> the app
+        hostPort: 3000
+        listenAddress: 127.0.0.1
+        protocol: TCP

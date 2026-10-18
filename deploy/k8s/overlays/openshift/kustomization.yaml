@@ -1,0 +1,47 @@
+# OpenShift (OpenShift Local / CRC, or a dev cluster): the same stack as kind,
+# with a Route, the published images,
+# and no fixed UIDs so the restricted-v2 SCC assigns them. Create the project first:
+#
+#   oc new-project secure-notes
+#   KUBECTL=oc scripts/k8s-deploy.sh deploy/k8s/overlays/openshift
+#
+# k8s-deploy.sh prints the app's https:// address.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: secure-notes
+
+resources:
+  - ../../base
+  - route.yaml
+
+components:
+  - ../../components/local-backing-services
+
+configMapGenerator:
+  - name: secure-notes-config
+    behavior: merge
+    literals:
+      - APP_PLATFORM=openshift
+
+images:
+  - name: secure-notes-app
+    newName: ghcr.io/ephico2real2/openbao-node-poc/app
+    newTag: latest
+  - name: secure-notes-aws-mock
+    newName: ghcr.io/ephico2real2/openbao-node-poc/aws-mock
+    newTag: latest
+
+# restricted-v2 rejects a pod that asks for a UID outside the project's range,
+# so let OpenShift choose: drop the fixed UIDs the component sets for kind.
+patches:
+  - target:
+      kind: Deployment
+      name: postgres|redis
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/securityContext/runAsUser
+      - op: remove
+        path: /spec/template/spec/securityContext/runAsGroup
+      - op: remove
+        path: /spec/template/spec/securityContext/fsGroup

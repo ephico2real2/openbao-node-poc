@@ -1,0 +1,59 @@
+# DEV ONLY: creates random credentials in the (mock) Secrets Manager, applies
+# them to Postgres and Redis, then burns the bootstrap passwords. Idempotent:
+# a second run sees the secrets exist and exits. Same script as docker compose.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seed
+  labels:
+    app.kubernetes.io/name: secure-notes-seed
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: secure-notes-seed
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      # No Docker-link env vars: a Service named redis would inject REDIS_PORT=tcp://… into every pod.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: seed
+          image: secure-notes-app:dev
+          imagePullPolicy: IfNotPresent
+          command: ["node", "scripts/seed-local.js"]
+          envFrom:
+            - configMapRef:
+                name: secure-notes-config
+          env:
+            # The deployer's identity (the mock reads the key ID as "who is calling").
+            - name: AWS_ACCESS_KEY_ID
+              value: local-seed
+            - name: SEED_PG_HOST
+              value: postgres
+            - name: SEED_REDIS_HOST
+              value: redis
+            - name: PG_BOOTSTRAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: local-bootstrap
+                  key: pg-password
+            - name: REDIS_BOOTSTRAP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: local-bootstrap
+                  key: redis-password
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 192Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

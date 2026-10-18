@@ -1,0 +1,18 @@
+# Secure Notes: where its secrets are (never what they are).
+# Use with APP_CONFIG_FILE=/etc/secure-notes/config.yaml. Environment variables
+# override every value here. See docs/reference/secret-naming.md.
+secrets:
+  env: prod                                   # dev | uat | qa | prod
+  app: secure-notes
+  pattern: /{service}/{env}/{resource}/{name} # or a preset: service-resource-env, ...
+  db:
+    # RDS names its own master-password secret (rds!db-...), so give that one by ARN:
+    id: arn:aws:secretsmanager:us-east-1:111122223333:secret:rds!db-0a1b2c3d-AbCdEf
+    # For a secret you create (e.g. a least-privilege app user), name the parts instead:
+    # service: rds
+    # resource: notes-db
+    # name: app                               # -> /rds/prod/notes-db/app
+  redis:
+    service: elasticache
+    resource: secure-notes                    # the cache (or stack) name
+    name: app                                 # -> /elasticache/prod/secure-notes/app

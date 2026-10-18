@@ -1,0 +1,53 @@
+# Tag a milestone of the Secure Notes story and publish its release notes.
+# Manual only: Actions → milestone → Run workflow.
+name: milestone
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag name (e.g. v1-secrets-manager)
+        required: true
+      ref:
+        description: Commit SHA (or branch) to tag
+        required: true
+      title:
+        description: Release title
+        required: true
+      notes_file:
+        description: Release notes, a Markdown file in the repo (docs/releases/<tag>.md)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Create the annotated tag
+        env:
+          TAG: ${{ inputs.tag }}
+          REF: ${{ inputs.ref }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+-[a-z0-9-]+$ ]] || { echo "::error::tag must look like v2-alerts"; exit 1; }
+          sha=$(git rev-parse --verify "$REF^{commit}")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$sha" -m "$TITLE"
+          git push origin "refs/tags/$TAG"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          TITLE: ${{ inputs.title }}
+          NOTES: ${{ inputs.notes_file }}
+        run: gh release create "$TAG" --title "$TITLE" --notes-file "$NOTES" --verify-tag

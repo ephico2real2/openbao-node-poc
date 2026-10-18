@@ -1,0 +1,44 @@
+# Everything the app needs that AWS would normally provide, running inside the
+# cluster: Postgres, Redis, the Secrets Manager mock and the one-shot seed job.
+# For kind, OpenShift Local / a dev OpenShift cluster, or any Kubernetes cluster
+# with no AWS access. Never use this component in production.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - aws-mock.yaml
+  - postgres.yaml
+  - redis.yaml
+  - seed-job.yaml
+  - networkpolicies.yaml
+
+# Bootstrap passwords: used once by the seed job to log in, then replaced by
+# random values stored only in Secrets Manager. After seeding they no longer
+# work. They are not the app's credentials, and the app never reads them.
+secretGenerator:
+  - name: local-bootstrap
+    literals:
+      - pg-password=bootstrap-only-change-me
+      - redis-password=bootstrap-only-change-me
+
+configMapGenerator:
+  - name: secure-notes-config
+    behavior: merge
+    literals:
+      # Development mode: allows demo mode and the mock endpoint.
+      - NODE_ENV=development
+      - DEMO_MODE=true
+      # The log shows which secret keys each client used, values masked.
+      - LOG_LEVEL=debug
+      - AWS_REGION=us-east-1
+      - AWS_MOCK_ENDPOINT=http://aws-mock:4566
+      # Dummy values: the AWS SDK signs requests. The mock ignores the signature
+      # but reads the key ID as "who is calling" (local-app = the app's role;
+      # the seed job overrides it). Real clusters use an IAM role (aws overlay).
+      - AWS_ACCESS_KEY_ID=local-app
+      - AWS_SECRET_ACCESS_KEY=local-mock
+      # Secret names from the naming convention: /rds/dev/notes-db/app,
+      # /elasticache/dev/notes-cache/app and .../admin (docs/reference/secret-naming.md).
+      - SECRETS_ENV=dev
+      - DB_SECRET_RESOURCE=notes-db
+      - REDIS_SECRET_RESOURCE=notes-cache

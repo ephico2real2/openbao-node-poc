@@ -1,0 +1,38 @@
+# Default deny for the namespace, then only what the app needs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: secure-notes
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: secure-notes
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # The web port, from the ingress controller / OpenShift router / port-forward.
+    - ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    # DNS. OpenShift's DNS pods listen on 5353 behind the Service's 53.
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+        - { port: 5353, protocol: UDP }
+        - { port: 5353, protocol: TCP }
+    # Secrets Manager / STS over HTTPS, Postgres, Redis. The aws overlay can
+    # narrow these to your VPC endpoint, RDS and ElastiCache CIDRs.
+    - ports:
+        - { port: 443, protocol: TCP }
+        - { port: 5432, protocol: TCP }
+        - { port: 6379, protocol: TCP }

@@ -1,0 +1,104 @@
+# browser-walk — Playwright on the runner, pinned and cached, driven through a YAML spec of pages. Outputs a PNG and an
+# evidence line per page, and — because a job summary renders Markdown but strips data: URIs and cannot reach artifact
+# files — pushes the PNGs to a branch of this public repository, one folder per run and job, and links them raw from the
+# job summary, so the captures are ON the run page. Folder: <UTC time>_<workflow>_run<id>-<attempt>_<job>[-<label>].
+# The captures publish FIRST, then the step fails if a page failed its expectations (walk.js exits 2).
+# Adapted from ephico2real2/cilium-implementation-poc (.github/actions/browser-walk), with the retrying publish from its
+# demo55-ci workflow: several jobs of one run publish at once, so a push that lost the race rebuilds on the new tip.
+name: browser walk (Playwright)
+description: Drive Chromium through the pages of a YAML spec — screenshots and evidence on the run page, expectations measured
+inputs:
+  spec:               {description: the spec of pages (scripts/capture/walk.js's format), default: scripts/capture/dashboard.yaml}
+  out:                {description: the directory for the PNGs and the log, default: captures}
+  label:              {description: a suffix for the published folder (e.g. the matrix entry), default: ""}
+  env-json:           {description: 'variables for the spec''s ${VAR}s, as JSON, e.g. {"BASE":"http://localhost:3000"}', default: "{}"}
+  extra-files:        {description: other files to publish next to the PNGs (space-separated), default: ""}
+  playwright-version: {description: the Playwright release, pinned, default: "1.63.0"}
+  js-yaml-version:    {description: the js-yaml release, pinned, default: "4.1.0"}
+  publish-branch:     {description: the branch the captures are pushed to ("" = do not publish; needs contents write), default: ci-captures}
+outputs:
+  dir: {description: the published folder, value: "${{ steps.publish.outputs.dir }}"}
+runs:
+  using: composite
+  steps:
+    - name: Playwright ${{ inputs.playwright-version }} and Chromium (cached by version)
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          .tmp/pw/node_modules
+          ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ inputs.playwright-version }}-yaml${{ inputs.js-yaml-version }}
+    - name: Install when not cached
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p .tmp/pw && cd .tmp/pw && npm init -y >/dev/null
+        npm i --no-audit --no-fund "playwright@${{ inputs.playwright-version }}" "js-yaml@${{ inputs.js-yaml-version }}" >/dev/null
+        npx playwright install --with-deps chromium >/dev/null 2>&1
+    - name: The OS libraries Chromium needs (present on a cache hit too)
+      shell: bash
+      run: cd .tmp/pw && npx playwright install-deps chromium >/dev/null 2>&1 || true
+    - name: Walk
+      shell: bash
+      env:
+        ENV_JSON: ${{ inputs.env-json }}
+        OUT: ${{ inputs.out }}
+        SPEC: ${{ inputs.spec }}
+      run: |
+        mkdir -p "$OUT"
+        eval "$(python3 -c 'import json,os,shlex; [print(f"export {k}={shlex.quote(str(v))}") for k,v in json.loads(os.environ["ENV_JSON"]).items()]')"
+        # the walk's exit code is kept for the last step: the captures publish first, then the step fails on a failed page
+        set +e; S="$OUT" NODE_PATH="$PWD/.tmp/pw/node_modules" node scripts/capture/walk.js "$SPEC" 2>&1 | tee "$OUT/walk.log"; echo "${PIPESTATUS[0]}" > "$OUT/walk.rc"; set -e
+        ls -la "$OUT"/*.png 2>/dev/null | awk '{print "  " $5, $9}'
+    - name: Publish to the branch and the job summary
+      id: publish
+      if: inputs.publish-branch != ''
+      shell: bash
+      env:
+        OUT: ${{ inputs.out }}
+        BR: ${{ inputs.publish-branch }}
+        REPO: ${{ github.repository }}
+        LABEL: ${{ inputs.label }}
+        EXTRA: ${{ inputs.extra-files }}
+        WF_REF: ${{ github.workflow_ref }}
+      run: |
+        set -uo pipefail
+        ls "$OUT"/*.png >/dev/null 2>&1 || { echo "no captures to publish" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; }
+        REF="${WF_REF%%@*}"; WF=$(basename "$REF" | sed -E 's/\.ya?ml$//')
+        DIR="$(date -u +%Y-%m-%dT%H%MZ)_${WF}_run${{ github.run_id }}-${{ github.run_attempt }}_${{ github.job }}${LABEL:+-$LABEL}"
+        echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+        git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        publish() {
+          rm -rf .tmp/cap; git worktree prune
+          if git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1; then
+            git fetch -q origin "$BR" && git worktree add -q --detach .tmp/cap "origin/$BR" || return 1
+          else
+            git worktree add -q --detach .tmp/cap && (cd .tmp/cap && git checkout -q --orphan "$BR" && { git rm -rfq . >/dev/null 2>&1 || true; })
+          fi
+          mkdir -p ".tmp/cap/$DIR" && cp "$OUT"/*.png "$OUT"/walk.log ".tmp/cap/$DIR/"
+          for f in $EXTRA; do [ -f "$f" ] && cp "$f" ".tmp/cap/$DIR/"; done
+          (cd .tmp/cap && git add -A && git commit -qm "captures: $DIR" && git push -q origin "HEAD:$BR")
+        }
+        pushed=no
+        for attempt in 1 2 3 4 5; do
+          if publish; then pushed=yes; break; fi
+          echo "captures push attempt $attempt lost the race; rebuilding on the current tip" >&2
+          sleep $(( attempt * 3 + RANDOM % 5 ))
+        done
+        [ "$pushed" = yes ] || { echo "::warning::could not publish the captures after 5 attempts (they are still in the artifact)"; exit 0; }
+        {
+          echo "## Captures — [\`$DIR\`](https://github.com/$REPO/tree/$BR/$DIR)"
+          echo; echo "The dashboard as the runner saw it, each page with the walk's evidence line and its expectations' verdict. The same files are in the run's artifact."
+          echo; while IFS= read -r line; do case "$line" in *FAILED*) echo "- ❌ \`$line\`";; *"expectations met"*) echo "- ✅ \`$line\`";; *) echo "- \`$line\`";; esac; done < "$OUT/walk.log"
+          for f in "$OUT"/*.png; do n=$(basename "$f" .png); echo; echo "### $n"; echo; echo "![$n](https://raw.githubusercontent.com/$REPO/$BR/$DIR/$n.png)"; done
+        } >> "$GITHUB_STEP_SUMMARY"
+        echo "captures published: https://github.com/$REPO/tree/$BR/$DIR"
+    - name: The pages' expectations
+      shell: bash
+      env:
+        OUT: ${{ inputs.out }}
+      run: |
+        rc=$(cat "$OUT/walk.rc" 2>/dev/null || echo 1)
+        if [ "$rc" != 0 ]; then grep -E 'FAILED|page\(s\) failed' "$OUT/walk.log" | sed 's/^/::error::/'; exit "$rc"; fi
+        echo "every page met its expectations ($(grep -c 'expectations met' "$OUT/walk.log") with expectations)"

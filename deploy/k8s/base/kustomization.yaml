@@ -1,0 +1,25 @@
+# The app on its own, safe by default: production mode, no demo endpoints, no
+# credentials of any kind. Overlays add where the backing services live and
+# how the pod gets its AWS identity.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml
+
+# Non-secret settings only: secret IDs, hostnames, flags. Overlays merge into it.
+configMapGenerator:
+  - name: secure-notes-config
+    literals:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
+      - SECRETS_MODE=sdk
+      - LOG_LEVEL=info
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: secure-notes

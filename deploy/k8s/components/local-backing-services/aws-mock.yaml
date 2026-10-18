@@ -1,0 +1,67 @@
+# DEV ONLY: the Secrets Manager + STS mock from dev/aws-mock.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aws-mock
+  labels:
+    app.kubernetes.io/name: aws-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aws-mock
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-mock
+    spec:
+      automountServiceAccountToken: false
+      # No Docker-link env vars: a Service named redis would inject REDIS_PORT=tcp://… into every pod.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: aws-mock
+          image: secure-notes-aws-mock:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MOCK_STATE_FILE
+              value: /data/state.json
+          ports:
+            - name: http
+              containerPort: 4566
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 3
+          resources:
+            requests: { cpu: 10m, memory: 48Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aws-mock
+  labels:
+    app.kubernetes.io/name: aws-mock
+spec:
+  selector:
+    app.kubernetes.io/name: aws-mock
+  ports:
+    - name: http
+      port: 4566
+      targetPort: http

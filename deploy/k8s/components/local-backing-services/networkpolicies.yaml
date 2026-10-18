@@ -1,0 +1,70 @@
+# Only the app and the seed job may reach the backing services. On top of the
+# base's default-deny; NetworkPolicies add up.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backing-services-from-app
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [postgres, redis, aws-mock]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [secure-notes, secure-notes-seed]
+      ports:
+        - { port: 5432, protocol: TCP }
+        - { port: 6379, protocol: TCP }
+        - { port: 4566, protocol: TCP }
+---
+# The app's base policy allows 443/5432/6379; locally it also needs the mock.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-to-local-mock
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: secure-notes
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: aws-mock
+      ports:
+        - { port: 4566, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: seed
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: secure-notes-seed
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+        - { port: 5353, protocol: UDP }
+        - { port: 5353, protocol: TCP }
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [postgres, redis, aws-mock]
+      ports:
+        - { port: 5432, protocol: TCP }
+        - { port: 6379, protocol: TCP }
+        - { port: 4566, protocol: TCP }

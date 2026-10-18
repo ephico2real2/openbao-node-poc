@@ -1,0 +1,55 @@
+# Path A in AGENT mode: the app reads its secrets through a local agent on
+# localhost:2773 instead of calling Secrets Manager itself — the same shape as
+# SECRETS_MODE=agent on EC2 with the AWS Workload Credentials Provider.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.agent.yml up --build
+#
+# The `agent` container is the same mock image, running only its agent
+# emulation and fetching from `aws-mock` over HTTP the way the real agent calls
+# Secrets Manager. The app joins the agent's network namespace, so the agent
+# is on the app's own localhost (the app refuses any agent URL that is not
+# loopback), and the SSRF token reaches the app through a tmpfs volume only
+# these two containers mount.
+services:
+  agent:
+    image: secure-notes-aws-mock:dev
+    environment:
+      MOCK_AGENT_PORT: "2773"
+      MOCK_AGENT_UPSTREAM: http://aws-mock:4566
+      MOCK_AGENT_TOKEN_FILE: /var/run/awssm/token
+      MOCK_AGENT_TTL_SECONDS: "300"
+    volumes:
+      - agent-token:/var/run/awssm
+    # The app shares this network namespace, so its port is published here.
+    ports:
+      - "127.0.0.1:3000:3000" # loopback only
+    depends_on:
+      aws-mock: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2773/ping"]
+      interval: 2s
+      retries: 20
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  app:
+    network_mode: service:agent
+    ports: !reset []
+    environment:
+      SECRETS_MODE: agent
+      AWCP_URL: http://127.0.0.1:2773 # the agent listens on IPv4 loopback only
+      AWCP_TOKEN_FILE: /var/run/awssm/token
+    volumes:
+      - agent-token:/var/run/awssm:ro
+    depends_on:
+      agent: { condition: service_healthy }
+
+volumes:
+  # tmpfs owned by the unprivileged user both images run as: the token never
+  # touches disk, and no other container can read it.
+  agent-token:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: uid=1000,gid=1000,mode=0750

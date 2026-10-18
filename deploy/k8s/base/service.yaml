@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-notes
+  labels:
+    app.kubernetes.io/name: secure-notes
+spec:
+  selector:
+    app.kubernetes.io/name: secure-notes
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

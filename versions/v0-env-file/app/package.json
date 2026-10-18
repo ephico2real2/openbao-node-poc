@@ -1,0 +1,12 @@
+{
+  "name": "secure-notes-v0",
+  "version": "0.1.0",
+  "private": true,
+  "description": "v0 of Secure Notes: credentials from environment variables (the 'before' picture; do not deploy)",
+  "type": "module",
+  "main": "server.js",
+  "dependencies": {
+    "ioredis": "5.11.1",
+    "pg": "8.23.1"
+  }
+}

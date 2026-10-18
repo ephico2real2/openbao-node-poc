@@ -1,0 +1,74 @@
+# EKS, or ROSA with STS: the app against REAL Secrets Manager, RDS and
+# ElastiCache. No backing services in the cluster, no mock, production mode.
+#
+# The pod gets AWS credentials through IRSA: the ServiceAccount is annotated
+# with an IAM role, and the cluster's pod identity webhook injects a
+# short-lived web identity token the AWS SDK exchanges for role credentials.
+# It is the Kubernetes equivalent of the EC2 instance role: no keys anywhere.
+#
+# Before applying, replace every <PLACEHOLDER> below and create the RDS CA
+# bundle ConfigMap (see the guide's "Kubernetes on AWS" section):
+#
+#   kubectl create namespace secure-notes
+#   curl -fsSLo global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+#   kubectl -n secure-notes create configmap rds-ca --from-file=global-bundle.pem
+#   kubectl apply -k deploy/k8s/overlays/aws
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: secure-notes
+
+resources:
+  - ../../base
+
+images:
+  - name: secure-notes-app
+    newName: ghcr.io/ephico2real2/openbao-node-poc/app
+    newTag: latest
+
+configMapGenerator:
+  - name: secure-notes-config
+    behavior: merge
+    literals:
+      - AWS_REGION=<REGION>
+      - DB_SECRET_ID=<RDS_MANAGED_SECRET_ARN>
+      - DB_HOST=<RDS_ENDPOINT>
+      - DB_PORT=5432
+      - DB_NAME=notes
+      - DB_SSL=true
+      - DB_SSL_CA_FILE=/etc/rds-ca/global-bundle.pem
+      - DB_AUTO_MIGRATE=true
+      # The Redis secret follows the naming convention, so name the parts instead
+      # of pasting an ARN: /elasticache/<ENV>/<STACK_NAME>/app. (The RDS secret
+      # keeps its explicit ARN above: RDS names it rds!db-… itself.)
+      - SECRETS_ENV=<dev|uat|qa|prod>
+      - REDIS_SECRET_RESOURCE=<STACK_NAME>
+      - REDIS_HOST=<ELASTICACHE_PRIMARY_ENDPOINT>
+      - REDIS_PORT=6379
+      - REDIS_TLS=true
+
+patches:
+  - target:
+      kind: ServiceAccount
+      name: secure-notes
+    patch: |-
+      - op: add
+        path: /metadata/annotations
+        value:
+          eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/<APP_ROLE_NAME>
+  - target:
+      kind: Deployment
+      name: secure-notes
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: rds-ca
+            configMap:
+              name: rds-ca
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value:
+          - name: rds-ca
+            mountPath: /etc/rds-ca
+            readOnly: true

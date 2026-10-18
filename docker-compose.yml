@@ -1,0 +1,123 @@
+# Local demo stack, SECRETS_PROVIDER=aws against the bundled Secrets Manager
+# stand-in. No AWS account needed. The OpenBao and Vault stacks are overlays in
+# steps/ (each step's README says how to start it).
+#
+#   docker compose up --build        then open http://localhost:3000
+#   docker compose down -v           full reset (new random credentials)
+#
+# This file is also THE place the images are built. `docker compose build`
+# produces secure-notes-app:dev and secure-notes-aws-mock:dev, and the
+# Kubernetes manifests use exactly those tags: scripts/images-build.sh loads
+# them into kind, and CI builds them once and reuses them in every job.
+#
+# The bootstrap passwords below exist only so the one-shot `seed` job can log
+# in the first time. It immediately replaces them with random values stored
+# in the (mock) Secrets Manager, so after startup they no longer work.
+
+# Not "secure-notes": the sibling repo's stack keeps its own volumes.
+name: secure-notes-bao
+
+x-mock-aws-env: &mock-aws-env
+  # The image defaults to NODE_ENV=production, which refuses demo mode and
+  # mock endpoints. Local development opts out explicitly.
+  NODE_ENV: development
+  AWS_REGION: us-east-1
+  AWS_MOCK_ENDPOINT: http://aws-mock:4566
+  # Dummy values: the AWS SDK requires credentials to sign requests. The mock
+  # ignores the signature but reads the key ID as "who is calling" (local-app
+  # = the app's role; see dev/aws-mock/lib/principals.js). On EC2 nothing like
+  # this is set: the instance role signs.
+  AWS_ACCESS_KEY_ID: local-app
+  AWS_SECRET_ACCESS_KEY: local-mock
+  # Secret names come from the naming convention (docs/reference/secret-naming.md):
+  # /{service}/{env}/{resource}/{name} -> /rds/dev/notes-db/app, /elasticache/dev/notes-cache/app
+  # (and .../admin for the demo rotator). The same settings with SECRETS_ENV=prod
+  # name the production secrets; the seed job creates these and the app reads them.
+  SECRETS_ENV: dev
+  DB_SECRET_RESOURCE: notes-db
+  REDIS_SECRET_RESOURCE: notes-cache
+
+services:
+  aws-mock:
+    image: secure-notes-aws-mock:dev
+    build: { context: ., dockerfile: dev/aws-mock/Dockerfile }
+    environment:
+      MOCK_STATE_FILE: /data/state.json
+    volumes:
+      - mock-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4566/health"] # not localhost: Alpine resolves it to ::1
+      interval: 2s
+      retries: 20
+
+  postgres:
+    image: docker.io/library/postgres:16 # same image as the Kubernetes manifests
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_PASSWORD: ${PG_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: ["postgres", "-c", "log_statement=ddl"] # proves passwords never appear in DDL logs
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "notes"]
+      interval: 2s
+      retries: 30
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    environment:
+      REDIS_BOOTSTRAP_PASSWORD: ${REDIS_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+    entrypoint: ["/bin/sh", "/dev-scripts/redis-entrypoint.sh"]
+    volumes:
+      - ./dev/redis-entrypoint.sh:/dev-scripts/redis-entrypoint.sh:ro
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"] # NOAUTH reply still proves the server is up
+      interval: 2s
+      retries: 30
+
+  seed:
+    image: secure-notes-app:dev # same image as the app, as in Kubernetes
+    build: { context: ., dockerfile: backend/Dockerfile }
+    command: ["node", "scripts/seed-local.js"]
+    environment:
+      <<: *mock-aws-env
+      AWS_ACCESS_KEY_ID: local-seed # the deployer's identity, like CloudFormation
+      SEED_PG_HOST: postgres
+      SEED_REDIS_HOST: redis
+      PG_BOOTSTRAP_PASSWORD: ${PG_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+      REDIS_BOOTSTRAP_PASSWORD: ${REDIS_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+    depends_on:
+      aws-mock: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    restart: "no"
+
+  app:
+    image: secure-notes-app:dev
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      <<: *mock-aws-env
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DEMO_MODE: "true"
+      SECRETS_MODE: sdk
+      # debug: the log shows which secret keys each client used, values masked.
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      # true: those debug lines ALSO print the real values (lab only; refused in production).
+      LOG_REVEAL_SECRETS: ${LOG_REVEAL_SECRETS:-false}
+    ports:
+      - "127.0.0.1:3000:3000" # loopback only
+    depends_on:
+      seed: { condition: service_completed_successfully }
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ulimits:
+      core: 0
+
+volumes:
+  mock-data:
+  pg-data:
+  redis-data:

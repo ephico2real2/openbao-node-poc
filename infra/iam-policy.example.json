@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyTheseSecretsOnlyThroughOurVpcEndpoint",
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"],
+      "Resource": [
+        "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:rds!db-EXAMPLE",
+        "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:secure-notes/redis-??????"
+      ],
+      "Condition": { "StringEquals": { "aws:SourceVpce": "vpce-EXAMPLE" } }
+    },
+    {
+      "Sid": "DecryptOnlyWhenSecretsManagerAsks",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "arn:aws:kms:REGION:ACCOUNT_ID:key/KEY_ID",
+      "Condition": { "StringEquals": { "kms:ViaService": "secretsmanager.REGION.amazonaws.com" } }
+    }
+  ]
+}

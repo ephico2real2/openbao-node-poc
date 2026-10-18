@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-notes
+  labels:
+    app.kubernetes.io/name: secure-notes
+spec:
+  # One replica: the demo's rotation lab and event timeline live in process memory.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: secure-notes
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: secure-notes
+    spec:
+      serviceAccountName: secure-notes
+      automountServiceAccountToken: false
+      # No Docker-link env vars: a Service named redis would inject REDIS_PORT=tcp://… into every pod.
+      enableServiceLinks: false
+      # Pod Security "restricted" and OpenShift restricted-v2 compatible:
+      # no fixed UID here, so OpenShift can assign its own; the image's
+      # numeric USER 1000 satisfies runAsNonRoot everywhere else.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: secure-notes-app:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: secure-notes-config
+          # Liveness has no dependencies; readiness proves Postgres and Redis
+          # accept the current credentials.
+          livenessProbe:
+            httpGet:
+              path: /api/livez
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

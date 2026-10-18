@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure Notes · Secrets Manager demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div>
+        <p class="eyebrow" id="eyebrow">AWS Secrets Manager · Node.js</p>
+        <h1>Secure Notes</h1>
+        <p class="lede">A small notes app whose Postgres and Redis credentials are never on disk or in the environment.
+          Watch them load, rotate and recover, and try to leak them.</p>
+      </div>
+      <div class="badges" id="badges" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="banner banner-fail" id="reveal-banner" role="alert" hidden>
+      <strong>Secret values are being written to the log.</strong> LOG_REVEAL_SECRETS is on, so the debug credential lines
+      print real passwords. Lab troubleshooting only: turn it off when you are done. The app refuses this setting in production.
+    </p>
+    <section class="flow" aria-label="How credentials flow">
+      <ol class="flow-chain">
+        <li class="node"><span class="node-title">Browser</span><span class="node-sub">never sees a credential</span></li>
+        <li class="node node-app"><span class="node-title">Node app</span><span class="node-sub" id="flow-app">IAM role, no keys</span></li>
+        <li class="node node-cache"><span class="node-title">In-memory cache</span><span class="node-sub" id="flow-cache">TTL + refresh on auth failure</span></li>
+        <li class="node node-sm"><span class="node-title">Secrets Manager</span><span class="node-sub" id="flow-channel">via VPC endpoint · KMS</span></li>
+      </ol>
+      <p class="flow-data">The app uses those credentials to reach <strong>Postgres</strong> and <strong>Redis</strong> over TLS (in AWS).</p>
+    </section>
+
+    <div class="grid">
+      <section class="card" id="notes-card">
+        <div class="card-head">
+          <h2>Notes</h2>
+          <span class="pill" id="notes-source">–</span>
+        </div>
+        <p class="hint">The real app. Writes go to Postgres; the list is cached in Redis for 30 seconds.</p>
+        <form id="note-form" class="note-form" autocomplete="off">
+          <label class="sr-only" for="note-input">New note</label>
+          <input id="note-input" maxlength="280" placeholder="Write a note…" required>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <ul class="notes" id="notes"></ul>
+      </section>
+
+      <section class="card" id="secrets-card">
+        <div class="card-head">
+          <h2>Secrets in memory</h2>
+          <span class="muted small" id="secrets-mode"></span>
+        </div>
+        <p class="hint">Metadata only. The fingerprint is an HMAC under a per-process key: it shows a value changed, nothing more.</p>
+        <div id="secrets" class="secrets"></div>
+      </section>
+
+      <section class="card demo-only" id="rotation-card" hidden>
+        <div class="card-head"><h2>Rotation lab</h2><span class="pill pill-warn">demo only</span></div>
+        <p class="hint">Runs the same four steps as an AWS rotation function. The app is not told: it finds out when Postgres or Redis rejects the old password, then refreshes and retries.</p>
+        <div class="btn-row">
+          <button class="btn" data-rotate="db">Rotate Postgres secret</button>
+          <button class="btn" data-rotate="redis">Rotate Redis secret</button>
+          <button class="btn btn-ghost" id="drop-btn">Drop connections</button>
+        </div>
+        <ol class="steps" id="steps"></ol>
+        <p class="callout" id="rotation-next" hidden></p>
+      </section>
+
+      <section class="card" id="events-card">
+        <div class="card-head"><h2>Credential timeline</h2></div>
+        <ol class="timeline" id="events"></ol>
+      </section>
+
+      <section class="card demo-only" id="leak-card" hidden>
+        <div class="card-head"><h2>Try to leak it</h2><span class="pill" id="leak-result">–</span></div>
+        <p class="hint">Six common ways a password ends up in logs or responses, run against the real loaded secret.</p>
+        <button class="btn" id="leak-btn">Run leak attempts</button>
+        <ul class="leaks" id="leaks"></ul>
+      </section>
+
+      <section class="card" id="checks-card">
+        <div class="card-head">
+          <h2>Security posture</h2>
+          <button class="btn btn-ghost btn-small" id="checks-btn">Re-run</button>
+        </div>
+        <ul class="checks" id="checks"></ul>
+      </section>
+
+      <section class="card card-wide demo-only" id="logs-card" hidden>
+        <div class="card-head"><h2>Application log</h2><span class="muted small">as written to stdout, after redaction</span></div>
+        <label class="log-filter small"><input type="checkbox" id="log-cred-only"> Credential lines only: which secret and keys were used, values masked</label>
+        <pre class="log" id="log" tabindex="0"></pre>
+      </section>
+    </div>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Demo project. In production, set <code>NODE_ENV=production</code>; the app then refuses to start with demo mode, a mock endpoint or static AWS keys.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

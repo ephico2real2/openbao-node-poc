@@ -1,0 +1,36 @@
+# v0 of Secure Notes: credentials in a .env file. The "before" picture of the
+# story. It works, and every password is readable by anyone who can reach the
+# containers. Never deploy this. See README.md and leak.sh.
+#
+#   cd versions/v0-env-file && docker compose up --build -d   # http://localhost:3001
+#   ./leak.sh                                                 # find the passwords
+#   docker compose down -v
+name: secure-notes-v0
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16
+    env_file: v0.env
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "notes_app", "-d", "notes"]
+      interval: 2s
+      retries: 30
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    # The password on the command line: visible in `ps`, `inspect` and compose config.
+    command: ["redis-server", "--requirepass", "Example-Only-R3dis"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "Example-Only-R3dis", "--no-auth-warning", "ping"]
+      interval: 2s
+      retries: 30
+
+  app:
+    image: secure-notes-v0:dev
+    build: ./app
+    env_file: v0.env
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }

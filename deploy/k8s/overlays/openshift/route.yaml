@@ -1,0 +1,17 @@
+# HTTPS from the router, terminated at the edge; plain HTTP is redirected.
+# OpenShift fills in the host from the cluster's apps domain.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: secure-notes
+  labels:
+    app.kubernetes.io/name: secure-notes
+spec:
+  to:
+    kind: Service
+    name: secure-notes
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

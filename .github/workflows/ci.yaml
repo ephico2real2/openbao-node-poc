@@ -1,0 +1,604 @@
+# CI: every way to run this app, proven on a runner, with the evidence on the run page.
+#
+#   checks ─► build ─┬─► compose (sdk, agent) ─┐
+#   (scan, SBOM)     ├─► kind ─────────────────┼─► images (main only: push, sign, attest)
+#                    ├─► mirror ───────────────┘
+#                    └─► env-file-demo
+#   docs (every relative link resolves, every Mermaid diagram renders)
+#   v0-leak (versions/v0-env-file: the original .env app still leaks, as the story says)
+#
+# The images are built ONCE, by `docker compose build` (the same command a
+# person runs), saved, and loaded unchanged into every later job: Docker
+# Compose runs them, kind runs them, and on main the exact images that passed
+# are pushed to GHCR. Nothing is rebuilt between the test and the publish.
+#
+# Supply chain: the build job writes a CycloneDX SBOM per image (syft) and
+# fails on any CRITICAL vulnerability that has a fix (grype). On main, the
+# images job signs what it pushes with cosign (keyless, GitHub OIDC) and
+# attaches the SBOM as a signed attestation, then verifies both anonymously.
+#
+# Captures: like ephico2real2/cilium-implementation-poc, a Playwright walk
+# photographs the dashboard and measures what each page must show; the PNGs
+# go to the ci-captures branch (one folder per run and job) and are linked
+# from the job summary. contents: write is only for that branch.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # publishes the resolved lockfile to ci-captures
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # The real pg, ioredis and AWS SDK — the libraries the build workspace
+      # could not install. npm ci once the lockfile is committed.
+      - name: Install the backend's dependencies
+        working-directory: backend
+        run: |
+          # npm ci when the committed lockfile matches package.json; otherwise
+          # resolve one here, use it for this run, and publish it to commit.
+          if [ -f package-lock.json ] && npm ci --no-audit --no-fund; then :
+          else
+            echo "::warning title=lockfile::backend/package-lock.json is missing or out of date; resolving one (published to ci-captures)"
+            npm install --no-audit --no-fund
+            echo "LOCK_RESOLVED=1" >> "$GITHUB_ENV"
+          fi
+          npm ls --depth=0
+
+      - name: Unit tests (secrets layer, logging)
+        working-directory: backend
+        run: npm test
+
+      - name: The AWS stand-in (identities and STS)
+        run: node --test dev/aws-mock/test/*.test.js
+
+      - name: Every JavaScript file parses
+        run: git ls-files '*.js' | xargs -n1 node --check
+
+      - name: Shellcheck
+        run: shellcheck -S warning scripts/*.sh scripts/bootstrap/*.sh dev/*.sh versions/*/*.sh
+
+      - name: Workflows lint clean (actionlint)
+        run: |
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz | tar -xz -C /tmp actionlint
+          /tmp/actionlint -color
+
+      - name: Kubernetes manifests render and match their schemas
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz | tar -xz -C /tmp kubeconform
+          rc=0
+          for o in deploy/k8s/overlays/kind deploy/k8s/overlays/openshift deploy/k8s/overlays/openshift-local deploy/k8s/overlays/aws; do
+            echo "== $o"
+            # failures become annotations, which are readable on the run page and through the API
+            if ! out=$(kubectl kustomize "$o" 2>&1); then echo "$out" | head -5 | sed "s|^|::error title=kustomize $o::|"; rc=1; continue; fi
+            # The OpenShift Route has no public JSON schema, so it is skipped here; everything
+            # else in the openshift overlay is the same Kubernetes the kind job deploys.
+            if ! res=$(echo "$out" | /tmp/kubeconform -strict -summary -skip Route \
+                -schema-location default \
+                -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' 2>&1); then
+              echo "$res" | grep -v '^Summary' | head -8 | sed "s|^|::error title=kubeconform $o::|"; rc=1
+            fi
+            echo "$res"
+          done
+          exit $rc
+
+      - name: Publish the lockfile this install resolved (until it is committed)
+        if: env.LOCK_RESOLVED == '1' && github.event_name == 'push'
+        run: |
+          mkdir -p .tmp/lock && cp backend/package-lock.json .tmp/lock/
+          scripts/ci-publish.sh .tmp/lock "lockfile_run${{ github.run_id }}"
+
+      # The build uses exactly the dependency tree the tests ran against.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-lockfile
+          path: backend/package-lock.json
+
+  build:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write # publishes the scan reports to ci-captures
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-lockfile
+          path: backend
+
+      - name: Build with Docker Compose — the one place images are built
+        run: scripts/images-build.sh
+
+      - name: SBOM and vulnerability scan (syft + grype) — fails on a fixable CRITICAL
+        run: |
+          set -o pipefail
+          mkdir -p output; rc=0; scripts/scan-images.sh output/supply-chain 2>&1 | tee output/scan.log || rc=$?
+          { echo "## Images — SBOM and vulnerability scan"; echo; cat output/supply-chain/summary.md; } >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          if [ "$rc" != 0 ]; then
+            grep -h -i critical output/supply-chain/grype-*-gate.txt 2>/dev/null | head -10 | sed 's|^|::error title=fixable CRITICAL vulnerability::|' || true
+            tail -n 3 output/scan.log | sed 's|^|::error title=scan-images.sh::|'
+          fi
+          exit $rc
+
+      - name: Publish the SBOMs and scan reports
+        if: always()
+        run: scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_build-supply-chain"
+
+      - name: Save the images for every later job
+        run: |
+          . scripts/versions.env
+          docker save "$APP_IMAGE" "$MOCK_IMAGE" | gzip -1 > images.tar.gz
+          ls -la images.tar.gz
+          docker image inspect "$APP_IMAGE" "$MOCK_IMAGE" --format '{{index .RepoTags 0}} {{.Id}}' | tee image-ids.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: images
+          path: |
+            images.tar.gz
+            image-ids.txt
+            output/supply-chain/sbom-*.cdx.json
+          retention-days: 3
+
+  compose:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write # the ci-captures branch
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [sdk, agent]
+    name: compose (${{ matrix.mode }})
+    env:
+      # agent: the app reads its secrets through an agent on its own localhost
+      # (docker-compose.agent.yml), as SECRETS_MODE=agent does on EC2.
+      COMPOSE_FILE: ${{ matrix.mode == 'agent' && 'docker-compose.yml:docker-compose.agent.yml' || 'docker-compose.yml' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - name: Load the images the build job made
+        run: gunzip -c images.tar.gz | docker load && cat image-ids.txt
+
+      - name: docker compose up (no rebuild)
+        run: docker compose up -d --no-build
+
+      - name: Wait for the app
+        run: |
+          for _ in $(seq 1 90); do
+            curl -fsS --max-time 3 http://localhost:3000/api/health | grep -q '"status":"ok"' && exit 0
+            sleep 2
+          done
+          docker compose ps; docker compose logs --tail=50; exit 1
+
+      - name: Walk the dashboard — captures
+        uses: ./.github/actions/browser-walk
+        with:
+          label: compose-${{ matrix.mode }}
+          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"dummy keys, for the mock only"}'
+
+      - name: Check — bootstrap burned, end-to-end smoke test
+        run: |
+          set -o pipefail
+          mkdir -p output
+          scripts/compose-check.sh | tee output/compose-check.txt
+          { echo "## Docker Compose (${{ matrix.mode }}) — check"; echo; echo '```'; cat output/compose-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # The flag that prints real values (lab use) — and the proof the scan
+      # would catch a leak: with it on, the scan MUST find the values in the
+      # app's log, and still nowhere else.
+      - name: Reveal flag on — the scan must find the values in the app log, and only there
+        if: matrix.mode == 'sdk'
+        run: |
+          set -o pipefail
+          LOG_REVEAL_SECRETS=true docker compose up -d --no-deps app
+          for _ in $(seq 1 60); do curl -fsS --max-time 3 http://localhost:3000/api/health | grep -q '"status":"ok"' && break; sleep 2; done
+          curl -fsS http://localhost:3000/api/notes > /dev/null   # a request, so a database login happens too
+          EXPECT_REVEALED=1 scripts/credential-scan.sh compose | tee output/credential-scan-revealed.txt
+          { echo "## LOG_REVEAL_SECRETS=true — the scan finds the values in the app log only"; echo; echo '```'; cat output/credential-scan-revealed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reveal flag on — what the dashboard shows
+        if: matrix.mode == 'sdk'
+        uses: ./.github/actions/browser-walk
+        with:
+          spec: scripts/capture/reveal.yaml
+          out: captures-reveal
+          label: compose-reveal
+          env-json: '{"BASE":"http://localhost:3000"}'
+
+      - name: Reveal flag in production — the app refuses to start (exit 78)
+        if: matrix.mode == 'sdk'
+        run: |
+          set +e
+          out=$(docker run --rm -e NODE_ENV=production -e LOG_REVEAL_SECRETS=true -e DB_SECRET_ID=x -e REDIS_SECRET_ID=y secure-notes-app:dev 2>&1)
+          rc=$?
+          echo "$out"; echo "exit code: $rc"
+          if [ "$rc" != 78 ] || ! grep -q 'LOG_REVEAL_SECRETS must not be enabled in production' <<< "$out"; then
+            echo "::error::the app did not refuse LOG_REVEAL_SECRETS in production"; exit 1
+          fi
+          { echo "## LOG_REVEAL_SECRETS in production"; echo; echo '```'; echo "$out"; echo "exit code: $rc"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Reveal flag off again
+        if: matrix.mode == 'sdk'
+        run: |
+          docker compose up -d --no-deps app
+          for _ in $(seq 1 60); do curl -fsS --max-time 3 http://localhost:3000/api/health | grep -q '"status":"ok"' && exit 0; sleep 2; done; exit 1
+
+      - name: Logs
+        if: always()
+        run: |
+          mkdir -p output
+          docker compose ps -a > output/compose-ps.txt 2>&1 || true
+          docker compose logs --no-color > output/compose.log 2>&1 || true
+
+      - name: Publish the logs next to the captures
+        if: always()
+        run: rm -rf output/supply-chain; scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_compose-${{ matrix.mode }}-logs"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compose-${{ matrix.mode }}
+          path: |
+            output/
+            captures/
+          if-no-files-found: ignore
+
+      - name: Down
+        if: always()
+        run: docker compose down -v || true
+
+  kind:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write # the ci-captures branch
+    # Plain Kubernetes with Pod Security "restricted" enforced on the namespace.
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - name: Load the images the build job made
+        run: gunzip -c images.tar.gz | docker load && cat image-ids.txt
+
+      - name: The runner, bootstrapped like a Linux laptop (kind at its pin, checksum verified; the preflight)
+        run: scripts/bootstrap/linux.sh
+
+      - name: The cluster, by the same script a laptop runs (deploy/kind/cluster.yaml; preflight strict)
+        run: scripts/kind-up.sh
+
+      - name: Load the SAME images into kind (no rebuild)
+        run: SKIP_BUILD=1 scripts/images-build.sh
+
+      - name: Deploy deploy/k8s/overlays/kind
+        run: scripts/k8s-deploy.sh deploy/k8s/overlays/kind
+
+      - name: The app on the host port kind maps (no port-forward)
+        run: |
+          ok=0
+          for _ in $(seq 1 30); do
+            curl -fsS --max-time 3 http://localhost:3000/api/health | grep -q '"status":"ok"' && { ok=1; break; }
+            sleep 2
+          done
+          [ "$ok" = 1 ] || { echo "::error::the app is not answering on localhost:3000 (NodePort 30080)"; exit 1; }
+          echo "app: http://localhost:3000 answers"
+
+      - name: Walk the dashboard — captures
+        uses: ./.github/actions/browser-walk
+        with:
+          label: kind
+          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"no SA token · restricted PSA"}'
+
+      - name: Check — identities, Secrets, burned bootstrap, SCRAM-only logs, smoke test
+        run: |
+          set -o pipefail
+          mkdir -p output
+          scripts/k8s-check.sh http://localhost:3000 | tee output/k8s-check.txt
+          { echo "## kind — check"; echo; echo '```'; cat output/k8s-check.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: kind's own logs, on failure (node, kubelet, containerd)
+        if: failure()
+        run: kind export logs output/kind-export --name secure-notes-bao || true
+
+      - name: Diagnostics
+        if: always()
+        run: |
+          mkdir -p output
+          {
+            kubectl get all,networkpolicy,secret,configmap -n secure-notes -o wide
+            echo; kubectl get events -n secure-notes --sort-by=.lastTimestamp
+            echo; kubectl describe pods -n secure-notes
+          } > output/cluster.txt 2>&1 || true
+          for d in secure-notes aws-mock postgres redis; do
+            kubectl -n secure-notes logs "deploy/$d" --all-containers --previous > "output/$d.previous.log" 2>/dev/null || rm -f "output/$d.previous.log"
+            kubectl -n secure-notes logs "deploy/$d" --all-containers > "output/$d.log" 2>&1 || true
+          done
+          kubectl -n secure-notes logs job/seed > output/seed.log 2>&1 || true
+
+      - name: Publish the logs next to the captures
+        if: always()
+        run: rm -rf output/supply-chain; scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_kind-logs"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kind
+          path: |
+            output/
+            captures/
+          if-no-files-found: ignore
+
+      - name: Down
+        if: always()
+        run: scripts/kind-down.sh || true
+
+  mirror:
+    # scripts/mirror-images.sh, for clusters that cannot pull from ghcr.io or
+    # Docker Hub: copy every image into another registry (here a throwaway one
+    # on the runner) and check the generated overlay pulls only from it.
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # publishes the evidence to ci-captures
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - name: Load the images the build job made, and the two third-party ones
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          gunzip -c images.tar.gz | docker load
+          docker pull -q "$POSTGRES_IMAGE" && docker pull -q "$REDIS_IMAGE"
+          command -v skopeo || { sudo apt-get update -qq && sudo apt-get install -y -qq skopeo; }
+          skopeo --version
+
+      - name: A registry to mirror into
+        run: docker run -d --name mirror-registry -p 127.0.0.1:5001:5000 docker.io/library/registry:2 && sleep 2
+
+      - name: Mirror everything and generate the overlay
+        env:
+          DEST_TLS_VERIFY: "false" # the throwaway registry has no certificate
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          SRC_APP="docker-daemon:$APP_IMAGE" SRC_MOCK="docker-daemon:$MOCK_IMAGE" \
+          SRC_POSTGRES="docker-daemon:$POSTGRES_IMAGE" SRC_REDIS="docker-daemon:$REDIS_IMAGE" \
+            scripts/mirror-images.sh localhost:5001/secure-notes | tee mirror.txt
+          { echo "## Image mirror"; echo; echo '```'; cat mirror.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check — the copies are in the registry and are the same images
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          for pair in "$APP_IMAGE|secure-notes-app:latest" "$MOCK_IMAGE|secure-notes-aws-mock:latest" \
+                      "$POSTGRES_IMAGE|postgres:${POSTGRES_IMAGE##*:}" "$REDIS_IMAGE|redis:${REDIS_IMAGE##*:}"; do
+            src="${pair%%|*}" dst="localhost:5001/secure-notes/${pair##*|}"
+            # The uncompressed layer digests: identical content, however it was recompressed.
+            want=$(docker image inspect --format '{{json .RootFS.Layers}}' "$src" | jq -c .)
+            got=$(skopeo inspect --tls-verify=false --config "docker://$dst" | jq -c .rootfs.diff_ids)
+            [ "$want" = "$got" ] || { echo "::error title=mirror mismatch::$dst"; echo "want $want"; echo "got  $got"; exit 1; }
+            echo "  ok    $dst ($(jq length <<< "$got") identical layers)" | tee -a mirror-check.txt
+          done
+
+      - name: Publish the mirror evidence
+        if: always()
+        run: |
+          mkdir -p output; cp mirror.txt mirror-check.txt output/ 2>/dev/null || true
+          cp deploy/k8s/overlays/mirror/kustomization.yaml output/mirror-overlay.yaml 2>/dev/null || true
+          rm -rf output/supply-chain  # the images artifact brings the SBOMs along; they are published by the build job
+          scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_mirror-logs"
+
+  env-file-demo:
+    # The problem this project solves, shown live: credentials passed in a .env
+    # file are readable by anyone who can reach the container. Then the same
+    # lookups on Secure Notes, which is given secret IDs only. Podman, as on a
+    # RHEL/OpenShift host. Output → ci-captures, quoted in docs/learn/02.
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # publishes the output to ci-captures
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - name: Load the app image into Podman
+        run: gunzip -c images.tar.gz | podman load && podman images
+
+      - name: Run the demo
+        run: |
+          set -o pipefail
+          mkdir -p output
+          ENGINE=podman scripts/env-file-demo.sh 2>&1 | tee output/env-file-demo.txt
+          grep -q 'DB_PASSWORD=Example-Only-Pa55w0rd' output/env-file-demo.txt   # part 1 must expose the example value
+          { echo "## Credentials in a .env file are readable by anyone with access"; echo; echo '```'; cat output/env-file-demo.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish the output
+        if: always()
+        run: rm -rf output/supply-chain; scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_env-file-demo"
+
+  v0-leak:
+    # The "before" picture: versions/v0-env-file, the original app with its
+    # passwords in a .env file. Built and run here only (never published); the
+    # job fails if its passwords can NO LONGER be found, so the story stays true.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # publishes the output to ci-captures
+    defaults:
+      run:
+        working-directory: versions/v0-env-file
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Start v0
+        run: |
+          docker compose up --build -d
+          for _ in $(seq 1 60); do curl -fsS --max-time 3 http://localhost:3001/api/notes >/dev/null 2>&1 && exit 0; sleep 2; done
+          docker compose logs --tail=40; exit 1
+
+      - name: Find the passwords
+        run: |
+          set -o pipefail
+          mkdir -p ../../output
+          ./leak.sh | tee ../../output/v0-leak.txt
+          { echo "## v0: where a .env file's passwords can be read"; echo; echo '```'; cat ../../output/v0-leak.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish the output
+        if: always()
+        working-directory: .
+        run: scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_v0-leak"
+
+  docs:
+    # The learning path is part of the product: a broken link or a diagram that
+    # GitHub can't render fails the build like a failing test.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Playwright and Mermaid (pinned)
+        run: |
+          mkdir -p .tmp/docs && cd .tmp/docs && npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.63.0 mermaid@11.16.1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+
+      - name: Links and diagrams
+        run: |
+          PLAYWRIGHT_MODULE="$PWD/.tmp/docs/node_modules/playwright" \
+          MERMAID_JS="$PWD/.tmp/docs/node_modules/mermaid/dist/mermaid.min.js" \
+            node scripts/docs-check.js
+
+  images:
+    # Publish exactly the images that just passed every job — no rebuild.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [compose, kind, mirror]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # publishes the signing evidence to ci-captures
+      packages: write
+      id-token: write # keyless cosign signing with the workflow's GitHub identity
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: v3.1.3 # = COSIGN_VERSION in scripts/versions.env
+
+      - name: Push the tested images to GHCR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          gunzip -c images.tar.gz | docker load
+          echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          base="ghcr.io/${{ github.repository }}"
+          for pair in "$APP_IMAGE:app" "$MOCK_IMAGE:aws-mock"; do
+            src="${pair%:*}"; name="${pair##*:}"
+            for tag in latest "sha-${GITHUB_SHA::7}"; do
+              docker tag "$src" "$base/$name:$tag"
+              docker push -q "$base/$name:$tag"
+              echo "pushed $base/$name:$tag" | tee -a "$GITHUB_STEP_SUMMARY"
+            done
+            # Sign the digest, never a tag: a tag can be moved, a digest cannot.
+            ref=$(docker inspect --format '{{index .RepoDigests 0}}' "$base/$name:latest")
+            echo "$name=$ref" >> digests.env
+          done
+
+      - name: Sign the pushed images and attach their SBOMs (cosign, keyless)
+        run: |
+          set -euo pipefail
+          [ "$(wc -l < digests.env)" = 2 ] || { echo "::error::expected 2 pushed digests to sign"; cat digests.env; exit 1; }
+          while IFS='=' read -r name ref; do
+            cosign sign --yes "$ref"
+            cosign attest --yes --type cyclonedx --predicate "output/supply-chain/sbom-$name.cdx.json" "$ref"
+            echo "signed + SBOM attested: $ref" | tee -a "$GITHUB_STEP_SUMMARY" signing.txt
+          done < digests.env
+
+      - name: Can a cluster pull them without credentials?
+        run: |
+          docker logout ghcr.io
+          # Anyone can check the signature and the SBOM: only this workflow, on main, could have made them.
+          id="https://github.com/${{ github.repository }}/.github/workflows/ci.yaml@${{ github.ref }}"
+          [ "$(wc -l < digests.env)" = 2 ] || { echo "::error::nothing to verify"; exit 1; }
+          while IFS='=' read -r name ref; do
+            if cosign verify --certificate-identity "$id" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$ref" > /dev/null \
+               && cosign verify-attestation --type cyclonedx --certificate-identity "$id" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$ref" > /dev/null; then
+              echo "verified signature + SBOM attestation: $ref" | tee -a "$GITHUB_STEP_SUMMARY" signing.txt
+            else
+              echo "::error title=cosign verify failed::$ref"; exit 1
+            fi
+          done < digests.env
+          for name in app aws-mock; do
+            img="ghcr.io/${{ github.repository }}/$name:sha-${GITHUB_SHA::7}"
+            docker rmi -f "$img" >/dev/null 2>&1 || true
+            if docker pull -q "$img" >/dev/null 2>&1; then
+              echo "public: $img" | tee -a "$GITHUB_STEP_SUMMARY" signing.txt
+            else
+              echo "::warning title=GHCR package is private::$img cannot be pulled anonymously. Make the package public (Package settings → Change visibility) or give the cluster a pull secret."
+            fi
+          done
+
+      - name: Publish the signing evidence
+        if: always()
+        run: |
+          mkdir -p output; cp signing.txt digests.env output/ 2>/dev/null || true
+          rm -rf output/supply-chain  # the images artifact brings the SBOMs along; they are published by the build job
+          scripts/ci-publish.sh output "$(date -u +%Y-%m-%dT%H%MZ)_ci_run${{ github.run_id }}-${{ github.run_attempt }}_images-logs"

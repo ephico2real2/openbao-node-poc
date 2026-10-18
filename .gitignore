@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.zip
+awssmatoken
+dev/aws-mock/state.json
+output/
+captures/
+.tmp/
+images.tar.gz
+image-ids.txt
+deploy/k8s/overlays/mirror/
+__pycache__/

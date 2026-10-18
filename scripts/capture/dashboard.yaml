@@ -1,0 +1,75 @@
+# The dashboard, walked the way a person demos it. Each page is a test: the
+# text it must show is measured, so a capture that photographs a broken page
+# fails the job. ${BASE} = where the app is reachable from the runner.
+viewport: {width: 1280, height: 900}
+
+pages:
+  # 1. First load: the app is up, both secrets are in memory, the notes come back.
+  - name: 01-dashboard
+    url: ${BASE}/
+    fullPage: true
+    before: 3000
+    expect:
+      text: [Secure Notes, Secrets in memory, Postgres credential, Redis credential, "${PLATFORM_LABEL}"]
+      absent: [Cannot reach the API]
+
+  # 2. Rotate the database password, drop the app's connections, and watch it
+  #    recover: Postgres rejects the cached password, the app refreshes, retries.
+  - name: 02-rotation-and-recovery
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Rotate Postgres secret
+      - waitForText: finishSecret
+      - click: Drop connections
+      - waitForText: Reconnected to Postgres with the rotated credential
+      - wait: 4000 # let the "Dropped …" toast fade before the shot
+    expect:
+      text: [createSecret, setSecret, testSecret, finishSecret, Reconnected to Postgres with the rotated credential]
+
+  # 3. Same for Redis, which rotates with a dual-password window.
+  - name: 03-redis-rotation
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Rotate Redis secret
+      - waitForText: revokeOld
+      - click: Drop connections
+      - waitForText: Reconnected to Redis with the rotated credential
+      - wait: 4000
+    expect:
+      text: [revokeOld, Reconnected to Redis with the rotated credential]
+
+  # 4. Six realistic ways to leak the password; every one comes out [REDACTED].
+  - name: 04-leak-test
+    url: ${BASE}/
+    fullPage: true
+    actions:
+      - click: Run leak attempts
+      - waitForText: 0 of 6 leaked
+      - wait: 1500
+    expect:
+      text: [0 of 6 leaked, "[REDACTED]"]
+
+  # 5. Phone width: the layout holds on a small screen.
+  - name: 05-mobile
+    url: ${BASE}/
+    viewport: {width: 390, height: 844}
+    before: 3000
+    expect:
+      text: [Secure Notes, Notes]
+
+  # 6. The Application log at debug level: which secret and which keys each
+  #    client used, every password shown as ******** (length, fingerprint).
+  - name: 06-debug-log
+    url: ${BASE}/
+    before: 4000
+    element: "#logs-card"
+    actions:
+      - clickSelector: "#log-cred-only"
+      - wait: 2000
+      - scrollToBottom: "#log"
+      - wait: 500
+    expect:
+      text: [Application log, secret consumed, "password=******** (", connecting with]
+      absent: [values revealed]

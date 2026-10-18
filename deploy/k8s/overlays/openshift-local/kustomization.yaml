@@ -1,0 +1,25 @@
+# OpenShift with images built ON the cluster from your checkout, instead of the
+# published ones. For OpenShift Local (CRC) on an Apple-silicon Mac (the
+# published images are amd64 only), for a cluster that can't reach ghcr.io, or
+# to try a change before it is pushed. scripts/openshift-build.sh runs the
+# builds (BuildConfigs, Docker strategy) and then deploys this overlay:
+#
+#   oc new-project secure-notes
+#   scripts/openshift-build.sh
+#
+# The builds push to ImageStreams in the project, with "image lookup" on, so the
+# Deployments' short names (secure-notes-app:dev) resolve to the internal
+# registry by digest. Postgres and Redis still come from Docker Hub.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../openshift
+
+images:
+  - name: ghcr.io/ephico2real2/openbao-node-poc/app
+    newName: secure-notes-app
+    newTag: dev
+  - name: ghcr.io/ephico2real2/openbao-node-poc/aws-mock
+    newName: secure-notes-aws-mock
+    newTag: dev
