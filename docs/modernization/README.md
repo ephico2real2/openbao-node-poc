@@ -34,10 +34,11 @@ sub-issues. Issue titles start with the track: `APP:` (changing the app) or `TUT
 | B2 Provider switch | APP | `SECRETS_PROVIDER`, providers and stores, auth without env | `backend/src/secrets/` | — |
 | B3 OpenBao KV | APP | The whole lab on OpenBao (Compose) | `steps/v1-openbao-kv/` | `v2-openbao-kv` |
 | B4 Dynamic credentials | APP | Leases, per-instance DB users, Valkey | `steps/v2-openbao-dynamic/` | `v3-openbao-dynamic` |
-| B5 Kubernetes | APP | OpenBao Helm, External Secrets Operator, a watched volume, OpenShift | `steps/v3-k8s/` | `v4-k8s` |
+| B5 Kubernetes | APP | OpenBao Helm, External Secrets Operator, a watched volume (kind) | `steps/v3-k8s/` | `v4-k8s` |
 | B6 Vault | APP | The same app on HashiCorp Vault | `steps/v4-vault/` | `v5-vault` |
 | B7 Detection | APP | OpenBao's audit log → an alert on an unexpected read | `steps/v5-detection/` | `v6-detection` |
 | B8 Tutorial | TUTORIAL | Chapters, guide, demo pages from this repo's CI | `docs/` | — |
+| B9 OpenShift Local *(parked)* | APP | Step v3 on OpenShift Local with Red Hat's External Secrets Operator; kind keeps the Helm chart | `steps/v6-openshift-eso/` | `v7-openshift-eso` |
 
 One app lives at the repository root. Each step folder holds that step's Compose or Helm
 files and a README. A git tag marks each step; its release notes are in [`docs/releases/`](../releases/README.md).

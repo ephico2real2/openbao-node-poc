@@ -32,10 +32,11 @@ approved plan's decisions are summarised there.
 | B2 | Provider switch: `SECRETS_PROVIDER`, the OpenBao client and KV fetcher/store, AppRole with the secret ID in a file | ✅ AppRole, Kubernetes auth and `SECRETS_MODE=file` |
 | B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | ✅ CI run 39161016646, every job green including `compose (openbao)`; the tag `v2-openbao-kv` is for the owner to cut |
 | B4 | `steps/v2-openbao-dynamic`: leases, dynamic Postgres users, Valkey | ✅ CI run 39164263518 (`compose (openbao-dynamic)`); tag `v3-openbao-dynamic` is for the owner to cut |
-| B5 | `steps/v3-k8s`: OpenBao Helm on kind with Kubernetes auth; External Secrets Operator and a watched volume | ✅ on kind, CI run 39169755271 (`kind (openbao)`, `kind (openbao-eso)`); tag `v4-k8s` is for the owner to cut. **Open:** S5.3, a run on real OpenShift (the values file exists, unproven) |
+| B5 | `steps/v3-k8s`: OpenBao Helm on kind with Kubernetes auth; External Secrets Operator and a watched volume | ✅ on kind, CI run 39169755271 (`kind (openbao)`, `kind (openbao-eso)`); tag `v4-k8s`. OpenShift moved to B9 |
 | B6 | `steps/v4-vault`: the same app on Vault 2.2.0 | ✅ CI run 39169755271 (`compose (vault)`, and the entrypoint against the real binary in `checks`); tag `v5-vault` is for the owner to cut |
 | B7 | `steps/v5-detection`: OpenBao audit log → VictoriaLogs → vmalert → alert console | ✅ CI run 39169755271 (`compose (openbao-detection)`); the evaluation delay fix is PR #31 |
-| B8 | Tutorial: chapters 7–11, GUIDE, TUTORIAL, demo pages 19–24 from this repo's CI | ✅ the B8 PR; every demo page now links this repo's runs |
+| B8 | Tutorial: chapters 7–11, GUIDE, TUTORIAL, demo pages 19–24 from this repo's CI | ✅ PR #33, main run 39174595142 all green; every demo page links this repo's runs |
+| B9 | OpenShift Local lab with Red Hat's External Secrets Operator (`steps/v6-openshift-eso`); kind keeps the upstream Helm chart | ⏸ parked by the owner: issues and plan only. The facts checked on 2026-10-18 are in the epic's issue |
 
 ## 2. Working rules (the owner's instructions; they override defaults)
 

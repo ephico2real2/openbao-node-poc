@@ -121,9 +121,9 @@ Evidence: CI run [39164263518](https://github.com/ephico2real2/openbao-node-poc/
 
 Evidence: CI run [39164263518](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39164263518) compose (openbao-dynamic): Valkey 8.1; the Redis lease revoked and the app reconnected as a new user, [steps/v2-openbao-dynamic/compose.yaml](../../steps/v2-openbao-dynamic/compose.yaml), [backend/scripts/seed-local.js](../../backend/scripts/seed-local.js)
 
-### B5 — Kubernetes and OpenShift: OpenBao Helm and External Secrets Operator
+### B5 — Kubernetes: OpenBao Helm and External Secrets Operator (kind)
 
-[#18](https://github.com/ephico2real2/openbao-node-poc/issues/18) · 🔜 · **Outcome:** On kind and OpenShift, credentials arrive as a mounted Secret (never env), or through Kubernetes auth, and refresh without a restart. Docs: [initiative](README.md)
+[#18](https://github.com/ephico2real2/openbao-node-poc/issues/18) · ✅ · **Outcome:** On kind, credentials arrive through Kubernetes auth, or as a mounted Secret (never env) from External Secrets Operator's Helm chart, and refresh without a restart. OpenShift moved to B9. Docs: [initiative](README.md)
 
 **S5.1 · OpenBao on Kubernetes** · M · ✅ · [#19](https://github.com/ephico2real2/openbao-node-poc/issues/19)
 *As a platform engineer, I want OpenBao installed by its Helm chart, so that the cluster lab matches production practice.*
@@ -140,14 +140,6 @@ Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/
 - [x] k8s-check and the credential scan extended.
 
 Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271) kind (openbao-eso): ExternalSecret Ready; mounted as a volume, no env, envFrom or subPath; no OpenBao token in the app pod; a rotation Job outside the app moved the KV version 1 -> 2 and the new version reached the app in 56 s without a restart ([k8s-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2204Z_ci_run39169755271-1_kind-openbao-eso-logs/k8s-check.txt)), [overlay kind-openbao-eso](../../deploy/k8s/overlays/kind-openbao-eso/kustomization.yaml), [demo test case 22](../../demo/test-case-22-external-secrets.md)
-
-**S5.3 · OpenBao and External Secrets on a real OpenShift** · M · 🔜 · [#32](https://github.com/ephico2real2/openbao-node-poc/issues/32)
-*As an OpenShift user, I want the step v3 lab proven on OpenShift, so that the restricted-v2 SCC and Routes are known to work.*
-- [x] steps/v3-k8s/openbao-values-openshift.yaml written (the chart's OpenShift mode; UIDs left to restricted-v2); openbao-k8s-up.sh adds it on OpenShift.
-- [ ] Run on OpenShift Local or a dev cluster: OpenBao up, Kubernetes auth, the ESO overlay, k8s-check green; captures from that run.
-- [ ] Images built on the cluster for Apple-silicon Macs (openshift-build.sh) checked with the OpenBao overlays.
-
-Evidence: [step v3: OpenShift (unproven)](../../steps/v3-k8s/README.md)
 
 ### B6 — The same app on HashiCorp Vault (steps/v4-vault)
 
@@ -200,7 +192,7 @@ Evidence: [learning path](../learn/README.md), [chapter 7](../learn/07-secret-ze
 **S8.2 · Guide, tutorial and demo pages from this repo's CI** · M · ✅ · [#27](https://github.com/ephico2real2/openbao-node-poc/issues/27)
 *As a presenter, I want demo pages with this repo's screenshots, so that the evidence is the code in front of me.*
 - [x] Demo pages 19–24 for steps v1–v5, and pages 1–12 and 18 pointed at this repo's CI run, each quoting its real output; a progression story in demo/README.md.
-- [x] GUIDE and TUTORIAL cover every step on Compose and kind; OpenShift stays labelled unproven (S5.3).
+- [x] GUIDE and TUTORIAL cover every step on Compose and kind; OpenShift stays labelled unproven (parked epic B9).
 
 Evidence: [demo pages](../../demo/README.md), [docs/GUIDE.md](../GUIDE.md), [docs/TUTORIAL.md](../TUTORIAL.md), Screenshots and output from CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39169755271)
 
@@ -210,3 +202,52 @@ Evidence: [demo pages](../../demo/README.md), [docs/GUIDE.md](../GUIDE.md), [doc
 - [ ] Tags cut with the milestone workflow on those commits; a GitHub release per tag.
 
 Evidence: [docs/releases](../releases/README.md)
+
+## Parked — planned, not scheduled
+
+### B9 — OpenShift Local lab: OpenBao with Red Hat's External Secrets Operator (steps/v6-openshift-eso)
+
+[#35](https://github.com/ephico2real2/openbao-node-poc/issues/35) · 🔜 · **Outcome:** The step v3 lab runs on Red Hat OpenShift Local (CRC) with the Red Hat build of External Secrets Operator, installed from the Red Hat catalog, and is proven by a real run. kind keeps the upstream Helm chart (B5); the ClusterSecretStore, ExternalSecret and app component are shared, only the install differs. Docs: [initiative](README.md), [External Secrets Operator for Red Hat OpenShift (OpenShift 4.22 docs)](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/security_and_compliance/external-secrets-operator-for-red-hat-openshift), Facts checked 2026-10-18: operator 1.2.1 (2026-09-10) is based on upstream v2.5.0; images for amd64, arm64, ppc64le and s390x; Vault is a tested provider, OpenBao is not mentioned (it is reached through the Vault provider); OpenShift Local 2.64.0 ships OpenShift 4.22.14. Re-check before building.
+
+**S9.1 · OpenShift Local ready for the lab** · S · 🔜 · [#36](https://github.com/ephico2real2/openbao-node-poc/issues/36)
+*As the owner, I want OpenShift Local sized and set up for this lab on my Mac, so that the run is repeatable.*
+- [ ] OpenShift Local 2.64.0 or newer (OpenShift 4.20+, which the operator needs), with the owner's Red Hat pull secret; oc login as kubeadmin (installing operators needs cluster-admin).
+- [ ] Memory and CPU sized from the pods' own requests (OpenBao, the operator and its controllers, Postgres, Valkey, the app), not guessed; written in the step README.
+- [ ] Apple silicon builds the app images on the cluster (scripts/openshift-build.sh, the published images are amd64 only); an Intel Mac can pull them from GHCR.
+- [ ] scripts/preflight.sh openshift checks the cluster version, the login and the redhat-operators catalog.
+
+Evidence: [initiative](README.md)
+
+**S9.2 · Red Hat's External Secrets Operator, installed by a script** · M · 🔜 · [#37](https://github.com/ephico2real2/openbao-node-poc/issues/37)
+*As an OpenShift administrator, I want the supported operator installed the way Red Hat documents it, so that the lab matches what a Red Hat customer runs.*
+- [ ] cert-manager Operator for Red Hat OpenShift first, if the docs' prerequisite holds ("Ensure cert-manager Operator is installed and operational before deploying the External Secrets Operator"): confirm whether it is required or only recommended.
+- [ ] scripts/openshift-eso-up.sh: Namespace, OperatorGroup and Subscription (package openshift-external-secrets-operator, channel stable-v1, source redhat-operators, namespace external-secrets-operator); wait for the CSV to succeed.
+- [ ] ExternalSecretsConfig 'cluster' (operator.openshift.io/v1alpha1); the operand pods in external-secrets are Running and the config is Ready.
+- [ ] Egress for the controller only to OpenBao (openbao namespace, port 8200), not the docs' allow-all example; the operator's own eso-sys- policies kept.
+- [ ] The controller's service account is read from its Deployment and bound to OpenBao's external-secrets role; the shared ClusterSecretStore (Vault provider) becomes Ready.
+
+Evidence: [initiative](README.md)
+
+**S9.3 · OpenBao and the app on OpenShift** · M · 🔜 · [#38](https://github.com/ephico2real2/openbao-node-poc/issues/38)
+*As a platform engineer, I want OpenBao and the app under OpenShift's defaults, so that nothing in the lab needs a special SCC.*
+- [x] steps/v3-k8s/openbao-values-openshift.yaml (the chart's OpenShift mode; UIDs left to restricted-v2); openbao-k8s-up.sh adds it on OpenShift.
+- [ ] Overlays openshift-openbao (Kubernetes auth, api mode) and openshift-openbao-eso (file mode): a TLS Route, no fixed UIDs, and an on-cluster build variant.
+- [ ] Every pod admitted under restricted-v2; the NetworkPolicies hold on OVN-Kubernetes.
+- [ ] CI renders both overlays and validates them against their schemas (it cannot run OpenShift).
+
+Evidence: [initiative](README.md)
+
+**S9.4 · Checks and evidence from a real OpenShift Local run** · M · 🔜 · [#39](https://github.com/ephico2real2/openbao-node-poc/issues/39)
+*As a reviewer, I want the same checks as kind, run on OpenShift Local, so that 'works on OpenShift' is shown, not claimed.*
+- [ ] k8s-check.sh on OpenShift: the operator's CSV and version, the operand images from registry.redhat.io, restricted-v2 on the app's pods, the Route, and a rotation done in OpenBao reaching the app without a restart.
+- [ ] scripts/openshift-evidence.sh: the checks, the credential scan and a browser walk through the Route, saved in one folder with no secret value.
+- [ ] The owner runs it; the folder is published to ci-captures, labelled as a manual OpenShift Local run with its date and versions.
+
+Evidence: [initiative](README.md)
+
+**S9.5 · Tutorial: the OpenShift Local lab** · S · 🔜 · [#40](https://github.com/ephico2real2/openbao-node-poc/issues/40)
+*As a learner, I want the OpenShift lab explained next to the kind one, so that I see what the supported operator changes and what stays the same.*
+- [ ] steps/v6-openshift-eso/README.md, demo page 25 and a chapter 9 section, from the real run's evidence.
+- [ ] GUIDE (Part B) and TEST-CASES updated; the OpenShift parts of steps/v3-k8s stop saying 'unproven'; tag v7-openshift-eso.
+
+Evidence: [initiative](README.md)

@@ -10,7 +10,7 @@ initialised and unsealed by itself. Two ways for the app to get its credentials:
   mounted as a volume (no env, no subPath). The app has no OpenBao identity at all, and a
   rotation done in OpenBao reaches it as a changed file, with no restart.
 
-OpenShift: the values file exists, but this tag is **not proven on OpenShift** (S5.3).
+OpenShift: the values file exists, but this tag is **not proven on OpenShift**. That is parked epic B9: OpenShift Local with Red Hat's External Secrets Operator.
 
 ## Run it
 
