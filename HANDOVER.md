@@ -138,6 +138,7 @@ Concurrency is per branch with cancel-in-progress: a new push to a PR cancels it
 - **vmalert waits `-rule.evalDelay` (30 s by default) before it evaluates.** The lab sets 5 s, or a test waits past its deadline.
 - **VictoriaLogs flattens nested JSON** (`auth.metadata.role_name`), and alert labels turn the dots into underscores.
 - **The openbao chart's start script rewrites the words POD_IP, HOST_IP, HOSTNAME, API_ADDR and the like** anywhere in the server config, comments included. Keep them out of it.
+- **The app's pool closes idle Postgres connections after 30 s**, and a re-issued user starts with an empty pool. A check that looks at `pg_stat_activity` makes the app query first, or it sometimes sees no session (main run 39172373214).
 - **An unquoted shell heredoc runs every backtick in it.** Write docs with a file or a quoted heredoc (`<<'EOF'`).
 
 ## 8. Recreate the lab on a MacBook

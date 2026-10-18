@@ -158,7 +158,14 @@ elif [ "$provider" = openbao ]; then
   else
     fail "unexpected projected token claims: $claims"
   fi
-  users=$("$K" -n "$NS" exec deploy/postgres -- psql -U postgres -d notes -tAc "SELECT string_agg(DISTINCT usename, ' ') FROM pg_stat_activity WHERE application_name = 'secure-notes'" 2>/dev/null)
+  # Idle connections close after 30 s: make the app query first, then look (see compose-check.sh).
+  users=
+  for _ in 1 2 3 4 5; do
+    curl -fsS "$BASE/api/health" >/dev/null 2>&1 || true
+    users=$("$K" -n "$NS" exec deploy/postgres -- psql -U postgres -d notes -tAc "SELECT string_agg(DISTINCT usename, ' ') FROM pg_stat_activity WHERE application_name = 'secure-notes'" 2>/dev/null)
+    [ -n "$users" ] && break
+    sleep 1
+  done
   case "$users" in
     v-*) pass "the app's Postgres sessions use a user OpenBao created for it (${users:0:20}…)" ;;
     *) fail "the app's Postgres sessions are not a leased user: '$users'" ;;

@@ -101,7 +101,15 @@ dynamic=$(curl -fsS "$BASE/api/secrets" | jq -r 'any(.secrets[]; .lease != null)
 if [ "$dynamic" = true ]; then
   echo "== step v2: dynamic database users with leases"
   pgq() { docker compose exec -T postgres psql -U postgres -d notes -tAc "$1" 2>/dev/null; }
-  users=$(pgq "SELECT string_agg(DISTINCT usename, ' ') FROM pg_stat_activity WHERE application_name = 'secure-notes'")
+  # The pool closes idle connections after 30 s, and a re-issued user starts with an empty
+  # pool, so make the app query first, then look while that connection is still open.
+  users=
+  for _ in 1 2 3 4 5; do
+    curl -fsS "$BASE/api/health" >/dev/null 2>&1 || true
+    users=$(pgq "SELECT string_agg(DISTINCT usename, ' ') FROM pg_stat_activity WHERE application_name = 'secure-notes'")
+    [ -n "$users" ] && break
+    sleep 1
+  done
   case "$users" in
     v-*) if grep -q notes_app <<< "$users"; then fail "the app still logs in as the stored user notes_app"; else ok "the app's Postgres sessions use a user $SMNAME created for it (${users:0:20}…), not a stored one"; fi ;;
     *) fail "the app's Postgres sessions are not a leased user: '$users'" ;;
