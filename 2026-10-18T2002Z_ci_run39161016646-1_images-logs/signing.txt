@@ -1,0 +1,6 @@
+signed + SBOM attested: ghcr.io/ephico2real2/openbao-node-poc/app@sha256:4a5ca83960236491abd44520880f4a6b9ddee264d5e7028d4077e6f1d9a8c647
+signed + SBOM attested: ghcr.io/ephico2real2/openbao-node-poc/aws-mock@sha256:7979a6fc74165f52db777a73c3d6e7e7f235ef95910fcc8dc91602a082498a0f
+verified signature + SBOM attestation: ghcr.io/ephico2real2/openbao-node-poc/app@sha256:4a5ca83960236491abd44520880f4a6b9ddee264d5e7028d4077e6f1d9a8c647
+verified signature + SBOM attestation: ghcr.io/ephico2real2/openbao-node-poc/aws-mock@sha256:7979a6fc74165f52db777a73c3d6e7e7f235ef95910fcc8dc91602a082498a0f
+public: ghcr.io/ephico2real2/openbao-node-poc/app:sha-c3fecf4
+public: ghcr.io/ephico2real2/openbao-node-poc/aws-mock:sha-c3fecf4
