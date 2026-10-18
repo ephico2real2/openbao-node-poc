@@ -1,0 +1,97 @@
+# Step v4: the same app on HashiCorp Vault 2.2.0 instead of OpenBao. Layered on
+# the root docker-compose.yml only (paths resolve from the repo root):
+#
+#   export COMPOSE_FILE=docker-compose.yml:steps/v4-vault/compose.yaml
+#   docker compose up --build -d          # http://localhost:3000
+#   scripts/compose-check.sh
+#
+# The app is the same image with SECRETS_PROVIDER=vault: the same client (Vault
+# and OpenBao share the HTTP API), AppRole with the secret ID in a file, and
+# dynamic database users with leases (as step v2). What differs is the server:
+#   - Vault has no static seal and no self-init: dev/vault/entrypoint.sh runs
+#     `operator init` (one key share), unseals, configures with the root token
+#     in its memory only, then revokes it
+#   - the cache stays Redis 7: Vault documents a Redis database plugin
+# Vault 2.x is licensed BSL 1.1 (docs/modernization/03-adr-002-openbao-first.md).
+# Needs Docker Compose 2.24 or later (`!override`).
+
+services:
+  vault:
+    image: docker.io/hashicorp/vault:2.2.0
+    entrypoint: ["/bin/sh", "/lab/entrypoint.sh"]
+    volumes:
+      - ./dev/vault/entrypoint.sh:/lab/entrypoint.sh:ro
+      - ./dev/vault/policies:/lab/policies:ro
+      - ./dev/vault/config.hcl:/etc/vault/config.hcl:ro
+      - vault-data:/vault/file           # raft storage + the lab's unseal key
+      - vault-logs:/vault/logs           # the audit log (values HMAC'd)
+      - vault-bootstrap:/vault/config    # the seed job's one-time secret ID
+    ports:
+      - "127.0.0.1:8200:8200" # loopback only: `vault` CLI from your machine
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 2s
+      retries: 60
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # Not used on this step; started only with --profile aws.
+  aws-mock:
+    profiles: [aws]
+
+  seed:
+    environment: !override
+      SECRETS_PROVIDER: vault
+      BAO_ADDR: http://vault:8200
+      BAO_BOOTSTRAP_SECRET_ID_FILE: /vault-bootstrap/seed-secret-id
+      BAO_APP_SECRET_ID_FILE: /home/node/bao-secret-id
+      BAO_DYNAMIC: "true"
+      BAO_DB_DEFAULT_TTL: ${BAO_DB_DEFAULT_TTL:-30s}
+      BAO_DB_MAX_TTL: ${BAO_DB_MAX_TTL:-90s}
+      SECRETS_ENV: dev
+      DB_SECRET_RESOURCE: notes-db
+      REDIS_SECRET_RESOURCE: notes-cache
+      SEED_PG_HOST: postgres
+      SEED_REDIS_HOST: redis
+      PG_BOOTSTRAP_PASSWORD: ${PG_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+      REDIS_BOOTSTRAP_PASSWORD: ${REDIS_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+    volumes:
+      - vault-bootstrap:/vault-bootstrap:ro
+      - vault-app-auth:/home/node          # the app's secret ID is written here (mode 0400)
+    depends_on: !override
+      vault: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  app:
+    environment: !override
+      NODE_ENV: development
+      APP_PLATFORM: compose
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DEMO_MODE: "true"
+      SECRETS_PROVIDER: vault
+      SECRETS_MODE: api
+      BAO_ADDR: http://vault:8200 # VAULT_ADDR works too
+      BAO_ROLE_ID: secure-notes-app
+      BAO_SECRET_ID_FILE: /home/node/bao-secret-id
+      DB_SECRET_ID: database/creds/notes-app
+      REDIS_SECRET_ID: database/creds/notes-cache
+      DB_HOST: postgres
+      DB_NAME: notes
+      REDIS_HOST: redis
+      SECRETS_ENV: dev
+      DB_SECRET_RESOURCE: notes-db
+      REDIS_SECRET_RESOURCE: notes-cache
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      LOG_REVEAL_SECRETS: ${LOG_REVEAL_SECRETS:-false}
+    volumes:
+      - vault-app-auth:/home/node:ro
+    depends_on: !override
+      seed: { condition: service_completed_successfully }
+
+volumes:
+  vault-data:
+  vault-logs:
+  vault-bootstrap:
+  vault-app-auth:

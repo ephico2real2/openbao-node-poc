@@ -39,12 +39,17 @@ cfg=$(curl -fsS "$BASE/api/config")
 mode=$(jq -r '.secretsMode // empty' <<< "$cfg")
 provider=$(jq -r '.secretsProvider // empty' <<< "$cfg")
 echo "== secrets provider: ${provider:-unknown}, mode: ${mode:-unknown}"
-if [ "$provider" = openbao ]; then
+# OpenBao (steps v1, v2) or Vault (step v4): the server's service, CLI and paths.
+case "$provider" in
+  vault) SM=vault; SMCLI=vault; SMDIR=/vault; SMNAME=Vault ;;
+  *)     SM=openbao; SMCLI=bao; SMDIR=/openbao; SMNAME=OpenBao ;;
+esac
+if [ "$provider" = openbao ] || [ "$provider" = vault ]; then
   # The app logged in with its own AppRole identity, and holds no token anywhere it could leak from.
   if [ "$(jq -r '.bao.loggedIn' <<< "$cfg")" = true ]; then
-    ok "the app is logged in to OpenBao as role '$(jq -r '.bao.roleId' <<< "$cfg")' (policies: $(jq -r '.bao.policies | join(",")' <<< "$cfg"))"
+    ok "the app is logged in to $SMNAME as role '$(jq -r '.bao.roleId' <<< "$cfg")' (policies: $(jq -r '.bao.policies | join(",")' <<< "$cfg"))"
   else
-    fail "the app is not logged in to OpenBao ($(jq -r '.bao.lastError // "no error recorded"' <<< "$cfg"))"
+    fail "the app is not logged in to $SMNAME ($(jq -r '.bao.lastError // "no error recorded"' <<< "$cfg"))"
   fi
   if jq -e '.. | strings | select(test("^(s|hvs|b)\\.[A-Za-z0-9]{20,}"))' <<< "$cfg" >/dev/null; then
     fail "/api/config shows something shaped like a token"
@@ -60,8 +65,8 @@ if [ "$provider" = openbao ]; then
     ok "no token or secret ID in the app's environment"
   fi
   # Secret zero, part two: the seed job's bootstrap secret ID was single-use.
-  if docker compose exec -T openbao bao write -address=http://127.0.0.1:8200 auth/approle/login \
-       role_id=secure-notes-seed secret_id=@/openbao/config/seed-secret-id >/dev/null 2>&1; then
+  if docker compose exec -T "$SM" "$SMCLI" write -address=http://127.0.0.1:8200 auth/approle/login \
+       role_id=secure-notes-seed "secret_id=@$SMDIR/config/seed-secret-id" >/dev/null 2>&1; then
     fail "the seed's bootstrap secret ID still logs in"
   else
     ok "the seed's bootstrap secret ID is spent (single use)"
@@ -74,7 +79,7 @@ if [ "$provider" = openbao ]; then
     try { await b.request('GET', 'secret/data/some/other/app'); console.log(200); } catch (e) { console.log(e.status ?? e.message); }" 2>/dev/null)
   if [ "$code" = 403 ]; then ok "the app's policy refuses a path outside its own (403)"; else fail "reading another app's path gave '$code', expected 403"; fi
   # Every read is in the audit log (with the values HMAC'd; the credential scan checks that).
-  reads=$(docker compose exec -T openbao sh -c "grep -c '\"path\":\"secret/data/' /openbao/logs/audit.log" 2>/dev/null || true)
+  reads=$(docker compose exec -T "$SM" sh -c "grep -c '\"path\":\"secret/data/' $SMDIR/logs/audit.log" 2>/dev/null || true)
   if [ "${reads:-0}" -gt 0 ]; then ok "the audit log recorded $reads KV request/response entries"; else fail "the audit log has no KV entries"; fi
 fi
 if [ "$mode" = agent ]; then

@@ -16,7 +16,7 @@
 
 const short = (leaseId) => String(leaseId).split('/').pop().slice(0, 8);
 
-export function createLeaseKeeper(client, { logger, now = Date.now, graceMs = 15_000, minMarginMs = 5_000, timers = { setTimeout, clearTimeout } } = {}) {
+export function createLeaseKeeper(client, { logger, product = 'OpenBao', now = Date.now, graceMs = 15_000, minMarginMs = 5_000, timers = { setTimeout, clearTimeout } } = {}) {
   const log = logger?.child({ component: 'leases' });
   const leases = new Map(); // secretId -> current lease state
   let expiringHandler = () => {};
@@ -44,7 +44,7 @@ export function createLeaseKeeper(client, { logger, now = Date.now, graceMs = 15
 
   function expiring(st, reason) {
     if (leases.get(st.secretId) !== st) return;
-    log?.info({ secretId: st.secretId, lease: short(st.id), reason, event: 'bao.lease.reissue' }, 'asking OpenBao for a new database user before the lease ends');
+    log?.info({ secretId: st.secretId, lease: short(st.id), reason, event: 'bao.lease.reissue' }, `asking ${product} for a new database user before the lease ends`);
     expiringHandler(st.secretId, reason);
   }
 
@@ -71,7 +71,7 @@ export function createLeaseKeeper(client, { logger, now = Date.now, graceMs = 15
 
   async function revokeLease(leaseId, why) {
     await client.request('PUT', 'sys/leases/revoke', { body: { lease_id: leaseId } });
-    log?.info({ lease: short(leaseId), why, event: 'bao.lease.revoked' }, 'lease revoked: OpenBao drops that database user');
+    log?.info({ lease: short(leaseId), why, event: 'bao.lease.revoked' }, `lease revoked: ${product} drops that database user`);
   }
 
   function retire(st) {
@@ -104,7 +104,7 @@ export function createLeaseKeeper(client, { logger, now = Date.now, graceMs = 15
       leases.set(secretId, st);
       if (prev) retire(prev);
       plan(st);
-      log?.info({ secretId, lease: short(st.id), ttlSeconds: st.ttlSeconds, renewable: st.renewable, event: 'bao.lease.issued' }, 'OpenBao issued a database user for this instance');
+      log?.info({ secretId, lease: short(st.id), ttlSeconds: st.ttlSeconds, renewable: st.renewable, event: 'bao.lease.issued' }, `${product} issued a database user for this instance`);
       return { data: out.data, leaseId: st.id, issuedAt: st.issuedAt };
     },
 

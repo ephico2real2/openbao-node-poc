@@ -1,6 +1,6 @@
 # CI: every way to run this app, proven on a runner, with the evidence on the run page.
 #
-#   checks ─► build ─┬─► compose (sdk, agent, openbao, openbao-dynamic) ─┐
+#   checks ─► build ─┬─► compose (sdk, agent, openbao, openbao-dynamic, vault) ─┐
 #   (scan, SBOM)     ├─► kind ───────────────────────────────────────────┼─► images (main only: push, sign, attest)
 #                    ├─► mirror ─────────────────────────────────────────┘
 #                    └─► env-file-demo
@@ -79,6 +79,10 @@ jobs:
           # one pin: the Compose step runs the same version
           grep -qF "image: $OPENBAO_IMAGE" steps/v1-openbao-kv/compose.yaml \
             || { echo "::error title=pin mismatch::steps/v1-openbao-kv/compose.yaml does not use $OPENBAO_IMAGE"; exit 1; }
+          grep -qF "image: $VAULT_IMAGE" steps/v4-vault/compose.yaml \
+            || { echo "::error title=pin mismatch::steps/v4-vault/compose.yaml does not use $VAULT_IMAGE"; exit 1; }
+          grep -qF "image: $VALKEY_IMAGE" steps/v2-openbao-dynamic/compose.yaml \
+            || { echo "::error title=pin mismatch::steps/v2-openbao-dynamic/compose.yaml does not use $VALKEY_IMAGE"; exit 1; }
 
       - name: Unit tests (secrets layer, logging; OpenBao against the real server)
         working-directory: backend
@@ -197,21 +201,31 @@ jobs:
             compose-file: docker-compose.yml
             platform: dummy keys, for the mock only
             spec: scripts/capture/dashboard.yaml
+            product: Secrets Manager
           # the app reads its secrets through an agent on its own localhost, as SECRETS_MODE=agent does on EC2
           - mode: agent
             compose-file: docker-compose.yml:docker-compose.agent.yml
             platform: dummy keys, for the mock only
             spec: scripts/capture/dashboard.yaml
+            product: Secrets Manager
           # step v1: the same app on OpenBao (KV v2, AppRole), the AWS stand-in not started
           - mode: openbao
             compose-file: docker-compose.yml:steps/v1-openbao-kv/compose.yaml
             platform: AppRole secret ID in a file
             spec: scripts/capture/dashboard.yaml
+            product: OpenBao
           # step v2: database users OpenBao creates per instance, with leases; Valkey replaces Redis
           - mode: openbao-dynamic
             compose-file: docker-compose.yml:steps/v1-openbao-kv/compose.yaml:steps/v2-openbao-dynamic/compose.yaml
             platform: AppRole secret ID in a file
             spec: scripts/capture/dynamic.yaml
+            product: OpenBao
+          # step v4: the same app on HashiCorp Vault 2.2.0 (dynamic users; Vault's Redis plugin)
+          - mode: vault
+            compose-file: docker-compose.yml:steps/v4-vault/compose.yaml
+            platform: AppRole secret ID in a file
+            spec: scripts/capture/dynamic.yaml
+            product: Vault
     name: compose (${{ matrix.mode }})
     env:
       COMPOSE_FILE: ${{ matrix.compose-file }}
@@ -245,7 +259,7 @@ jobs:
         with:
           spec: ${{ matrix.spec }}
           label: compose-${{ matrix.mode }}
-          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"${{ matrix.platform }}"}'
+          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"${{ matrix.platform }}","PRODUCT":"${{ matrix.product }}"}'
 
       - name: Check — bootstrap burned, end-to-end smoke test
         run: |
@@ -411,7 +425,7 @@ jobs:
         with:
           spec: ${{ matrix.spec }}
           label: kind-${{ matrix.name }}
-          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"${{ matrix.platform }}"}'
+          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"${{ matrix.platform }}","PRODUCT":"OpenBao"}'
 
       - name: Check — identities, Secrets, burned bootstrap, SCRAM-only logs, smoke test
         run: |

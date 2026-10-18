@@ -120,14 +120,19 @@ elif [ -z "$PROVIDER" ]; then
   PROVIDER=$($K -n "$NS" exec deploy/secure-notes -- printenv SECRETS_PROVIDER 2>/dev/null || true)
 fi
 PROVIDER="${PROVIDER:-aws}"
+# OpenBao or Vault: the same API; only the server's service, paths and name differ.
+case "$PROVIDER" in
+  vault) SM=vault; SMDIR=/vault; SMNAME=Vault ;;
+  *)     SM=openbao; SMDIR=/openbao; SMNAME=OpenBao ;;
+esac
 case "$TARGET:$PROVIDER" in
-  compose:openbao)
+  compose:openbao|compose:vault)
     dc exec -T app node --input-type=module -e "$COLLECT_BAO" > "$VALS" 2>/dev/null
     # The AppRole secret IDs: the app's (in its file) and the seed's spent bootstrap one.
-    { dc exec -T app cat /home/node/bao-secret-id; echo; dc exec -T openbao cat /openbao/config/seed-secret-id; echo; } 2>/dev/null | grep . > "$SIDS" ;;
+    { dc exec -T app cat /home/node/bao-secret-id; echo; dc exec -T "$SM" cat "$SMDIR/config/seed-secret-id"; echo; } 2>/dev/null | grep . > "$SIDS" ;;
   compose:aws)
     dc exec -T aws-mock node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
-  compose:*) echo "SECRETS_PROVIDER must be aws or openbao (got '$PROVIDER')"; exit 1 ;;
+  compose:*) echo "SECRETS_PROVIDER must be aws, openbao or vault (got '$PROVIDER')"; exit 1 ;;
   k8s:openbao)
     FILEDIR=$($K -n "$NS" exec deploy/secure-notes -- printenv SECRETS_DIR 2>/dev/null || true)
     if [ "$($K -n "$NS" exec deploy/secure-notes -- printenv SECRETS_MODE 2>/dev/null)" = file ]; then
@@ -150,14 +155,14 @@ esac
 DYNAMIC=no
 if [ "$TARGET:$PROVIDER" = k8s:openbao ] && $K -n "$NS" exec deploy/secure-notes -- printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
   DYNAMIC=yes
-elif [ "$TARGET:$PROVIDER" = compose:openbao ] && dc exec -T app printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
+elif { [ "$TARGET:$PROVIDER" = compose:openbao ] || [ "$TARGET:$PROVIDER" = compose:vault ]; } && dc exec -T app printenv DB_SECRET_ID 2>/dev/null | grep -q '/creds/'; then
   DYNAMIC=yes
   if [ "$EXPECT_REVEALED" = 1 ]; then
     dc logs --no-color app 2>/dev/null | sed 's/^[^{]*//' | jq -r 'select(.msg? == "secret consumed (values revealed)") | .keys[]? | select(startswith("password=")) | sub("^.* value="; "")' 2>/dev/null | sort -u >> "$VALS"
   fi
 fi
 n=$(grep -c . "$VALS")
-src="Secrets Manager"; [ "$PROVIDER" = openbao ] && src="OpenBao, read as the app's AppRole identity"
+src="Secrets Manager"; [ "$PROVIDER" != aws ] && src="$SMNAME, read as the app's own identity"
 [ "$DYNAMIC" = yes ] && [ "$EXPECT_REVEALED" = 1 ] && src="$src, plus the leased users' passwords from the app's revealed log"
 echo "== credential scan ($TARGET): searching for $n secret values from $src (every version); the values are never printed"
 export FILEDIR="${FILEDIR:-}"
@@ -204,11 +209,11 @@ if [ "$TARGET" = compose ]; then
   # The databases should hold only hashes: SCRAM verifiers in Postgres, #sha256 in the Redis ACL file.
   report "postgres: data directory and config (plaintext passwords?)" "$(dc exec -T postgres sh -c 'grep -rhoF -f - /var/lib/postgresql/data /etc/postgresql 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
   report "redis: data and ACL files (plaintext passwords?)" "$(dc exec -T redis sh -c 'grep -rhoF -f - /data /etc 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
-  if [ "$PROVIDER" = openbao ]; then
-    # OpenBao encrypts its storage with the barrier key, and its audit device
+  if [ "$PROVIDER" != aws ]; then
+    # OpenBao (and Vault) encrypt its storage with the barrier key, and its audit device
     # writes HMAC-SHA256 of request and response values, never the values.
-    scan "openbao: audit log (values must be HMAC'd)" dc exec -T openbao cat /openbao/logs/audit.log
-    report "openbao: raft storage, seal key, config, /tmp (plaintext?)" "$(dc exec -T openbao sh -c 'grep -rhoF -f - /openbao /etc/openbao /tmp 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
+    scan "$SM: audit log (values must be HMAC'd)" dc exec -T "$SM" cat "$SMDIR/logs/audit.log"
+    report "$SM: raft storage, seal/unseal key, config, /tmp (plaintext?)" "$(dc exec -T "$SM" sh -c "grep -rhoF -f - $SMDIR /etc/$SM /tmp 2>/dev/null" < "$VALS" | wc -l | tr -d ' ')"
   fi
   echo "-- logs"
   for c in $(dc ps -a --format '{{.Service}}'); do
@@ -216,7 +221,7 @@ if [ "$TARGET" = compose ]; then
     report "$c: log" "$(dc logs --no-color "$c" 2>/dev/null | hits)" "$allowed"
   done
   applog=$(dc logs --no-color app 2>/dev/null)
-  if [ "$PROVIDER" = openbao ]; then
+  if [ "$PROVIDER" != aws ]; then
     # Secret zero: the AppRole secret IDs are credentials too. They live only in
     # their files; never in env, a container's config, a log or the audit log.
     m=$(grep -c . "$SIDS")
@@ -233,7 +238,7 @@ if [ "$TARGET" = compose ]; then
       report "every container's config (env, command, labels)" "$n_cfg"
       report "every container's log (the app log too, even when revealing)" "$n_log"
       report "app: process environment values (/proc/1/environ)" "$(dc exec -T app cat /proc/1/environ | tr '\0' '\n' | sid)"
-      report "openbao: audit log" "$(dc exec -T openbao cat /openbao/logs/audit.log 2>/dev/null | sid)"
+      report "$SM: audit log" "$(dc exec -T "$SM" cat "$SMDIR/logs/audit.log" 2>/dev/null | sid)"
     fi
   fi
 else

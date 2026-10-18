@@ -135,8 +135,10 @@ async function configureDatabaseEngine(pw) {
   await write('rotate-root/notes-db', {});
   console.log(`[seed] ${NAME}: database engine connected to Postgres as bao_admin; role notes-app (TTL ${ttl}, max ${maxTtl}); bao_admin's password rotated, only ${NAME} knows it`);
 
+  // OpenBao documents a Valkey plugin; Vault a Redis one (step v4 runs Redis 7).
+  const cachePlugin = env.BAO_CACHE_PLUGIN ?? (PROVIDER === 'vault' ? 'redis-database-plugin' : 'valkey-database-plugin');
   await write('config/notes-cache', {
-    plugin_name: 'valkey-database-plugin',
+    plugin_name: cachePlugin,
     allowed_roles: 'notes-cache',
     host: appRedisHost,
     port: 6379,
@@ -158,7 +160,7 @@ async function configureDatabaseEngine(pw) {
   await r.connect();
   await r.call('ACL', 'SAVE').catch(() => {});
   r.disconnect();
-  console.log(`[seed] ${NAME}: database engine connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated`);
+  console.log(`[seed] ${NAME}: database engine (${cachePlugin}) connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated`);
 }
 
 /** A Postgres admin connection with the first password that works (connection errors are retried). */

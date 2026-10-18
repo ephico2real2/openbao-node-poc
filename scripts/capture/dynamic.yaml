@@ -12,7 +12,7 @@ pages:
     fullPage: true
     before: 4000
     expect:
-      text: [Secrets in memory, lease, renewed, "OpenBao issued this instance its own db user", "${PLATFORM_LABEL}", Database logins are short-lived]
+      text: [Secrets in memory, lease, renewed, "${PRODUCT} issued this instance its own db user", "${PLATFORM_LABEL}", Database logins are short-lived]
       absent: [Cannot reach the API]
 
   # 2. Revoke the Postgres lease, as an operator would after a leak: OpenBao
@@ -29,7 +29,7 @@ pages:
       - waitForText: Reconnected to Postgres with the rotated credential
       - wait: 3000
     expect:
-      text: [revokeLease, dropped this instance's Postgres user, Postgres rejected the cached password, OpenBao issued a new db user, Reconnected to Postgres with the rotated credential]
+      text: [revokeLease, dropped this instance's Postgres user, Postgres rejected the cached password, "${PRODUCT} issued a new db user", Reconnected to Postgres with the rotated credential]
 
   # 3. The same for Redis (Valkey): revoking the lease deletes the ACL user,
   #    which disconnects the app; it reconnects as a new user by itself.
@@ -41,7 +41,7 @@ pages:
       - waitForText: Reconnected to Redis with the rotated credential
       - wait: 3000
     expect:
-      text: [dropped this instance's Redis user, OpenBao issued a new redis user, Reconnected to Redis with the rotated credential]
+      text: [dropped this instance's Redis user, "${PRODUCT} issued a new redis user", Reconnected to Redis with the rotated credential]
 
   # 4. Leave it alone: the leases are renewed, and at the role's max TTL
   #    (lab: 90 s) the app gets a NEW user before the old one ends, switches

@@ -40,6 +40,8 @@ export const config = Object.freeze({
 
   // Which secrets manager: 'aws' (default) | 'openbao' | 'vault' (secrets/index.js).
   secretsProvider: (env.SECRETS_PROVIDER ?? 'aws').toLowerCase(),
+  // For log lines and the dashboard's event messages.
+  product: { aws: 'Secrets Manager', openbao: 'OpenBao', vault: 'Vault' }[(env.SECRETS_PROVIDER ?? 'aws').toLowerCase()] ?? 'the secrets manager',
 
   // How the app reads it.
   //   aws:           'sdk'   -> AWS SDK v3 GetSecretValue + in-process cache (default)

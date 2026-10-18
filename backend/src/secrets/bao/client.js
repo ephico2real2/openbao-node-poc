@@ -45,6 +45,7 @@ export class BaoError extends Error {
 export function createBaoClient({
   addr, roleId, secretIdFile, auth = 'approle', authMount, k8sRole, k8sTokenFile = '/var/run/secrets/openbao/token',
   namespace, redactor, logger, timeoutMs = 5000, fetchImpl = fetch, now = Date.now, scheduleRenewal = true,
+  product = 'OpenBao', // 'Vault' for SECRETS_PROVIDER=vault: only log and error wording differs
 }) {
   if (!addr) throw new Error('BAO_ADDR is required');
   if (auth === 'kubernetes') {
@@ -74,7 +75,7 @@ export function createBaoClient({
         redirect: 'error',
       });
     } catch (err) {
-      throw new BaoError(`OpenBao unreachable at ${base.origin}: ${err.message}`, { path });
+      throw new BaoError(`${product} unreachable at ${base.origin}: ${err.message}`, { path });
     }
     if (res.status === 204) return undefined;
     const text = await res.text();
@@ -88,7 +89,7 @@ export function createBaoClient({
     if (!res.ok) {
       // OpenBao's error strings never contain secret values; keep them short.
       const errors = (json?.errors ?? []).map((e) => String(e).replace(/\s+/g, ' ').trim()).filter(Boolean);
-      throw new BaoError(`OpenBao ${method} ${path}: HTTP ${res.status}${errors.length ? ` (${errors.join('; ')})` : ''}`, { status: res.status, path, errors });
+      throw new BaoError(`${product} ${method} ${path}: HTTP ${res.status}${errors.length ? ` (${errors.join('; ')})` : ''}`, { status: res.status, path, errors });
     }
     return json;
   }
@@ -136,7 +137,7 @@ export function createBaoClient({
       state.lastError = undefined;
       log?.info(
         { reason, auth, role: auth === 'kubernetes' ? k8sRole : roleId, authMount, policies: state.policies, ttlSeconds: out.auth.lease_duration, renewable: state.renewable, event: 'bao.login' },
-        auth === 'kubernetes' ? 'logged in to OpenBao with the pod\'s service-account token' : 'logged in to OpenBao with AppRole',
+        auth === 'kubernetes' ? `logged in to ${product} with the pod's service-account token` : `logged in to ${product} with AppRole`,
       );
     })().finally(() => {
       loggingIn = undefined;

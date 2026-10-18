@@ -119,15 +119,15 @@ export function createRotator({ config, redactor, logger, events, store, provide
     try {
       const id = await leases.revoke(secretId);
       const what = alias === 'db' ? 'Postgres' : 'Redis';
-      steps.push({ name: 'revokeLease', detail: `Revoked lease ${id}: OpenBao dropped this instance's ${what} user and ended its sessions`, at: new Date().toISOString() });
-      events.record('rotation', 'revokeLease', `[${alias}] Revoked lease ${id}: OpenBao dropped this instance's ${what} user`);
+      steps.push({ name: 'revokeLease', detail: `Revoked lease ${id}: ${config.product} dropped this instance's ${what} user and ended its sessions`, at: new Date().toISOString() });
+      events.record('rotation', 'revokeLease', `[${alias}] Revoked lease ${id}: ${config.product} dropped this instance's ${what} user`);
       log.info({ alias, secretId, lease: id, event: 'rotation.demo.revoked' }, 'demo: lease revoked');
       return {
         alias,
         revokedLease: id,
         newVersionId: id,
         steps,
-        next: `The app still holds the revoked user. Its next ${what} login fails, so it asks OpenBao for a new user and retries.`,
+        next: `The app still holds the revoked user. Its next ${what} login fails, so it asks ${config.product} for a new user and retries.`,
       };
     } catch (err) {
       throw new HttpError(502, `revoking the lease failed: ${err.message}`, 'rotation_failed');
@@ -141,7 +141,7 @@ export function createRotator({ config, redactor, logger, events, store, provide
   // SECRETS_MODE=file: the app has no identity in the secrets manager, so the
   // demo can't rotate from here. Rotation happens there (k8s-check runs a Job)
   // and arrives as a changed file.
-  const noStore = () => new HttpError(409, 'SECRETS_MODE=file: the app has no OpenBao identity, so it cannot rotate. Rotate in OpenBao; External Secrets Operator updates the mounted file and the app re-reads it.', 'file_mode');
+  const noStore = () => new HttpError(409, `SECRETS_MODE=file: the app has no ${config.product} identity, so it cannot rotate. Rotate in ${config.product}; External Secrets Operator updates the mounted file and the app re-reads it.`, 'file_mode');
 
   async function rotate(alias) {
     const target = targets[alias];

@@ -20,12 +20,12 @@ export { Redactor } from './redactor.js';
 export function createBaoClientFromConfig({ config, redactor, logger }) {
   // aws, or file mode (the app reads a mounted Secret and has no OpenBao identity)
   if (config.secretsProvider === 'aws' || config.secretsMode === 'file') return undefined;
-  return createBaoClient({ ...config.bao, redactor, logger });
+  return createBaoClient({ ...config.bao, product: config.product, redactor, logger });
 }
 
 /** Step v2: the lease keeper for dynamic database users (openbao/vault only). */
-export function createLeaseKeeperFromConfig({ baoClient, logger }) {
-  return baoClient ? createLeaseKeeper(baoClient, { logger }) : undefined;
+export function createLeaseKeeperFromConfig({ baoClient, logger, config }) {
+  return baoClient ? createLeaseKeeper(baoClient, { logger, product: config?.product }) : undefined;
 }
 
 export function createSecretsProvider({ config, redactor, logger, baoClient, leases }) {

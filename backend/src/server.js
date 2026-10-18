@@ -96,7 +96,7 @@ if (config.logging.revealSecrets) {
 
 const events = createEventLog();
 const baoClient = createBaoClientFromConfig({ config, redactor, logger });
-const leases = createLeaseKeeperFromConfig({ baoClient, logger });
+const leases = createLeaseKeeperFromConfig({ baoClient, logger, config });
 const provider = createSecretsProvider({ config, redactor, logger, baoClient, leases });
 provider.on('loaded', ({ secretId, reason, changed, versionId }) => {
   const alias = Object.entries(config.secretIds).find(([, id]) => id === secretId)?.[0] ?? secretId;
@@ -106,8 +106,8 @@ provider.on('loaded', ({ secretId, reason, changed, versionId }) => {
       'secrets',
       changed ? 'new-lease' : 'leased',
       changed
-        ? `OpenBao issued a new ${alias} user, lease ${versionId.slice(0, 8)} (${reason}); the old user is retired`
-        : `OpenBao issued this instance its own ${alias} user, lease ${versionId.slice(0, 8)} (${reason})`,
+        ? `${config.product} issued a new ${alias} user, lease ${versionId.slice(0, 8)} (${reason}); the old user is retired`
+        : `${config.product} issued this instance its own ${alias} user, lease ${versionId.slice(0, 8)} (${reason})`,
     );
     return;
   }
