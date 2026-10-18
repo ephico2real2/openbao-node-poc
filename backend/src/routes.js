@@ -5,7 +5,7 @@ import { runSecurityChecks } from './security/checks.js';
 const NOTES_CACHE_KEY = 'notes:list';
 const ALIASES = ['db', 'redis'];
 
-export function registerRoutes(router, { config, provider, db, cache, events, logger, redactor, rotator, shipper, fileSink }) {
+export function registerRoutes(router, { config, provider, db, cache, events, logger, redactor, rotator, shipper, fileSink, baoClient }) {
   const log = logger.child({ component: 'api' });
 
   // ---- health -------------------------------------------------------------
@@ -24,7 +24,9 @@ export function registerRoutes(router, { config, provider, db, cache, events, lo
   });
 
   router.get('/api/config', async () => ({
-    secretsMode: provider.mode,
+    secretsProvider: config.secretsProvider,
+    secretsMode: config.secretsMode,
+    bao: baoClient ? baoClient.status() : null,
     platform: config.platform,
     region: config.region,
     environment: config.nodeEnv,
@@ -97,7 +99,7 @@ export function registerRoutes(router, { config, provider, db, cache, events, lo
         };
       }),
     );
-    return { mode: provider.mode, ttlSeconds: config.cache.ttlSeconds, secrets };
+    return { mode: config.secretsMode, provider: config.secretsProvider, ttlSeconds: config.cache.ttlSeconds, secrets };
   });
 
   const lastManualRefresh = new Map();
@@ -113,7 +115,7 @@ export function registerRoutes(router, { config, provider, db, cache, events, lo
 
   router.get('/api/events', async (ctx) => ({ events: events.list(Number(ctx.query.get('since') ?? 0)) }));
 
-  router.get('/api/security/checks', async () => ({ checks: await runSecurityChecks({ config, redactor, provider, logSinks: { otlp: shipper?.stats(), file: fileSink?.stats() } }) }));
+  router.get('/api/security/checks', async () => ({ checks: await runSecurityChecks({ config, redactor, provider, baoClient, logSinks: { otlp: shipper?.stats(), file: fileSink?.stats() } }) }));
 
   // ---- demo-only endpoints ---------------------------------------------------
   if (!config.demo.enabled) return;

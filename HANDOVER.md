@@ -28,9 +28,9 @@ approved plan's decisions are summarised there.
 | Epic | What | State at handover |
 | --- | --- | --- |
 | B0 | Seed: the app copied with the AWS path kept, AWS-only alerting removed, CI green | ✅ done (first CI run 39155150999, all jobs green) |
-| B1 | ADR-002: OpenBao first, Vault second, accurate facts | to do |
-| B2 | Provider switch: `providers/`, `stores/`, AppRole/Kubernetes auth with no credential in env | to do |
-| B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | to do |
+| B1 | ADR-002: OpenBao first, Vault second, accurate facts | ✅ [ADR-002](docs/modernization/03-adr-002-openbao-first.md), facts checked 2026-10-18 |
+| B2 | Provider switch: `SECRETS_PROVIDER`, the OpenBao client and KV fetcher/store, AppRole with the secret ID in a file | ✅ AppRole done; Kubernetes auth comes with B5, `SECRETS_MODE=file` with B5 |
+| B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | ✅ CI job `compose (openbao)`; the tag `v2-openbao-kv` is for the owner to cut |
 | B4 | `steps/v2-openbao-dynamic`: leases, dynamic Postgres users, Valkey | to do |
 | B5 | `steps/v3-k8s`: OpenBao Helm, External Secrets Operator, a watched volume, OpenShift | to do |
 | B6 | `steps/v4-vault`: the same app on Vault | to do |
@@ -87,15 +87,19 @@ The AWS deploy path is documented in the sibling repo and linked from GUIDE Part
 
 ## 5. Where the code will change (from the approved plan)
 
-- **The read side.** `backend/src/secrets/fetchers.js` (sdk, agent) is the read interface; `provider.js` caches on top of it. B2 adds `providers/{aws,bao,file}.js` with the same normalized shape.
-- **The write side.** `backend/src/demo/rotator.js` and `backend/scripts/seed-local.js` call the Secrets Manager API directly. B2 moves them onto `stores/{aws,bao}.js`.
-- **No new dependency.** OpenBao and Vault share one HTTP client built on `fetch`.
+What B2 and B3 built (the layout differs a little from the plan's `providers/` and `stores/` folders):
+- **The switch.** `backend/src/secrets/index.js` picks, by `SECRETS_PROVIDER`, the fetcher the cache reads through and the store the writers use. `provider.js` (the cache), the masks, the redactor and the rotation-aware clients are unchanged.
+- **The read side.** AWS: `fetchers.js` (sdk, agent). OpenBao/Vault: `bao/kv.js` `createKvFetcher`, the same normalized shape (`versionId` = the KV version, stage `current`).
+- **The write side.** `demo/rotator.js` and `scripts/seed-local.js` call a store: `aws-store.js` (AWSPENDING/AWSCURRENT) or `bao/kv.js` `createKvStore` (pending at `<name>/pending`, promote with check-and-set).
+- **Auth.** `bao/client.js`: AppRole login with the secret ID read from a file each time, renewal at 2/3 of the TTL, re-login at the max TTL or on 403. Plain `fetch`, no new dependency.
+- **The lab server.** `dev/openbao/config.hcl` (static seal, self-init, audit device in config, policies, roles) and `entrypoint.sh`. `backend/test/bao.test.js` starts the real binary with this same file when `BAO_BIN` is set.
+- **Still to come.** Kubernetes auth and `SECRETS_MODE=file` (B5); leases and dynamic credentials (B4).
 - **Settings.**
   - `SECRETS_PROVIDER` picks the secrets manager.
   - `SECRETS_MODE` picks how the app reads it: `sdk|agent` for aws, `api|file` for bao.
   - `BAO_ADDR`, `BAO_AUTH`, `BAO_ROLE_ID`, `BAO_SECRET_ID_FILE` and `BAO_KV_MOUNT` configure the bao provider.
   - `config.js` must refuse `VAULT_TOKEN` and `BAO_TOKEN`.
-- **Pins.** Put every version in `scripts/versions.env`: OpenBao 2.7.x, Vault 2.2.x and External Secrets Operator 2.x, each re-checked on its release page.
+- **Pins.** Every version goes in `scripts/versions.env`. OpenBao 2.7.1 is pinned there (image and release binary with its checksum). Vault 2.2.x and External Secrets Operator 2.x come with B6 and B5; re-check each on its release page.
 
 ## 6. CI
 
@@ -104,12 +108,14 @@ The pattern is the sibling's (and cilium-implementation-poc's).
 Jobs today:
 - `checks`
 - `build` (once; SBOM and grype)
-- `compose (sdk, agent)`, with captures, the check and the credential scan
+- `compose (sdk, agent, openbao)`, with captures, the check and the credential scan (openbao: step v1)
 - `kind` (bootstrap/linux.sh, a strict preflight, mapped port 3000)
 - `mirror`, `env-file-demo`, `v0-leak`, `docs`
 - `images` (main only: GHCR + cosign)
 
-Coming: `compose (openbao)` (B3), `compose (vault)` (B6), and OpenBao + ESO on kind (B5).
+The `checks` job downloads the OpenBao release binary (checksum-verified) so the unit tests run against a real server, and fails if any test is skipped.
+
+Coming: `compose (vault)` (B6), and OpenBao + ESO on kind (B5).
 
 ## 7. Lessons carried over from the sibling (don't repeat them)
 
@@ -120,6 +126,8 @@ Coming: `compose (openbao)` (B3), `compose (vault)` (B6), and OpenBao + ESO on k
 - **The published images are amd64 only.** Apple-silicon OpenShift Local builds on the cluster (`scripts/openshift-build.sh`).
 - **Buildah enforces short-name rules.** Dockerfiles use `docker.io/library/…`.
 - **`pkill -f` can match your own shell.** Use PIDs.
+- **OpenBao won't create audit devices through the API** (since 2.3.2). Declare them in the config file.
+- **In an ACL policy the most specific path wins; rules are not merged.** A `+/pending` rule with only `delete` took `read` away from that path.
 - **Tags and repository creation are blocked in the sandbox.** The owner runs the `milestone` workflow and creates repos.
 
 ## 8. Recreate the lab on a MacBook

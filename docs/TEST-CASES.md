@@ -5,7 +5,7 @@ the claim stopped being true. This page lists them all, grouped by feature.
 For a hands-on walk through the same features, see [TUTORIAL.md](TUTORIAL.md).
 
 **Where they run.** *unit* = `npm test` in `backend/` (also the CI `checks` job).
-*compose* = `scripts/compose-check.sh` (CI `compose (sdk)` and `compose (agent)`).
+*compose* = `scripts/compose-check.sh` (CI `compose (sdk)`, `compose (agent)` and `compose (openbao)`).
 *kind* = `scripts/k8s-check.sh` (CI `kind`). *walk* = the browser walk
 (`scripts/capture/`), which photographs each page and fails if the page lacks
 the text it must show.
@@ -35,7 +35,7 @@ never printed; each place is reported as `clean` or `FOUND n`.
 | C8 | Postgres stores no plaintext password | `grep` of its data directory and config | 0 matches (only SCRAM verifiers) | compose, kind |
 | C9 | Redis stores no plaintext password | `grep` of `/data` and the ACL file | 0 matches (only `#sha256` hashes) | compose, kind |
 | C10 | No password in any log, of any container | logs of app, seed, Postgres, Redis, stand-in (and previous pod instances) | 0 matches | compose, kind |
-| C11 | The scan really finds a leak | the app restarted with `LOG_REVEAL_SECRETS=true`, scan run with `EXPECT_REVEALED=1` | FOUND in the app log, and **still 0 everywhere else** | compose (sdk) |
+| C11 | The scan really finds a leak | the app restarted with `LOG_REVEAL_SECRETS=true`, scan run with `EXPECT_REVEALED=1` | FOUND in the app log, and **still 0 everywhere else** | compose (sdk, openbao) |
 | C12 | Only the one-time bootstrap Secret exists | names and keys of Opaque Secrets | nothing but `local-bootstrap-*` | kind |
 | C13 | No credential-named variable is set | variable **names** in the app pod / EC2 process | none of `PASSWORD`, `PGPASS`, `DATABASE_URL`, `REDIS_URL` | kind, aws |
 | C14 | The bootstrap passwords stopped working | log in to Postgres and Redis with them | both rejected | compose, kind |
@@ -133,3 +133,28 @@ never printed; each place is reported as `clean` or `FOUND n`.
 | ID | What it proves | How | Pass rule | Runs in |
 | --- | --- | --- | --- | --- |
 | N14 | v0 still leaks (the "before" picture) | `versions/v0-env-file/leak.sh` | ≥ 8 of 9 places | v0-leak |
+
+## 11. OpenBao (`SECRETS_PROVIDER=openbao`, step v1)
+
+The same app on OpenBao 2.7.1 ([step v1](../steps/v1-openbao-kv/README.md)). The C, D, F,
+S, R and L tests above also run in `compose (openbao)`. There, the credential scan reads
+the values from OpenBao, every KV version, as the app's own AppRole identity. *unit (real
+server)* starts the `bao` release binary with the lab's own `dev/openbao/config.hcl`.
+
+| ID | What it proves | How | Pass rule | Runs in |
+| --- | --- | --- | --- | --- |
+| O1 | The app logs in with a secret ID **read from a file** and holds the token only in memory | fake server: the login body, the redactor, `status()` | the token and secret ID are scrubbed from any string; `status()` has no token | unit |
+| O2 | A 403 makes the app log in again once, then retry | fake server returns 403 once | 2 logins, the read succeeds | unit |
+| O3 | The token is renewed, and at its max TTL the app logs in again | fake server: `renew-self` stops extending | a second login | unit |
+| O4 | A missing secret ID file is a clear error, not a request with an empty secret | no file | `cannot read the AppRole secret ID file` | unit |
+| O5 | The lab config starts a server with no manual step, and the seed's bootstrap secret ID works **once** | real server, self-init | the first login works, the second gets `invalid role or secret ID` | unit (real server), compose |
+| O6 | Creating a secret never overwrites one | KV v2 `cas: 0` | a second create fails with check-and-set | unit (real server) |
+| O7 | The app's policy reads only its own paths | read `secret/data/some/other/app` as the app | HTTP 403 | unit (real server), compose |
+| O8 | Rotation without stages: the pending copy isn't current, the promote is check-and-set, and a stale rotation can't overwrite | `putPending`, `promote`, `promote` again from the old version | current is unchanged until the promote; version 2; the stale promote fails | unit (real server) |
+| O9 | The audit log holds HMACs, never values or secret IDs | grep the audit log for the passwords and secret IDs | 0 matches | unit (real server), compose |
+| O10 | The app's secret ID file is private to the app | `stat` in the app container | mode `400`, owner UID 1000 | compose |
+| O11 | No token or secret ID in the app's environment or `/api/config` | `env` in the app; `/api/config` JSON | no `BAO_TOKEN`, `VAULT_TOKEN`, `*_SECRET_ID`; nothing token-shaped | compose |
+| O12 | The AppRole secret IDs are in no container config, no log and no environment | `credential-scan.sh` searches for both secret IDs | 0 matches everywhere (the app log too, even with the reveal flag) | compose |
+| O13 | OpenBao's storage and config hold no plaintext password | grep `/openbao` (raft, seal key, audit log), `/etc/openbao`, `/tmp` | 0 matches | compose |
+| O14 | Config refuses a token or secret ID in env, and plain HTTP to OpenBao in production | `config.js` checks | refused at startup | unit |
+

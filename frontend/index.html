@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Secure Notes · Secrets Manager demo</title>
+  <title>Secure Notes · secrets manager demo</title>
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
@@ -30,7 +30,7 @@
         <li class="node"><span class="node-title">Browser</span><span class="node-sub">never sees a credential</span></li>
         <li class="node node-app"><span class="node-title">Node app</span><span class="node-sub" id="flow-app">IAM role, no keys</span></li>
         <li class="node node-cache"><span class="node-title">In-memory cache</span><span class="node-sub" id="flow-cache">TTL + refresh on auth failure</span></li>
-        <li class="node node-sm"><span class="node-title">Secrets Manager</span><span class="node-sub" id="flow-channel">via VPC endpoint · KMS</span></li>
+        <li class="node node-sm"><span class="node-title" id="flow-sm-title">Secrets Manager</span><span class="node-sub" id="flow-channel">via VPC endpoint · KMS</span></li>
       </ol>
       <p class="flow-data">The app uses those credentials to reach <strong>Postgres</strong> and <strong>Redis</strong> over TLS (in AWS).</p>
     </section>
@@ -61,7 +61,7 @@
 
       <section class="card demo-only" id="rotation-card" hidden>
         <div class="card-head"><h2>Rotation lab</h2><span class="pill pill-warn">demo only</span></div>
-        <p class="hint">Runs the same four steps as an AWS rotation function. The app is not told: it finds out when Postgres or Redis rejects the old password, then refreshes and retries.</p>
+        <p class="hint">Runs the same four steps as a rotation function (create, set, test, finish), on whichever secrets manager the app uses. The app is not told: it finds out when Postgres or Redis rejects the old password, then refreshes and retries.</p>
         <div class="btn-row">
           <button class="btn" data-rotate="db">Rotate Postgres secret</button>
           <button class="btn" data-rotate="redis">Rotate Redis secret</button>
@@ -100,7 +100,7 @@
   </main>
 
   <footer class="wrap foot">
-    <p>Demo project. In production, set <code>NODE_ENV=production</code>; the app then refuses to start with demo mode, a mock endpoint or static AWS keys.</p>
+    <p>Demo project. In production, set <code>NODE_ENV=production</code>; the app then refuses to start with demo mode, a mock endpoint, static AWS keys, a token in the environment or plain HTTP to OpenBao.</p>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

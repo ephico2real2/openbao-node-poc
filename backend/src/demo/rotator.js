@@ -1,47 +1,39 @@
-// DEMO ONLY: an in-process stand-in for a Secrets Manager rotation Lambda, so
-// you can watch rotation and the app's recovery without deploying anything.
+// DEMO ONLY: an in-process stand-in for a rotation function, so you can watch
+// rotation and the app's recovery without deploying anything.
 //
-// It follows the same four-step contract AWS rotation functions use:
-//   createSecret  -> new version labelled AWSPENDING
+// It follows the four-step contract AWS rotation functions use, on whichever
+// secrets manager the app runs against (the store hides the difference):
+//   createSecret  -> store the new value as pending   (AWS: AWSPENDING; OpenBao: <name>/pending)
 //   setSecret     -> change the password on the database / cache
-//   testSecret    -> log in with the AWSPENDING value
-//   finishSecret  -> move AWSCURRENT to the new version (old becomes AWSPREVIOUS)
+//   testSecret    -> log in with the pending value
+//   finishSecret  -> make it current                 (AWS: move AWSCURRENT; OpenBao: next KV version, check-and-set)
 //
-// In AWS, rotation is done by RDS managed rotation or a rotation Lambda, which
-// holds the admin credential. The application role in infra/ never gets
-// PutSecretValue or access to admin secrets. That is why this module only
-// loads when DEMO_MODE=true, which is refused in production.
+// In production, rotation is done by something that holds the admin credential
+// (RDS managed rotation, a rotation Lambda, OpenBao's database secrets engine):
+// the application's identity never gets write access or the admin secrets. That
+// is why this module only loads when DEMO_MODE=true, which is refused in production.
 
-import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import pg from 'pg';
 import Redis from 'ioredis';
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-  GetRandomPasswordCommand,
-  PutSecretValueCommand,
-  UpdateSecretVersionStageCommand,
-} from '@aws-sdk/client-secrets-manager';
 import { HttpError } from '../http.js';
 import { redisPasswordHash, scramSha256Verifier } from './crypto.js';
 
 const short = (id) => String(id).slice(0, 8);
 
-export function createRotator({ config, redactor, logger, events }) {
+export function createRotator({ config, redactor, logger, events, store }) {
   const log = logger.child({ component: 'rotator' });
-  const sm = new SecretsManagerClient({ region: config.region, endpoint: config.awsEndpoint });
+  const L = store.labels;
   let busy = false;
 
   const pgSsl = config.db.ssl
     ? { rejectUnauthorized: true, ca: config.db.sslCaFile ? readFileSync(config.db.sslCaFile, 'utf8') : undefined }
     : false;
 
-  async function readSecret(secretId, stage = 'AWSCURRENT') {
-    const r = await sm.send(new GetSecretValueCommand({ SecretId: secretId, VersionStage: stage }));
-    const value = JSON.parse(r.SecretString);
-    redactor.registerSecretObject(value, r.SecretString);
-    return { value, versionId: r.VersionId };
+  async function readSecret(secretId) {
+    const r = await store.read(secretId);
+    redactor.registerSecretObject(r.value, JSON.stringify(r.value));
+    return r;
   }
 
   const pgClient = (creds) =>
@@ -130,26 +122,17 @@ export function createRotator({ config, redactor, logger, events }) {
       steps.push({ name, detail, at: new Date().toISOString() });
       events.record('rotation', name, `[${alias}] ${detail}`);
     };
-    const token = randomUUID();
     let movedCurrent = false;
+    let pendingId;
 
     try {
       // 1. createSecret
       const current = await readSecret(secretId);
-      const { RandomPassword } = await sm.send(
-        new GetRandomPasswordCommand({ PasswordLength: 32, ExcludePunctuation: true, IncludeSpace: false }),
-      );
-      redactor.register(RandomPassword); // before it can appear anywhere
-      const pending = { ...current.value, password: RandomPassword };
-      await sm.send(
-        new PutSecretValueCommand({
-          SecretId: secretId,
-          ClientRequestToken: token,
-          SecretString: JSON.stringify(pending),
-          VersionStages: ['AWSPENDING'],
-        }),
-      );
-      step('createSecret', `Generated a new password and stored it as version ${short(token)} labelled AWSPENDING`);
+      const password = await store.randomPassword();
+      redactor.register(password); // before it can appear anywhere
+      const pending = { ...current.value, password };
+      pendingId = await store.putPending(secretId, pending);
+      step('createSecret', `Generated a new password and stored it as ${L.pending} (${short(pendingId)})`);
 
       // 2. setSecret
       const admin = (await readSecret(adminId)).value;
@@ -158,32 +141,22 @@ export function createRotator({ config, redactor, logger, events }) {
 
       // 3. testSecret
       await target.testSecret(pending);
-      step('testSecret', 'Logged in with the AWSPENDING credential successfully');
+      step('testSecret', 'Logged in with the pending credential successfully');
 
       // 4. finishSecret
-      await sm.send(
-        new UpdateSecretVersionStageCommand({
-          SecretId: secretId,
-          VersionStage: 'AWSCURRENT',
-          MoveToVersionId: token,
-          RemoveFromVersionId: current.versionId,
-        }),
-      );
+      const newVersion = await store.promote(secretId, pending, current.versionId);
       movedCurrent = true;
-      await sm.send(
-        new UpdateSecretVersionStageCommand({ SecretId: secretId, VersionStage: 'AWSPENDING', RemoveFromVersionId: token }),
-      );
-      step('finishSecret', `AWSCURRENT now points to ${short(token)}; ${short(current.versionId)} became AWSPREVIOUS`);
+      step('finishSecret', `${L.current} is now version ${short(newVersion)}; ${short(current.versionId)} became ${L.previous}`);
 
       if (target.revokeOld) {
         await target.revokeOld(admin, current.value);
         step('revokeOld', 'Removed the old password from the Redis ACL user');
       }
 
-      log.info({ alias, secretId, newVersionId: token }, 'demo rotation complete');
+      log.info({ alias, secretId, newVersionId: newVersion }, 'demo rotation complete');
       return {
         alias,
-        newVersionId: token,
+        newVersionId: newVersion,
         previousVersionId: current.versionId,
         steps,
         next:
@@ -192,11 +165,9 @@ export function createRotator({ config, redactor, logger, events }) {
       };
     } catch (err) {
       step('failed', `Rotation stopped: ${err.message}`);
-      if (!movedCurrent) {
-        // Same as AWS: AWSCURRENT is untouched, so clients are unaffected. Clean up the pending label.
-        await sm
-          .send(new UpdateSecretVersionStageCommand({ SecretId: secretId, VersionStage: 'AWSPENDING', RemoveFromVersionId: token }))
-          .catch(() => {});
+      if (!movedCurrent && pendingId) {
+        // The current value is untouched, so clients are unaffected. Clean up the pending copy.
+        await store.discardPending(secretId).catch(() => {});
       }
       log.error({ err, alias, event: 'rotation.demo.failed' }, 'demo rotation failed');
       throw new HttpError(502, `rotation failed at step ${steps.length + 1}: ${err.message}`, 'rotation_failed');

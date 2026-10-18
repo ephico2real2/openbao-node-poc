@@ -57,11 +57,13 @@ let cfg = { demoMode: false };
 // ---------------------------------------------------------------- config ---
 async function loadConfig() {
   cfg = await api('GET', '/api/config');
+  const bao = cfg.secretsProvider && cfg.secretsProvider !== 'aws';
+  const product = { aws: 'AWS Secrets Manager', openbao: 'OpenBao', vault: 'HashiCorp Vault' }[cfg.secretsProvider ?? 'aws'];
   const b = $('badges');
   b.replaceChildren(
-    el('span', { class: 'pill pill-accent' }, cfg.secretsMode === 'agent' ? 'Workload Credentials Provider' : 'AWS SDK direct'),
-    el('span', { class: 'pill' }, cfg.region),
-    cfg.usingLocalMock ? el('span', { class: 'pill pill-info' }, 'local mock') : el('span', { class: 'pill' }, 'AWS'),
+    el('span', { class: 'pill pill-accent' }, bao ? `${product} · KV v2 API` : cfg.secretsMode === 'agent' ? 'Workload Credentials Provider' : 'AWS SDK direct'),
+    bao ? el('span', { class: 'pill' }, `AppRole ${cfg.bao?.roleId ?? ''}`.trim()) : el('span', { class: 'pill' }, cfg.region),
+    bao ? el('span', { class: 'pill pill-info' }, cfg.environment === 'production' ? 'server' : 'lab server') : cfg.usingLocalMock ? el('span', { class: 'pill pill-info' }, 'local mock') : el('span', { class: 'pill' }, 'AWS'),
     cfg.demoMode ? el('span', { class: 'pill pill-warn' }, 'demo mode') : null,
     cfg.logLevel === 'debug'
       ? cfg.revealSecrets
@@ -71,20 +73,23 @@ async function loadConfig() {
   );
   $('reveal-banner').hidden = !cfg.revealSecrets;
   const where = {
-    compose: ['Docker Compose', 'container · dummy keys, for the mock only'],
+    compose: ['Docker Compose', bao ? 'container · AppRole secret ID in a file' : 'container · dummy keys, for the mock only'],
     kubernetes: ['Kubernetes', 'pod · no SA token · restricted PSA'],
     openshift: ['OpenShift', 'pod · arbitrary UID · restricted-v2'],
     ec2: ['EC2', 'EC2 instance role · IMDSv2'],
-  }[cfg.platform] ?? ['', 'IAM role, no keys'];
-  $('eyebrow').textContent = `AWS Secrets Manager · Node.js${where[0] ? ` on ${where[0]}` : ''}`;
+  }[cfg.platform] ?? ['', bao ? 'AppRole, no token in env' : 'IAM role, no keys'];
+  $('eyebrow').textContent = `${product} · Node.js${where[0] ? ` on ${where[0]}` : ''}`;
   $('flow-app').textContent = where[1];
   $('flow-cache').textContent = cfg.secretsMode === 'agent' ? 'agent cache + short app cache' : 'TTL + refresh on auth failure';
-  $('flow-channel').textContent = cfg.usingLocalMock
-    ? 'local mock (HTTP)'
-    : cfg.secretsMode === 'agent'
-      ? 'via localhost:2773 + SSRF token'
-      : 'HTTPS via VPC endpoint · KMS';
-  $('secrets-mode').textContent = cfg.secretsMode === 'agent' ? 'mode: agent' : 'mode: sdk';
+  $('flow-sm-title').textContent = bao ? product : 'Secrets Manager';
+  $('flow-channel').textContent = bao
+    ? `${cfg.bao?.addr ?? ''} · token renewed`
+    : cfg.usingLocalMock
+      ? 'local mock (HTTP)'
+      : cfg.secretsMode === 'agent'
+        ? 'via localhost:2773 + SSRF token'
+        : 'HTTPS via VPC endpoint · KMS';
+  $('secrets-mode').textContent = bao ? `${cfg.secretsProvider} · ${cfg.secretsMode}` : cfg.secretsMode === 'agent' ? 'mode: agent' : 'mode: sdk';
   document.querySelectorAll('.demo-only').forEach((n) => (n.hidden = !cfg.demoMode));
 }
 

@@ -38,10 +38,25 @@ export const config = Object.freeze({
 
   region: env.AWS_REGION ?? env.AWS_DEFAULT_REGION ?? 'us-east-1',
 
-  // 'sdk'   -> AWS SDK v3 GetSecretValue + in-process cache (default)
-  // 'agent' -> AWS Workload Credentials Provider (formerly Secrets Manager Agent)
-  //            on http://localhost:2773, authenticated with its SSRF token
-  secretsMode: env.SECRETS_MODE ?? 'sdk',
+  // Which secrets manager: 'aws' (default) | 'openbao' | 'vault' (secrets/index.js).
+  secretsProvider: (env.SECRETS_PROVIDER ?? 'aws').toLowerCase(),
+
+  // How the app reads it.
+  //   aws:           'sdk'   -> AWS SDK v3 GetSecretValue + in-process cache (default)
+  //                  'agent' -> AWS Workload Credentials Provider on http://localhost:2773 (SSRF token)
+  //   openbao/vault: 'api'   -> the HTTP API (KV v2), AppRole login, token renewal (default)
+  secretsMode: env.SECRETS_MODE ?? ((env.SECRETS_PROVIDER ?? 'aws').toLowerCase() === 'aws' ? 'sdk' : 'api'),
+
+  // OpenBao / Vault: an address, a role and a FILE for the secret ID. No token
+  // and no secret ID in the environment (assertSafeEnvironment refuses them).
+  bao: Object.freeze({
+    addr: env.BAO_ADDR ?? env.VAULT_ADDR,
+    roleId: env.BAO_ROLE_ID,
+    secretIdFile: env.BAO_SECRET_ID_FILE,
+    authMount: env.BAO_AUTH_MOUNT ?? 'approle',
+    kvMount: env.BAO_KV_MOUNT ?? 'secret',
+    namespace: env.BAO_NAMESPACE || undefined,
+  }),
 
   // ONLY for local development against the bundled mock. Never set on EC2.
   awsEndpoint: env.AWS_MOCK_ENDPOINT || undefined,
@@ -119,13 +134,16 @@ export const config = Object.freeze({
 const FORBIDDEN_ENV = [
   'DB_PASSWORD', 'PGPASSWORD', 'DATABASE_URL', 'POSTGRES_PASSWORD',
   'REDIS_PASSWORD', 'REDIS_URL', 'REDISCLI_AUTH',
+  // OpenBao / Vault credentials: a token or a secret ID in env is the same leak
+  // as a password in env. The secret ID comes from BAO_SECRET_ID_FILE.
+  'BAO_TOKEN', 'VAULT_TOKEN', 'BAO_SECRET_ID', 'VAULT_SECRET_ID',
 ];
 
 export function assertSafeEnvironment() {
   const problems = [];
 
   for (const name of FORBIDDEN_ENV) {
-    if (env[name]) problems.push(`${name} is set; credentials must come from Secrets Manager, not the environment`);
+    if (env[name]) problems.push(`${name} is set; credentials must come from the secrets manager, not the environment`);
   }
 
   if (config.secretNaming.error) problems.push(config.secretNaming.error);
@@ -134,7 +152,16 @@ export function assertSafeEnvironment() {
     if (!config.secretIds.db) problems.push(`no database secret: ${how}`);
     if (!config.secretIds.redis) problems.push(`no Redis secret: ${how}`);
   }
-  if (!['sdk', 'agent'].includes(config.secretsMode)) problems.push(`SECRETS_MODE must be 'sdk' or 'agent'`);
+  if (!['aws', 'openbao', 'vault'].includes(config.secretsProvider)) {
+    problems.push(`SECRETS_PROVIDER must be 'aws', 'openbao' or 'vault'`);
+  } else if (config.secretsProvider === 'aws') {
+    if (!['sdk', 'agent'].includes(config.secretsMode)) problems.push(`SECRETS_MODE must be 'sdk' or 'agent' with SECRETS_PROVIDER=aws`);
+  } else {
+    if (config.secretsMode !== 'api') problems.push(`SECRETS_MODE must be 'api' with SECRETS_PROVIDER=${config.secretsProvider}`);
+    if (!config.bao.addr) problems.push('BAO_ADDR is required (the OpenBao or Vault address)');
+    if (!config.bao.roleId) problems.push('BAO_ROLE_ID is required (the AppRole role ID; it is not a secret)');
+    if (!config.bao.secretIdFile) problems.push('BAO_SECRET_ID_FILE is required (the AppRole secret ID is read from a file, never from env)');
+  }
   if (!['json', 'pretty'].includes(config.logging.format)) problems.push(`LOG_FORMAT must be 'json' or 'pretty'`);
 
   if (config.nodeEnv === 'production') {
@@ -143,6 +170,9 @@ export function assertSafeEnvironment() {
       problems.push('static AWS_ACCESS_KEY_ID found in production; use the EC2 instance role instead');
     }
     if (config.awsEndpoint) problems.push('AWS_MOCK_ENDPOINT must not be set in production');
+    if (config.secretsProvider !== 'aws' && config.bao.addr && !config.bao.addr.startsWith('https://')) {
+      problems.push('BAO_ADDR must be https:// in production: the token and every secret travel on this connection');
+    }
     if (config.demo.enabled) problems.push('DEMO_MODE must not be enabled in production');
     if (config.logging.revealSecrets) problems.push('LOG_REVEAL_SECRETS must not be enabled in production: it writes secret values to the log');
     if (config.logging.format !== 'json') problems.push('LOG_FORMAT must be json in production: log stores and alert rules read JSON');

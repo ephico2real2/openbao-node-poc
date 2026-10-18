@@ -55,26 +55,28 @@ Evidence: [HANDOVER.md](../../HANDOVER.md), [CLAUDE.md](../../CLAUDE.md), [scrip
 
 **S2.1 · Providers for reading** · M · 🔜 · [#9](https://github.com/ephico2real2/openbao-node-poc/issues/9)
 *As a developer, I want each secrets manager behind the same interface, so that the cache and the clients don't care which one is in use.*
-- [ ] backend/src/secrets/providers/{aws,bao,file}.js return the same shape; for KV v2 the version is the KV version.
-- [ ] bao: plain fetch against the HTTP API, no new dependency; openbao and vault share it.
-- [ ] Unit tests against a fake HTTP server: KV v2 read, errors, timeouts.
+- [x] backend/src/secrets/index.js picks the fetcher by SECRETS_PROVIDER; fetchers.js (aws) and bao/kv.js (openbao, vault) return the same shape; for KV v2 the version is the KV version.
+- [x] bao: plain fetch against the HTTP API, no new dependency; openbao and vault share it.
+- [x] Unit tests against a fake HTTP server, and against a real OpenBao 2.7.1 started from the lab's own config.
+- [ ] SECRETS_MODE=file (a mounted directory, watched) arrives with B5 (S5.2).
 
-Evidence: [initiative](README.md)
+Evidence: [backend/src/secrets/index.js](../../backend/src/secrets/index.js), [backend/src/secrets/bao/kv.js](../../backend/src/secrets/bao/kv.js), [backend/test/bao.test.js](../../backend/test/bao.test.js)
 
 **S2.2 · Authentication without a credential in the environment** · M · 🔜 · [#10](https://github.com/ephico2real2/openbao-node-poc/issues/10)
 *As a security engineer, I want the app to log in to OpenBao without a token in its environment, so that the no-env rule still holds.*
-- [ ] AppRole with the secret ID read from a file (mode 0400, tmpfs); Kubernetes auth with a projected, audience-bound service-account token.
-- [ ] Token renew-self at 2/3 of its TTL; re-login on 403; all logged with masked values.
-- [ ] config.js refuses VAULT_TOKEN, BAO_TOKEN and the existing credential variables.
+- [x] AppRole with the secret ID read from a file (mode 0400, never env), re-read at each login.
+- [ ] Kubernetes auth with a projected, audience-bound service-account token (with B5).
+- [x] Token renew-self at 2/3 of its TTL; re-login at the max TTL and on 403; the token and secret ID are registered with the redactor and never logged.
+- [x] config.js refuses BAO_TOKEN, VAULT_TOKEN, BAO_SECRET_ID, VAULT_SECRET_ID and the existing credential variables; production refuses plain-HTTP BAO_ADDR.
 
-Evidence: [initiative](README.md)
+Evidence: [backend/src/secrets/bao/client.js](../../backend/src/secrets/bao/client.js), [backend/test/bao.test.js](../../backend/test/bao.test.js), [backend/test/config.test.js](../../backend/test/config.test.js)
 
-**S2.3 · Stores for writing (seed and the demo rotation)** · M · 🔜 · [#11](https://github.com/ephico2real2/openbao-node-poc/issues/11)
+**S2.3 · Stores for writing (seed and the demo rotation)** · M · ✅ · [#11](https://github.com/ephico2real2/openbao-node-poc/issues/11)
 *As a presenter, I want the seed job and the rotation lab to work on every provider, so that the same demos run on OpenBao.*
-- [ ] backend/src/secrets/stores/{aws,bao}.js: put, promote, randomPassword.
-- [ ] The rotator's four steps unchanged; on OpenBao, promote writes a new KV version.
+- [x] Stores with one interface (exists, create, read, randomPassword, putPending, promote, discardPending): backend/src/secrets/aws-store.js and bao/kv.js; the seed job and the rotator use them.
+- [x] The rotator's four steps unchanged; on OpenBao the pending value is at <name>/pending, and promote writes the next KV version with check-and-set.
 
-Evidence: [initiative](README.md)
+Evidence: [backend/src/secrets/aws-store.js](../../backend/src/secrets/aws-store.js), [backend/src/secrets/bao/kv.js](../../backend/src/secrets/bao/kv.js), [backend/src/demo/rotator.js](../../backend/src/demo/rotator.js), backend/test/bao.test.js: pending is not current; promote with cas; a stale promote fails
 
 ### B3 — OpenBao KV on Docker Compose (steps/v1-openbao-kv)
 
@@ -82,18 +84,20 @@ Evidence: [initiative](README.md)
 
 **S3.1 · OpenBao with no manual steps** · M · 🔜 · [#13](https://github.com/ephico2real2/openbao-node-poc/issues/13)
 *As a learner, I want OpenBao to start initialised and unsealed, so that I can focus on the app.*
-- [ ] Static seal and self-init (dev/openbao/config.hcl); KV v2, AppRole and policies created at start.
-- [ ] A file audit device; its log shows HMACs, never values.
+- [x] Static seal and self-init (dev/openbao/config.hcl); KV v2, AppRole and policies created at start.
+- [x] A file audit device; its log shows HMACs, never values.
+- [x] Secret zero: the seed job's bootstrap secret ID is generated at first start and is single-use; it mints the app's secret ID into a mode-0400 file.
 
-Evidence: [initiative](README.md)
+Evidence: [dev/openbao/config.hcl](../../dev/openbao/config.hcl), [dev/openbao/entrypoint.sh](../../dev/openbao/entrypoint.sh), [steps/v1-openbao-kv/README.md](../../steps/v1-openbao-kv/README.md), backend/test/bao.test.js against the real server: the bootstrap works once; the audit log holds no value
 
 **S3.2 · The lab on OpenBao** · M · 🔜 · [#14](https://github.com/ephico2real2/openbao-node-poc/issues/14)
 *As a presenter, I want every existing demo to work on OpenBao, so that the comparison is fair.*
 - [ ] Rotate from the dashboard: auth-failed → new-version → recovered.
 - [ ] Leak test 0 of 6; credential scan clean, including the OpenBao container and its audit log.
 - [ ] CI job compose (openbao) with captures.
+- [ ] The reveal flag on OpenBao: the values appear in the app log only; the AppRole secret IDs appear nowhere.
 
-Evidence: [initiative](README.md)
+Evidence: [steps/v1-openbao-kv/compose.yaml](../../steps/v1-openbao-kv/compose.yaml), [scripts/compose-check.sh](../../scripts/compose-check.sh), [scripts/credential-scan.sh](../../scripts/credential-scan.sh)
 
 ### B4 — Dynamic credentials and leases (steps/v2-openbao-dynamic)
 
@@ -157,15 +161,15 @@ Evidence: [initiative](README.md)
 
 ### B1 — ADR-002: OpenBao first, HashiCorp Vault second
 
-[#6](https://github.com/ephico2real2/openbao-node-poc/issues/6) · 🔜 · **Outcome:** The choice is recorded with accurate licensing and feature facts, checked against the projects' own pages. Docs: [initiative](README.md)
+[#6](https://github.com/ephico2real2/openbao-node-poc/issues/6) · ✅ · **Outcome:** The choice is recorded with accurate licensing and feature facts, checked against the projects' own pages. Docs: [initiative](README.md)
 
-**S1.1 · Write ADR-002** · S · 🔜 · [#7](https://github.com/ephico2real2/openbao-node-poc/issues/7)
+**S1.1 · Write ADR-002** · S · ✅ · [#7](https://github.com/ephico2real2/openbao-node-poc/issues/7)
 *As an architect, I want the decision and its facts in one page, so that the team doesn't rely on myths about either product.*
-- [ ] MPL-2.0 (OpenBao, OpenSSF sandbox) vs BSL 1.1 (Vault, IBM); each checked on the release page.
-- [ ] What OpenBao added (namespaces, standby reads, control groups) and lacks (replication, Sentinel, Transform).
-- [ ] The two common claims corrected: 'IBM removed Enterprise features' and 'OpenBao has all Enterprise features'.
+- [x] MPL-2.0 (OpenBao, OpenSSF sandbox) vs BSL 1.1 (Vault, IBM); each checked on the release page.
+- [x] What OpenBao added (namespaces, standby reads, control groups) and lacks (replication, Sentinel, Transform).
+- [x] The two common claims corrected: 'IBM removed Enterprise features' and 'OpenBao has all Enterprise features'.
 
-Evidence: [initiative](README.md)
+Evidence: [ADR-002](03-adr-002-openbao-first.md), Facts checked 2026-10-18 against each project's own pages (21 sources listed in the ADR)
 
 ### B8 — Tutorial: learning chapters, guide and demos
 

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Search the RUNNING stack for the actual credential values, not just their
-# names: every password the Secrets Manager stand-in holds (all versions, so
-# rotated-out ones too) is looked for in each place a credential could leak to.
+# names: every password the secrets manager holds (all versions, so rotated-out
+# ones too) is looked for in each place a credential could leak to.
+#   SECRETS_PROVIDER=aws      the values come from the Secrets Manager stand-in
+#   SECRETS_PROVIDER=openbao  the values come from OpenBao, read by the app's own
+#                             AppRole identity (every KV version); the OpenBao
+#                             container, its audit log and raft storage are scanned too
 #
 #   scripts/credential-scan.sh compose        Docker Compose stack (COMPOSE_FILE respected)
 #   scripts/credential-scan.sh k8s            kind / OpenShift (KUBECTL=oc works)
@@ -21,13 +25,15 @@ TARGET="${1:-}"
 K="${KUBECTL:-kubectl}"
 NS="${NAMESPACE:-secure-notes}"
 EXPECT_REVEALED="${EXPECT_REVEALED:-0}"
+PROVIDER="${SECRETS_PROVIDER:-}"
 if [ -z "$TARGET" ]; then
   if $K -n "$NS" get deploy/secure-notes >/dev/null 2>&1; then TARGET=k8s; else TARGET=compose; fi
 fi
 
 umask 077
 VALS=$(mktemp)
-trap 'rm -f "$VALS"' EXIT
+SIDS=$(mktemp)
+trap 'rm -f "$VALS" "$SIDS"' EXIT
 
 # --- 1. The values to look for, read from the stand-in over its own API -------
 # Every password-like leaf (password, token, secret, key) of every version of every secret.
@@ -55,6 +61,30 @@ for (const s of SecretList) {
 process.stdout.write([...out].join('\n') + '\n');
 JS
 
+# The same values from OpenBao, read INSIDE the app container with the app's
+# own AppRole identity (its role ID and its secret ID file): every KV version of
+# the app's and the demo admin secrets, plus any pending copy a rotation left.
+read -r -d '' COLLECT_BAO <<'JS'
+const { config } = await import('/app/backend/src/config.js');
+const { createBaoClient } = await import('/app/backend/src/secrets/bao/client.js');
+const b = config.bao;
+const c = createBaoClient({ addr: b.addr, roleId: b.roleId, secretIdFile: b.secretIdFile, authMount: b.authMount, namespace: b.namespace, scheduleRenewal: false });
+const sensitive = (k) => /pass|secret|token|key/i.test(k) && !/(id|arn)$/i.test(k);
+const out = new Set();
+const walk = (o) => { for (const [k, v] of Object.entries(o)) { if (typeof v === 'string' && sensitive(k) && v.length >= 8) out.add(v); else if (v && typeof v === 'object') walk(v); } };
+const ids = [config.secretIds.db, config.secretIds.redis, config.demo.dbAdminSecretId, config.demo.redisAdminSecretId].filter(Boolean);
+for (const id of ids) {
+  for (const p of [id.replace(/^\/+/, ''), `${id.replace(/^\/+/, '')}/pending`]) {
+    const m = await c.request('GET', `${b.kvMount}/metadata/${p}`, { allow404: true });
+    for (const v of Object.keys(m?.data?.versions ?? {})) {
+      const g = await c.request('GET', `${b.kvMount}/data/${p}?version=${v}`, { allow404: true });
+      if (g?.data?.data) walk(g.data.data);
+    }
+  }
+}
+process.stdout.write([...out].join('\n') + '\n');
+JS
+
 # --- the filesystem walker, run INSIDE a container; values arrive on stdin ----
 read -r -d '' FSWALK <<'JS'
 const fs = require('fs'), path = require('path');
@@ -77,17 +107,27 @@ process.stdin.on('data', (c) => (d += c)).on('end', () => {
 });
 JS
 
-case "$TARGET" in
-  compose)
-    dc() { docker compose "$@"; }
+dc() { docker compose "$@"; }
+if [ -z "$PROVIDER" ] && [ "$TARGET" = compose ]; then
+  PROVIDER=$(dc exec -T app printenv SECRETS_PROVIDER 2>/dev/null || true)
+fi
+PROVIDER="${PROVIDER:-aws}"
+case "$TARGET:$PROVIDER" in
+  compose:openbao)
+    dc exec -T app node --input-type=module -e "$COLLECT_BAO" > "$VALS" 2>/dev/null
+    # The AppRole secret IDs: the app's (in its file) and the seed's spent bootstrap one.
+    { dc exec -T app cat /home/node/bao-secret-id; echo; dc exec -T openbao cat /openbao/config/seed-secret-id; echo; } 2>/dev/null | grep . > "$SIDS" ;;
+  compose:aws)
     dc exec -T aws-mock node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
-  k8s)
+  compose:*) echo "SECRETS_PROVIDER must be aws or openbao (got '$PROVIDER')"; exit 1 ;;
+  k8s:*)
     $K -n "$NS" exec deploy/aws-mock -- node --input-type=module -e "$COLLECT" > "$VALS" 2>/dev/null ;;
   *) echo "target must be compose or k8s"; exit 1 ;;
 esac
 n=$(grep -c . "$VALS")
-echo "== credential scan ($TARGET): searching for $n secret values from Secrets Manager (every version); the values are never printed"
-[ "$n" -ge 4 ] || { echo "  FAIL  could not read the values from the stand-in (got $n, expected at least 4)"; exit 1; }
+src="Secrets Manager"; [ "$PROVIDER" = openbao ] && src="OpenBao, read as the app's AppRole identity"
+echo "== credential scan ($TARGET): searching for $n secret values from $src (every version); the values are never printed"
+[ "$n" -ge 4 ] || { echo "  FAIL  could not read the values from $src (got $n, expected at least 4)"; exit 1; }
 
 fails=0
 found_app_logs=0
@@ -125,12 +165,38 @@ if [ "$TARGET" = compose ]; then
   # The databases should hold only hashes: SCRAM verifiers in Postgres, #sha256 in the Redis ACL file.
   report "postgres: data directory and config (plaintext passwords?)" "$(dc exec -T postgres sh -c 'grep -rhoF -f - /var/lib/postgresql/data /etc/postgresql 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
   report "redis: data and ACL files (plaintext passwords?)" "$(dc exec -T redis sh -c 'grep -rhoF -f - /data /etc 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
+  if [ "$PROVIDER" = openbao ]; then
+    # OpenBao encrypts its storage with the barrier key, and its audit device
+    # writes HMAC-SHA256 of request and response values, never the values.
+    scan "openbao: audit log (values must be HMAC'd)" dc exec -T openbao cat /openbao/logs/audit.log
+    report "openbao: raft storage, seal key, config, /tmp (plaintext?)" "$(dc exec -T openbao sh -c 'grep -rhoF -f - /openbao /etc/openbao /tmp 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
+  fi
   echo "-- logs"
   for c in $(dc ps -a --format '{{.Service}}'); do
     allowed=no; [ "$c" = app ] && allowed=yes
     report "$c: log" "$(dc logs --no-color "$c" 2>/dev/null | hits)" "$allowed"
   done
   applog=$(dc logs --no-color app 2>/dev/null)
+  if [ "$PROVIDER" = openbao ]; then
+    # Secret zero: the AppRole secret IDs are credentials too. They live only in
+    # their files; never in env, a container's config, a log or the audit log.
+    m=$(grep -c . "$SIDS")
+    echo "-- the AppRole secret IDs ($m: the app's and the seed's spent bootstrap one)"
+    if [ "$m" -lt 2 ]; then
+      echo "  FAIL  could not read both secret ID files"; fails=$((fails + 1))
+    else
+      sid() { grep -o -F -f "$SIDS" 2>/dev/null | wc -l | tr -d ' '; }
+      n_cfg=0; n_log=0
+      for c in $(dc ps -a --format '{{.Service}}'); do
+        n_cfg=$((n_cfg + $(docker inspect "$(dc ps -a -q "$c")" | sid)))
+        n_log=$((n_log + $(dc logs --no-color "$c" 2>/dev/null | sid)))
+      done
+      report "every container's config (env, command, labels)" "$n_cfg"
+      report "every container's log (the app log too, even when revealing)" "$n_log"
+      report "app: process environment values (/proc/1/environ)" "$(dc exec -T app cat /proc/1/environ | tr '\0' '\n' | sid)"
+      report "openbao: audit log" "$(dc exec -T openbao cat /openbao/logs/audit.log 2>/dev/null | sid)"
+    fi
+  fi
 else
   echo "-- Kubernetes objects"
   report "pod specs, Deployments, Jobs (env, args, annotations)" "$($K -n "$NS" get pods,deploy,jobs -o yaml | hits)"

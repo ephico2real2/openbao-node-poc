@@ -1,8 +1,8 @@
 # CI: every way to run this app, proven on a runner, with the evidence on the run page.
 #
-#   checks ─► build ─┬─► compose (sdk, agent) ─┐
-#   (scan, SBOM)     ├─► kind ─────────────────┼─► images (main only: push, sign, attest)
-#                    ├─► mirror ───────────────┘
+#   checks ─► build ─┬─► compose (sdk, agent, openbao) ─┐
+#   (scan, SBOM)     ├─► kind ──────────────────────────┼─► images (main only: push, sign, attest)
+#                    ├─► mirror ────────────────────────┘
 #                    └─► env-file-demo
 #   docs (every relative link resolves, every Mermaid diagram renders)
 #   v0-leak (versions/v0-env-file: the original .env app still leaks, as the story says)
@@ -64,9 +64,29 @@ jobs:
           fi
           npm ls --depth=0
 
-      - name: Unit tests (secrets layer, logging)
+      # The OpenBao integration test starts a real server from the lab's own
+      # config (dev/openbao/config.hcl). The release binary, checksum-verified.
+      - name: OpenBao, for the integration test (release binary, checksum verified)
+        run: |
+          set -euo pipefail
+          . scripts/versions.env
+          f="openbao_${OPENBAO_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "/tmp/$f" "https://github.com/openbao/openbao/releases/download/v${OPENBAO_VERSION}/$f"
+          echo "$OPENBAO_LINUX_AMD64_SHA256  /tmp/$f" | sha256sum -c -
+          mkdir -p /tmp/bao && tar -xzf "/tmp/$f" -C /tmp/bao bao
+          /tmp/bao/bao version
+          echo "BAO_BIN=/tmp/bao/bao" >> "$GITHUB_ENV"
+          # one pin: the Compose step runs the same version
+          grep -qF "image: $OPENBAO_IMAGE" steps/v1-openbao-kv/compose.yaml \
+            || { echo "::error title=pin mismatch::steps/v1-openbao-kv/compose.yaml does not use $OPENBAO_IMAGE"; exit 1; }
+
+      - name: Unit tests (secrets layer, logging; OpenBao against the real server)
         working-directory: backend
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/unit.txt
+          # the real-server test must have run, not been skipped
+          if grep -q '# SKIP' /tmp/unit.txt; then grep '# SKIP' /tmp/unit.txt; echo "::error::a test was skipped"; exit 1; fi
 
       - name: The AWS stand-in (identities and STS)
         run: node --test dev/aws-mock/test/*.test.js
@@ -75,7 +95,7 @@ jobs:
         run: git ls-files '*.js' | xargs -n1 node --check
 
       - name: Shellcheck
-        run: shellcheck -S warning scripts/*.sh scripts/bootstrap/*.sh dev/*.sh versions/*/*.sh
+        run: shellcheck -S warning scripts/*.sh scripts/bootstrap/*.sh dev/*.sh dev/openbao/*.sh versions/*/*.sh
 
       - name: Workflows lint clean (actionlint)
         run: |
@@ -171,12 +191,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [sdk, agent]
+        include:
+          - mode: sdk
+            compose-file: docker-compose.yml
+            platform: dummy keys, for the mock only
+          # the app reads its secrets through an agent on its own localhost, as SECRETS_MODE=agent does on EC2
+          - mode: agent
+            compose-file: docker-compose.yml:docker-compose.agent.yml
+            platform: dummy keys, for the mock only
+          # step v1: the same app on OpenBao (KV v2, AppRole), the AWS stand-in not started
+          - mode: openbao
+            compose-file: docker-compose.yml:steps/v1-openbao-kv/compose.yaml
+            platform: AppRole secret ID in a file
     name: compose (${{ matrix.mode }})
     env:
-      # agent: the app reads its secrets through an agent on its own localhost
-      # (docker-compose.agent.yml), as SECRETS_MODE=agent does on EC2.
-      COMPOSE_FILE: ${{ matrix.mode == 'agent' && 'docker-compose.yml:docker-compose.agent.yml' || 'docker-compose.yml' }}
+      COMPOSE_FILE: ${{ matrix.compose-file }}
     steps:
       - uses: actions/checkout@v5
 
@@ -206,7 +235,7 @@ jobs:
         uses: ./.github/actions/browser-walk
         with:
           label: compose-${{ matrix.mode }}
-          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"dummy keys, for the mock only"}'
+          env-json: '{"BASE":"http://localhost:3000","PLATFORM_LABEL":"${{ matrix.platform }}"}'
 
       - name: Check — bootstrap burned, end-to-end smoke test
         run: |
@@ -219,22 +248,22 @@ jobs:
       # would catch a leak: with it on, the scan MUST find the values in the
       # app's log, and still nowhere else.
       - name: Reveal flag on — the scan must find the values in the app log, and only there
-        if: matrix.mode == 'sdk'
+        if: matrix.mode != 'agent'
         run: |
           set -o pipefail
           LOG_REVEAL_SECRETS=true docker compose up -d --no-deps app
           for _ in $(seq 1 60); do curl -fsS --max-time 3 http://localhost:3000/api/health | grep -q '"status":"ok"' && break; sleep 2; done
           curl -fsS http://localhost:3000/api/notes > /dev/null   # a request, so a database login happens too
           EXPECT_REVEALED=1 scripts/credential-scan.sh compose | tee output/credential-scan-revealed.txt
-          { echo "## LOG_REVEAL_SECRETS=true — the scan finds the values in the app log only"; echo; echo '```'; cat output/credential-scan-revealed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "## LOG_REVEAL_SECRETS=true (${{ matrix.mode }}) — the scan finds the values in the app log only"; echo; echo '```'; cat output/credential-scan-revealed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Reveal flag on — what the dashboard shows
-        if: matrix.mode == 'sdk'
+        if: matrix.mode != 'agent'
         uses: ./.github/actions/browser-walk
         with:
           spec: scripts/capture/reveal.yaml
           out: captures-reveal
-          label: compose-reveal
+          label: compose-${{ matrix.mode }}-reveal
           env-json: '{"BASE":"http://localhost:3000"}'
 
       - name: Reveal flag in production — the app refuses to start (exit 78)
@@ -250,7 +279,7 @@ jobs:
           { echo "## LOG_REVEAL_SECRETS in production"; echo; echo '```'; echo "$out"; echo "exit code: $rc"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Reveal flag off again
-        if: matrix.mode == 'sdk'
+        if: matrix.mode != 'agent'
         run: |
           docker compose up -d --no-deps app
           for _ in $(seq 1 60); do curl -fsS --max-time 3 http://localhost:3000/api/health | grep -q '"status":"ok"' && exit 0; sleep 2; done; exit 1

@@ -1,5 +1,5 @@
 # The dashboard while the app runs with LOG_REVEAL_SECRETS=true (CI, compose
-# sdk job only): the warning is impossible to miss, the posture check fails,
+# sdk and openbao jobs): the warning is impossible to miss, the posture check fails,
 # and the dashboard's own log panel still shows no value (revealed lines go to
 # stdout only, never to /api/logs). The credential scan proves the stdout part.
 viewport: {width: 1280, height: 900}

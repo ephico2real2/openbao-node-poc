@@ -33,14 +33,19 @@ async function probeImds() {
   }
 }
 
-export async function runSecurityChecks({ config, redactor, provider, logSinks = {} }) {
+export async function runSecurityChecks({ config, redactor, provider, logSinks = {}, baoClient }) {
   const out = [];
   const add = (id, title, status, detail) => out.push({ id, title, status, detail });
-  const mock = Boolean(config.awsEndpoint);
+  const bao = config.secretsProvider !== 'aws';
+  const product = config.secretsProvider === 'vault' ? 'Vault' : 'OpenBao';
+  // A lab: the local AWS stand-in, or OpenBao/Vault outside production.
+  const mock = Boolean(config.awsEndpoint) || (bao && config.nodeEnv !== 'production');
   const env = process.env;
 
   // 1. Long-term keys
-  if (env.AWS_ACCESS_KEY_ID) {
+  if (bao && !env.AWS_ACCESS_KEY_ID) {
+    add('static-keys', 'No long-term AWS keys on the host', 'pass', `No AWS keys: secrets come from ${product}.`);
+  } else if (env.AWS_ACCESS_KEY_ID) {
     if (mock) add('static-keys', 'No long-term AWS keys on the host', 'info', 'Dummy keys are set for the local mock only. On EC2 nothing is set and the SDK uses the instance role.');
     else if (env.AWS_SESSION_TOKEN) add('static-keys', 'No long-term AWS keys on the host', 'warn', 'Temporary credentials are in environment variables. Prefer letting the SDK fetch them from instance metadata.');
     else add('static-keys', 'No long-term AWS keys on the host', 'fail', 'AWS_ACCESS_KEY_ID is set with no session token: long-term keys. Remove them and attach an instance role.');
@@ -80,7 +85,22 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
   else add('imdsv2', 'IMDSv2 required', 'skip', 'No instance metadata service reachable; not running on EC2 (or a container blocked by hop limit 1, which is good).');
 
   // 5. Identity in use
-  try {
+  if (bao) {
+    const st = baoClient?.status();
+    if (st?.loggedIn) {
+      add('identity', `Logged in to ${product} with its own identity`, 'pass', `AppRole role "${st.roleId}", policies ${st.policies.join(', ')}; token valid ${st.tokenTtlSeconds} s, renewed ${st.renewals} time(s), ${st.logins} login(s).`);
+    } else {
+      add('identity', `Logged in to ${product} with its own identity`, 'fail', `Not logged in${st?.lastError ? `: ${st.lastError}` : ''}.`);
+    }
+    try {
+      const sid = await stat(config.bao.secretIdFile);
+      const loose = (sid.mode & 0o077) !== 0;
+      add('secret-id-file', 'AppRole secret ID file protected', loose ? 'fail' : 'pass',
+        loose ? `${config.bao.secretIdFile} is readable by others (mode ${(sid.mode & 0o777).toString(8)}).` : `${config.bao.secretIdFile} is mode ${(sid.mode & 0o777).toString(8)}: only its owner can read it. It is not in the environment.`);
+    } catch {
+      add('secret-id-file', 'AppRole secret ID file protected', 'fail', `Cannot read ${config.bao.secretIdFile}.`);
+    }
+  } else try {
     const sts = new STSClient({ region: config.region, endpoint: config.awsEndpoint, maxAttempts: 1 });
     const id = await sts.send(new GetCallerIdentityCommand({}));
     if (/:assumed-role\//.test(id.Arn)) add('identity', 'Running as an IAM role', 'pass', `Caller: ${id.Arn}`);
@@ -111,8 +131,12 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
     add('core-dumps', 'Core dumps disabled', 'skip', 'Not on Linux.');
   }
 
-  // 9. Transport to Secrets Manager
-  if (provider.mode === 'agent') {
+  // 9. Transport to the secrets manager
+  if (bao) {
+    const tls = String(config.bao.addr).startsWith('https://');
+    add('sm-transport', 'Secret retrieval channel', tls ? 'pass' : 'info',
+      tls ? `${product} over HTTPS (${config.bao.addr}).` : `Plain HTTP to ${product} on the lab network (${config.bao.addr}). Production requires https:// (the app refuses anything else).`);
+  } else if (provider.mode === 'agent') {
     add('sm-transport', 'Secret retrieval channel', 'pass', 'Workload Credentials Provider on loopback, authenticated with its SSRF token. It reaches Secrets Manager over TLS.');
     try {
       const st = await stat(config.agent.tokenFile);

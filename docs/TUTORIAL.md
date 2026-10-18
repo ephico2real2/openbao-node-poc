@@ -11,6 +11,11 @@ For the list of every automated test behind these steps, see
 output for each, see the [demo folder](../demo/README.md). For deploying to Kubernetes, OpenShift or AWS,
 see [GUIDE.md](GUIDE.md).
 
+**On OpenBao instead.** Every step below works the same on [step v1](../steps/v1-openbao-kv/README.md). Run
+`export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml` before step 1.
+The dashboard then says **OpenBao**. The secrets are KV v2 versions, not AWS version stages.
+The step README covers what is different. The OpenBao chapters of this tutorial come with epic B8.
+
 ## 1. Start the stack
 
 ```bash

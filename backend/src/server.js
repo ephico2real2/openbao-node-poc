@@ -4,7 +4,7 @@ import path from 'node:path';
 import { config, assertSafeEnvironment } from './config.js';
 import { createLogger } from './log.js';
 import { createEventLog } from './events.js';
-import { Redactor, createSecretsProvider } from './secrets/index.js';
+import { Redactor, createSecretsProvider, createSecretsStore, createBaoClientFromConfig } from './secrets/index.js';
 import { createDb } from './clients/db.js';
 import { createCache } from './clients/cache.js';
 import { createHttpServer, createRouter } from './http.js';
@@ -92,7 +92,8 @@ if (config.logging.revealSecrets) {
 }
 
 const events = createEventLog();
-const provider = createSecretsProvider({ config, redactor, logger });
+const baoClient = createBaoClientFromConfig({ config, redactor, logger });
+const provider = createSecretsProvider({ config, redactor, logger, baoClient });
 provider.on('loaded', ({ secretId, reason, changed, versionId }) => {
   const alias = Object.entries(config.secretIds).find(([, id]) => id === secretId)?.[0] ?? secretId;
   events.record(
@@ -140,11 +141,11 @@ if (config.db.autoMigrate) {
 }
 
 const rotator = config.demo.enabled
-  ? (await import('./demo/rotator.js')).createRotator({ config, redactor, logger, events })
+  ? (await import('./demo/rotator.js')).createRotator({ config, redactor, logger, events, store: await createSecretsStore({ config, baoClient }) })
   : undefined;
 
 const router = createRouter();
-registerRoutes(router, { config, provider, db, cache, events, logger, redactor, rotator, shipper, fileSink });
+registerRoutes(router, { config, provider, db, cache, events, logger, redactor, rotator, shipper, fileSink, baoClient });
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const server = createHttpServer({
@@ -157,7 +158,7 @@ const server = createHttpServer({
 
 server.listen(config.port, config.host, () => {
   logger.info(
-    { host: config.host, port: config.port, secretsMode: provider.mode, demoMode: config.demo.enabled },
+    { host: config.host, port: config.port, secretsProvider: config.secretsProvider, secretsMode: config.secretsMode, demoMode: config.demo.enabled },
     'secure-notes listening',
   );
 });

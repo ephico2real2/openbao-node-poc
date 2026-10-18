@@ -1,6 +1,6 @@
 # Initiative: Secure Notes on any secrets manager
 
-[← Documentation](../README.md) · [Backlog](backlog.md) · [GitHub issues](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Atype%3Aepic)
+[← Documentation](../README.md) · [ADR-002](03-adr-002-openbao-first.md) · [Backlog](backlog.md) · [GitHub issues](https://github.com/ephico2real2/openbao-node-poc/issues?q=is%3Aissue+label%3Atype%3Aepic)
 
 **Where this comes from.** [`aws-secrets-manager-node-poc`](https://github.com/ephico2real2/aws-secrets-manager-node-poc)
 took a Node.js app from passwords in a `.env` file to AWS Secrets Manager:
@@ -44,6 +44,6 @@ files and a README. A git tag marks each step.
 
 **Decisions so far:**
 - **A new repo**, rather than a folder in the sibling, so this story can take its own direction.
-- **OpenBao first.** It has an open-source licence (MPL-2.0) and is an OpenSSF project. Vault is covered in B6. ADR-002 (B1) records the facts.
+- **OpenBao first.** It has an open-source licence (MPL-2.0) and is an OpenSSF project. Vault is covered in B6. [ADR-002](03-adr-002-openbao-first.md) records the facts and their sources.
 - **The AWS path stays**, so every change is a visible diff against a known-good baseline.
 - **AWS-only alerting is not copied.** That means SNS, CloudTrail and EventBridge. The same idea comes back in B7, built on OpenBao's audit log.

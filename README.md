@@ -15,18 +15,24 @@ and on **HashiCorp Vault**. AWS Secrets Manager keeps working, behind the same s
 | `SECRETS_PROVIDER` | Secrets manager | Status |
 | --- | --- | --- |
 | `aws` (default) | AWS Secrets Manager (a bundled stand-in locally) | ✅ copied from the sibling repo, CI green |
-| `openbao` | OpenBao: KV v2, then dynamic database credentials, then Kubernetes with External Secrets Operator | 🔜 epics B2 to B5 |
+| `openbao` | OpenBao 2.7.1: KV v2 with AppRole ([step v1](steps/v1-openbao-kv/README.md)) | ✅ step v1 on Docker Compose, CI job `compose (openbao)` |
+| | then dynamic database credentials (B4), then Kubernetes with External Secrets Operator (B5) | 🔜 |
 | `vault` | HashiCorp Vault | 🔜 epic B6 |
 
 **Where the work stands:** [initiative and epics](docs/modernization/README.md) ·
 [GitHub issues](https://github.com/ephico2real2/openbao-node-poc/issues). Each step gets a
 folder in `steps/` and a git tag. The app itself stays one codebase at the root.
+Why OpenBao first: [ADR-002](docs/modernization/03-adr-002-openbao-first.md).
 
-## Run it (today: the AWS path, as in the sibling repo)
+## Run it
 
 ```bash
-docker compose up --build        # http://localhost:3000
+docker compose up --build        # the AWS path, as in the sibling repo: http://localhost:3000
 docker compose down -v           # stop and wipe
+
+# step v1: the same lab on OpenBao
+export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml
+docker compose up --build -d && scripts/compose-check.sh
 ```
 
 - **kind:** `scripts/kind-up.sh && scripts/images-build.sh && scripts/k8s-deploy.sh deploy/k8s/overlays/kind`, then <http://localhost:3000>.
@@ -49,7 +55,8 @@ have every command. [HANDOVER.md](HANDOVER.md) is for a new contributor or AI ag
 | [`backend/`](backend/README.md) | The app (Node.js): secrets cache, rotation-aware clients, logging |
 | [`frontend/`](frontend/README.md) | The dashboard: static files, no build step |
 | [`deploy/`](deploy/README.md) | kind cluster config and Kubernetes overlays (kind, OpenShift, AWS) |
-| [`dev/`](dev/README.md) | Dev/CI only: the AWS Secrets Manager stand-in |
+| [`dev/`](dev/README.md) | Dev/CI only: the AWS Secrets Manager stand-in, and the OpenBao lab server's config |
+| [`steps/`](steps/v1-openbao-kv/README.md) | One folder per step: its Compose overlay and README (v1: OpenBao KV) |
 | [`scripts/`](scripts/README.md) | Set up, run, prove and generate: the same scripts on a laptop and in CI |
 | [`docs/`](docs/README.md) | Learning path, tutorial, guide, test catalogue, reference, the initiative |
 | [`demo/`](demo/README.md) | One page per test case, with CI screenshots |

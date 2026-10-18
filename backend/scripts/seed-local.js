@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // LOCAL DEV ONLY. One-shot bootstrap for docker compose / local runs:
 //
-//  1. Generates random passwords with GetRandomPassword.
-//  2. Stores them as secrets in the (mock) Secrets Manager:
+//  1. Generates random passwords with the secrets manager's own generator.
+//  2. Stores them as secrets in the secrets manager (SECRETS_PROVIDER: the
+//     AWS Secrets Manager stand-in, OpenBao or Vault):
 //       db           app login (least privilege on the notes table)
 //       dbAdmin      Postgres superuser (used only by the demo rotator)
 //       redis        Redis ACL user limited to notes:* keys
@@ -11,18 +12,22 @@
 //  3. Applies them to Postgres and Redis, then "burns" the bootstrap
 //     passwords by rotating the superusers to the new random admin values.
 //
-// After this runs, the only copy of every credential is in Secrets Manager.
+// After this runs, the only copy of every credential is in the secrets manager.
 // Passwords are sent to the servers as hashes (SCRAM verifier / ACL #sha256).
+//
+// On OpenBao / Vault the seed job also plays "whoever provisions the app": it
+// logs in ONCE with the bootstrap AppRole (a secret ID that works one time,
+// from a file), and hands the app its own AppRole secret ID in a file (mode
+// 0400) on a volume only the app mounts. No token or secret ID is in any env.
 
 import pg from 'pg';
 import Redis from 'ioredis';
-import {
-  SecretsManagerClient,
-  CreateSecretCommand,
-  DescribeSecretCommand,
-  GetRandomPasswordCommand,
-} from '@aws-sdk/client-secrets-manager';
+import { existsSync } from 'node:fs';
+import { writeFile, rename } from 'node:fs/promises';
 import { redisPasswordHash, scramSha256Verifier } from '../src/demo/crypto.js';
+import { createAwsStore } from '../src/secrets/aws-store.js';
+import { createBaoClient } from '../src/secrets/bao/client.js';
+import { createKvStore } from '../src/secrets/bao/kv.js';
 import { NOTES_SCHEMA } from '../src/schema.js';
 import { resolveSecretIds } from '../src/secrets/naming.js';
 
@@ -32,7 +37,21 @@ const must = (k) => {
   return env[k];
 };
 
-const sm = new SecretsManagerClient({ region: env.AWS_REGION ?? 'us-east-1', endpoint: must('AWS_MOCK_ENDPOINT') });
+const PROVIDER = (env.SECRETS_PROVIDER ?? 'aws').toLowerCase();
+const NAME = PROVIDER === 'aws' ? 'Secrets Manager' : PROVIDER === 'vault' ? 'Vault' : 'OpenBao';
+let bao; // the seed job's own OpenBao/Vault session (bootstrap AppRole)
+const store =
+  PROVIDER === 'aws'
+    ? createAwsStore({ region: env.AWS_REGION ?? 'us-east-1', endpoint: must('AWS_MOCK_ENDPOINT') })
+    : createKvStore(
+        (bao = createBaoClient({
+          addr: must('BAO_ADDR'),
+          roleId: env.BAO_SEED_ROLE_ID ?? 'secure-notes-seed',
+          secretIdFile: must('BAO_BOOTSTRAP_SECRET_ID_FILE'),
+          scheduleRenewal: false,
+        })),
+        { mount: env.BAO_KV_MOUNT ?? 'secret' },
+      );
 
 // The same names the app will look up: explicit IDs, or the naming convention.
 const naming = resolveSecretIds(env);
@@ -55,19 +74,17 @@ const APP_DB_USER = 'notes_app';
 const APP_REDIS_USER = 'notes-app';
 const DB_NAME = env.DB_NAME ?? 'notes';
 
-async function exists(secretId) {
-  try {
-    await sm.send(new DescribeSecretCommand({ SecretId: secretId }));
-    return true;
-  } catch (err) {
-    if (err.name === 'ResourceNotFoundException') return false;
-    throw err;
-  }
-}
+const randomPassword = () => store.randomPassword();
 
-async function randomPassword() {
-  const r = await sm.send(new GetRandomPasswordCommand({ PasswordLength: 32, ExcludePunctuation: true }));
-  return r.RandomPassword;
+/** OpenBao/Vault: mint the app's AppRole secret ID and hand it over in a file (0400). */
+async function provisionAppSecretId() {
+  const file = must('BAO_APP_SECRET_ID_FILE');
+  const role = env.BAO_APP_ROLE ?? 'secure-notes-app';
+  const out = await bao.request('POST', `auth/approle/role/${role}/secret-id`, { body: { metadata: { issued_by: 'seed' } } });
+  const tmp = `${file}.tmp`;
+  await writeFile(tmp, `${out.data.secret_id}\n`, { mode: 0o400 });
+  await rename(tmp, file); // atomic: the app never reads a half-written file
+  console.log(`[seed] ${NAME}: minted the app's AppRole secret ID (accessor ${out.data.secret_id_accessor.slice(0, 8)}…) into ${file} (mode 0400)`);
 }
 
 async function waitFor(name, fn, tries = 30) {
@@ -82,10 +99,26 @@ async function waitFor(name, fn, tries = 30) {
 }
 
 async function main() {
-  await waitFor('Secrets Manager mock', () => sm.send(new GetRandomPasswordCommand({ PasswordLength: 8 })));
+  if (bao) {
+    // The bootstrap secret ID works once. If it was already spent and the app
+    // has its own secret ID, this stack was seeded on an earlier start.
+    try {
+      await waitFor(NAME, () => bao.login('bootstrap'), 60);
+    } catch (err) {
+      if (/invalid role or secret ID/i.test(err.message) && existsSync(must('BAO_APP_SECRET_ID_FILE'))) {
+        console.log(`[seed] ${NAME}: the bootstrap secret ID is spent and the app has its own; already seeded (reset with: docker compose down -v)`);
+        return;
+      }
+      throw err;
+    }
+    console.log(`[seed] ${NAME}: logged in with the one-time bootstrap AppRole (that secret ID no longer works)`);
+  } else {
+    await waitFor(NAME, () => store.randomPassword());
+  }
 
-  if (await exists(ids.db)) {
+  if (await store.exists(ids.db)) {
     console.log(`[seed] ${ids.db} already exists; nothing to do (reset with: docker compose down -v)`);
+    if (bao) await provisionAppSecretId();
     return;
   }
 
@@ -97,8 +130,7 @@ async function main() {
   };
 
   // --- Secrets first, so a credential is never applied without being recorded.
-  const put = (Name, value, Description) =>
-    sm.send(new CreateSecretCommand({ Name, Description, SecretString: JSON.stringify(value) }));
+  const put = (Name, value, Description) => store.create(Name, value, Description);
   await put(ids.db, { engine: 'postgres', host: appPgHost, port: 5432, dbname: DB_NAME, username: APP_DB_USER, password: pw.db }, 'App login for the notes database');
   await put(ids.dbAdmin, { engine: 'postgres', host: appPgHost, port: 5432, dbname: DB_NAME, username: 'postgres', password: pw.dbAdmin }, 'Postgres superuser (rotation only)');
   await put(ids.redis, { host: appRedisHost, port: 6379, username: APP_REDIS_USER, password: pw.redis }, 'App ACL user for Redis');
@@ -131,8 +163,8 @@ async function main() {
   const { rows } = await admin.query('SELECT count(*)::int AS n FROM notes');
   if (rows[0].n === 0) {
     await admin.query(`INSERT INTO notes (body) VALUES
-      ('Hello! This note came from Postgres using a password the app fetched from Secrets Manager.'),
-      ('Reload the list: the second read is served from Redis, also authenticated with a Secrets Manager credential.')`);
+      (${lit(`Hello! This note came from Postgres using a password the app fetched from ${NAME}.`)}),
+      (${lit(`Reload the list: the second read is served from Redis, also authenticated with a ${NAME} credential.`)})`);
   }
   // Burn the bootstrap password.
   await admin.query(`ALTER ROLE ${admin.escapeIdentifier(env.PG_BOOTSTRAP_USER ?? 'postgres')} WITH PASSWORD ${lit(scramSha256Verifier(pw.dbAdmin))}`);
@@ -158,7 +190,8 @@ async function main() {
   await r.call('ACL', 'SAVE').catch(() => console.log('[seed] redis: no aclfile configured, ACL kept in memory only'));
   r.disconnect();
   console.log('[seed] redis: ACL user created (notes:* keys only); bootstrap password replaced');
-  console.log('[seed] done. Every credential now lives only in Secrets Manager.');
+  if (bao) await provisionAppSecretId();
+  console.log(`[seed] done. Every credential now lives only in ${NAME}.`);
 }
 
 main().catch((err) => {

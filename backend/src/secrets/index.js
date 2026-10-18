@@ -1,14 +1,35 @@
+// One switch, SECRETS_PROVIDER, chooses the secrets manager. Everything above
+// the fetcher (the cache, rotation recovery, masking, the reveal flag) is the
+// same whichever one is chosen.
+//
+//   aws      AWS Secrets Manager   SECRETS_MODE=sdk (default) | agent
+//   openbao  OpenBao               SECRETS_MODE=api (default): KV v2 over HTTP, AppRole login
+//   vault    HashiCorp Vault       the same API and client as openbao
+
 import { SecretsProvider } from './provider.js';
 import { createAgentFetcher, createSdkFetcher } from './fetchers.js';
+import { createBaoClient } from './bao/client.js';
+import { createKvFetcher, createKvStore } from './bao/kv.js';
 
 export { SecretValue } from './SecretValue.js';
 export { Redactor } from './redactor.js';
 
-export function createSecretsProvider({ config, redactor, logger }) {
-  const fetcher =
-    config.secretsMode === 'agent'
-      ? createAgentFetcher({ ...config.agent, logger })
-      : createSdkFetcher({ region: config.region, endpoint: config.awsEndpoint });
+/** The client for openbao/vault, or undefined on aws. Shared by the fetcher and the store. */
+export function createBaoClientFromConfig({ config, redactor, logger }) {
+  if (config.secretsProvider === 'aws') return undefined;
+  return createBaoClient({ ...config.bao, redactor, logger });
+}
+
+export function createSecretsProvider({ config, redactor, logger, baoClient }) {
+  let fetcher;
+  if (config.secretsProvider === 'aws') {
+    fetcher =
+      config.secretsMode === 'agent'
+        ? createAgentFetcher({ ...config.agent, logger })
+        : createSdkFetcher({ region: config.region, endpoint: config.awsEndpoint });
+  } else {
+    fetcher = createKvFetcher(baoClient ?? createBaoClientFromConfig({ config, redactor, logger }), { mount: config.bao.kvMount });
+  }
 
   // In agent mode the agent already caches (default 300s), so keep the
   // in-process cache short; forced refreshes pass refreshNow=true through.
@@ -21,4 +42,13 @@ export function createSecretsProvider({ config, redactor, logger }) {
     redactor,
     logger,
   });
+}
+
+/** The write side (seed job, demo rotator). */
+export async function createSecretsStore({ config, baoClient }) {
+  if (config.secretsProvider === 'aws') {
+    const { createAwsStore } = await import('./aws-store.js');
+    return createAwsStore({ region: config.region, endpoint: config.awsEndpoint });
+  }
+  return createKvStore(baoClient, { mount: config.bao.kvMount });
 }

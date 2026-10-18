@@ -1,0 +1,82 @@
+# Step v1: the same lab on OpenBao (KV v2, AppRole), instead of the AWS stand-in.
+# Layered on the root docker-compose.yml (paths resolve from the repo root):
+#
+#   export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml
+#   docker compose up --build -d          # http://localhost:3000
+#   scripts/compose-check.sh
+#
+# What changes: an `openbao` server joins; the app and the seed job get
+# SECRETS_PROVIDER=openbao; the AWS stand-in is not started. What does not
+# change: Postgres, Redis, the app's image, the dashboard, the checks.
+# Needs Docker Compose 2.24 or later (`!override`).
+
+services:
+  openbao:
+    image: docker.io/openbao/openbao:2.7.1
+    entrypoint: ["/bin/sh", "/lab/entrypoint.sh"]
+    volumes:
+      - ./dev/openbao/entrypoint.sh:/lab/entrypoint.sh:ro
+      - ./dev/openbao/config.hcl:/etc/openbao/config.hcl:ro
+      - bao-data:/openbao/file           # raft storage + the lab's static seal key
+      - bao-logs:/openbao/logs           # the audit log (values HMAC'd)
+      - bao-bootstrap:/openbao/config    # the seed job's one-time secret ID
+    ports:
+      - "127.0.0.1:8200:8200" # loopback only: `bao` CLI from your machine
+    healthcheck:
+      test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
+      interval: 2s
+      retries: 30
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # Not used on this step; started only with --profile aws.
+  aws-mock:
+    profiles: [aws]
+
+  seed:
+    environment: !override
+      SECRETS_PROVIDER: openbao
+      BAO_ADDR: http://openbao:8200
+      BAO_BOOTSTRAP_SECRET_ID_FILE: /bao-bootstrap/seed-secret-id
+      BAO_APP_SECRET_ID_FILE: /home/node/bao-secret-id
+      SECRETS_ENV: dev
+      DB_SECRET_RESOURCE: notes-db
+      REDIS_SECRET_RESOURCE: notes-cache
+      SEED_PG_HOST: postgres
+      SEED_REDIS_HOST: redis
+      PG_BOOTSTRAP_PASSWORD: ${PG_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+      REDIS_BOOTSTRAP_PASSWORD: ${REDIS_BOOTSTRAP_PASSWORD:-bootstrap-only-change-me}
+    volumes:
+      - bao-bootstrap:/bao-bootstrap:ro
+      - bao-app-auth:/home/node          # the app's secret ID is written here (mode 0400)
+    depends_on: !override
+      openbao: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  app:
+    environment: !override
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DEMO_MODE: "true"
+      SECRETS_PROVIDER: openbao
+      SECRETS_MODE: api
+      BAO_ADDR: http://openbao:8200
+      BAO_ROLE_ID: secure-notes-app                   # like a username: not a secret
+      BAO_SECRET_ID_FILE: /home/node/bao-secret-id   # the secret: a file, never env
+      SECRETS_ENV: dev
+      DB_SECRET_RESOURCE: notes-db
+      REDIS_SECRET_RESOURCE: notes-cache
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      LOG_REVEAL_SECRETS: ${LOG_REVEAL_SECRETS:-false}
+    volumes:
+      - bao-app-auth:/home/node:ro
+    depends_on: !override
+      seed: { condition: service_completed_successfully }
+
+volumes:
+  bao-data:
+  bao-logs:
+  bao-bootstrap:
+  bao-app-auth:

@@ -1,6 +1,6 @@
 # Run and Deploy Secure Notes — Step-by-Step Guide
 
-_Last updated October 17, 2026. The [README](../README.md) is the short version; this guide walks through every step._
+_Last updated October 18, 2026. The [README](../README.md) is the short version; this guide walks through every step._
 
 Secure Notes runs three ways, all from the same two container images: on your laptop with Docker Compose, on Kubernetes or OpenShift, and on AWS on an EC2 server. Pick the part that matches where you want to run it; you don't need to do them in order.
 
@@ -76,6 +76,16 @@ docker compose -f docker-compose.yml -f docker-compose.agent.yml up --build
 ```
 
 The dashboard looks the same, and **Secrets in memory** shows `mode: agent`. The agent only answers requests that carry its token, which only it and the app can read.
+
+**Optional: the same lab on OpenBao (step v1).** Swap the Secrets Manager stand-in for a real OpenBao server. The app logs in with AppRole, and reads its secret ID from a file:
+
+```bash
+docker compose down -v
+export COMPOSE_FILE=docker-compose.yml:steps/v1-openbao-kv/compose.yaml
+docker compose up --build -d && scripts/compose-check.sh
+```
+
+**Check:** the dashboard's header says **OpenBao**. `compose-check.sh` prints its OpenBao lines (logged in as `secure-notes-app`, the secret ID file is mode 0400, the bootstrap secret ID is spent), then ends with the credential scan's `no credential value found anywhere it must not be`. Run `unset COMPOSE_FILE` to go back to the AWS path. The [step README](../steps/v1-openbao-kv/README.md) explains each part.
 
 **What that one command started:**
 
@@ -238,7 +248,7 @@ Every push to the repository runs Part A and Part B1 (kind) on a GitHub runner, 
 ```mermaid
 flowchart LR
   checks["checks<br/>unit tests, lint,<br/>schemas"] --> build["build<br/>compose build, once<br/>SBOM + CVE scan"]
-  build --> compose["compose (sdk, agent)<br/>Part A, both secrets modes"]
+  build --> compose["compose (sdk, agent, openbao)<br/>Part A: both AWS modes,<br/>and step v1 on OpenBao"]
   build --> kind["kind<br/>B1 · Pod Security restricted"]
   build --> mirror["mirror<br/>all images to another registry"]
   compose --> images["images<br/>main only: push,<br/>sign, attest SBOM"]
@@ -251,6 +261,7 @@ flowchart LR
 | `checks` | Part A, step 3 | Unit tests with the real Postgres, Redis and AWS SDK libraries; every script and workflow lints clean; every Kustomize overlay renders and matches its schema |
 | `build` | `docker compose build` | Builds the two images once, lists every package in them (an SBOM) and fails if any has a critical vulnerability that already has a fix, then hands them to every later job |
 | `compose (sdk)`, `compose (agent)` | Part A | The stack starts, the startup passwords stop working, and the end-to-end test passes. It runs twice: once as normal, and once with the app reading its secrets through a local agent (agent mode), which must refuse any request without its token. |
+| `compose (openbao)` | Part A, step v1 | The same on a real OpenBao server: the app logs in with its own AppRole identity, its secret ID is a mode-0400 file, the seed's bootstrap secret ID is spent, its policy refuses other paths, and no value or secret ID is outside OpenBao (its audit log holds only HMACs) |
 | `kind` | B1 | The same under Pod Security `restricted`: who each container runs as, that no app credential is a Kubernetes Secret, that Postgres only received password hashes, and the end-to-end test |
 | mirror | B2, no internet | The mirror script copies all four images into a throwaway registry, and the overlay it generates pulls only from there |
 | `v0-leak` | [`versions/v0-env-file`](../versions/v0-env-file/README.md) | The original `.env` app still leaks its passwords (the "before" picture) |
