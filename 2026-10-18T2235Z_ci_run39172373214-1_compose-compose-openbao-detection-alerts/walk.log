@@ -1,0 +1,1 @@
+07-alert-console: found "Alert console", "SecretReadByUnexpectedIdentity", "An app credential was read by 'ops-admin', not by the app", "secret/data/rds/dev/notes-db/app" — expectations met
