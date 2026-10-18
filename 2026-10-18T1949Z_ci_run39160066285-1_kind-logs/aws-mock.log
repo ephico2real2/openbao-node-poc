@@ -1,0 +1,91 @@
+[aws-mock] Secrets Manager + STS mock on http://0.0.0.0:4566
+[aws-mock] secretsmanager:GetSecretValue -> ResourceNotFoundException
+[aws-mock] secretsmanager:GetSecretValue -> ResourceNotFoundException
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:DescribeSecret -> ResourceNotFoundException
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:CreateSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:CreateSecret /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:CreateSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:CreateSecret /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:PutSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:UpdateSecretVersionStage /rds/dev/notes-db/app
+[aws-mock] secretsmanager:UpdateSecretVersionStage /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:PutSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:UpdateSecretVersionStage /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:UpdateSecretVersionStage /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:PutSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:UpdateSecretVersionStage /rds/dev/notes-db/app
+[aws-mock] secretsmanager:UpdateSecretVersionStage /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetRandomPassword
+[aws-mock] secretsmanager:PutSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:UpdateSecretVersionStage /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:UpdateSecretVersionStage /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] sts:GetCallerIdentity -> arn:aws:sts::000000000000:assumed-role/secure-notes-app/i-0local
+[aws-mock] secretsmanager:ListSecrets
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/app
+[aws-mock] secretsmanager:DescribeSecret /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:GetSecretValue /rds/dev/notes-db/admin
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/app
+[aws-mock] secretsmanager:DescribeSecret /elasticache/dev/notes-cache/admin
+[aws-mock] secretsmanager:GetSecretValue /elasticache/dev/notes-cache/admin
