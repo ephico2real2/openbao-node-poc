@@ -1,0 +1,13 @@
+== v0: where the passwords can be read (anyone with access to the host or the runtime)
+  LEAK  the .env file itself                                       3 occurrence(s)
+  LEAK  docker compose config (the whole resolved deployment)      8 occurrence(s)
+  LEAK  app: exec env                                              3 occurrence(s)
+  LEAK  app: /proc/1/environ (the process environment)             3 occurrence(s)
+  LEAK  app: inspect (no shell needed)                             3 occurrence(s)
+  LEAK  app: its own log (connection strings)                      2 occurrence(s)
+  LEAK  redis: inspect (password on the command line)              3 occurrence(s)
+  -     redis: ps inside the container                             none
+  LEAK  postgres: exec env                                         3 occurrence(s)
+
+8 of 9 places expose a password. In the redesign the same checks find none:
+see scripts/credential-scan.sh and docs/learn/02-the-env-file-problem.md.
