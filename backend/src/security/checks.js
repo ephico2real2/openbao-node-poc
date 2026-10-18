@@ -9,7 +9,7 @@ import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 const SUSPICIOUS_NAME = /(PASSWORD|PASSWD|SECRET|TOKEN|PRIVATE_KEY|API_KEY|CREDENTIAL)/i;
 // Names that look sensitive but only hold identifiers, paths or settings.
 // The naming-convention parts (DB_SECRET_RESOURCE, SECRETS_NAME_PATTERN, SECRETS_ENV…) are names too.
-const BENIGN_NAME = /(_ID|_ARN|_FILE|_PATH|_SECONDS|_TTL|_MODE|_NAME|_RESOURCE|_SERVICE|_PATTERN|_ENV|_ENVS|_APP|_PROVIDER)$/i;
+const BENIGN_NAME = /(_ID|_ARN|_FILE|_PATH|_DIR|_SECONDS|_TTL|_MODE|_NAME|_RESOURCE|_SERVICE|_PATTERN|_ENV|_ENVS|_APP|_PROVIDER)$/i;
 // A switch is not a credential: LOG_REVEAL_SECRETS=false names a secret but holds none.
 const SWITCH_VALUE = /^(true|false|yes|no|on|off|0|1)$/i;
 
@@ -31,6 +31,11 @@ async function probeImds() {
   } catch {
     return null;
   }
+}
+
+/** A variable whose NAME suggests a credential (and isn't an ID, path, switch or setting). */
+export function looksLikeCredential(name, value) {
+  return Boolean(value) && SUSPICIOUS_NAME.test(name) && !BENIGN_NAME.test(name) && !SWITCH_VALUE.test(value);
 }
 
 export async function runSecurityChecks({ config, redactor, provider, logSinks = {}, baoClient }) {
@@ -70,7 +75,7 @@ export async function runSecurityChecks({ config, redactor, provider, logSinks =
 
   // 3. Secrets in environment variables
   const flagged = Object.entries(env)
-    .filter(([k, v]) => v && !k.startsWith('AWS_') && (redactor.contains(v) || (SUSPICIOUS_NAME.test(k) && !BENIGN_NAME.test(k) && !SWITCH_VALUE.test(v))))
+    .filter(([k, v]) => v && !k.startsWith('AWS_') && (redactor.contains(v) || looksLikeCredential(k, v)))
     .map(([k]) => k);
   if (flagged.length) {
     add('env-secrets', 'No credentials in environment variables', 'fail', `Suspicious variables: ${flagged.join(', ')}. Env vars leak through /proc/<pid>/environ, child processes and crash reports.`);

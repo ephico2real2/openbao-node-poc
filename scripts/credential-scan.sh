@@ -95,7 +95,9 @@ let d = '';
 process.stdin.on('data', (c) => (d += c)).on('end', () => {
   const vals = d.split('\n').filter(Boolean);
   // SKIP_DIR: file mode's mounted Secret, which holds the values by design (reported separately).
-  const skip = new Set(['/proc', '/sys', '/dev', ...(process.env.SKIP_DIR ? [process.env.SKIP_DIR] : [])]);
+  // realpath: on Alpine /var/run is a symlink to /run, and the walk does not follow symlinks.
+  const real = (p) => { try { return fs.realpathSync(p); } catch { return p; } };
+  const skip = new Set(['/proc', '/sys', '/dev', ...(process.env.SKIP_DIR ? [real(process.env.SKIP_DIR)] : [])]);
   const hits = []; let files = 0;
   const walk = (p) => {
     let st; try { st = fs.lstatSync(p); } catch { return; }
@@ -198,6 +200,7 @@ if [ "$TARGET" = compose ]; then
   report "app: process environment values (/proc/1/environ)" "$(dc exec -T app cat /proc/1/environ | tr '\0' '\n' | hits)"
   fsr=$(dc exec -T app node -e "$FSWALK" < "$VALS")
   report "app: every readable file ($(echo "$fsr" | jq .files) files)" "$(echo "$fsr" | jq '.hits | length')"
+  echo "$fsr" | jq -r '.hits[:3][] | "        in " + .' # where (paths only, never values)
   # The databases should hold only hashes: SCRAM verifiers in Postgres, #sha256 in the Redis ACL file.
   report "postgres: data directory and config (plaintext passwords?)" "$(dc exec -T postgres sh -c 'grep -rhoF -f - /var/lib/postgresql/data /etc/postgresql 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
   report "redis: data and ACL files (plaintext passwords?)" "$(dc exec -T redis sh -c 'grep -rhoF -f - /data /etc 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
@@ -245,6 +248,7 @@ else
   fsr=$($K -n "$NS" exec -i deploy/secure-notes -- env SKIP_DIR="${FILEDIR:-}" node -e "$FSWALK" < "$VALS")
   [ -n "${FILEDIR:-}" ] && echo "  info  $FILEDIR (the mounted Secret) holds the values by design in file mode; every other file is searched"
   report "app: every readable file ($(echo "$fsr" | jq .files) files)" "$(echo "$fsr" | jq '.hits | length')"
+  echo "$fsr" | jq -r '.hits[:3][] | "        in " + .' # where (paths only, never values)
   report "postgres pod: data directory (plaintext passwords?)" "$($K -n "$NS" exec -i deploy/postgres -- sh -c 'grep -rhoF -f - /var/lib/postgresql/data 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
   report "redis pod: data and ACL files (plaintext passwords?)" "$($K -n "$NS" exec -i deploy/redis -- sh -c 'grep -rhoF -f - /data /etc 2>/dev/null' < "$VALS" | wc -l | tr -d ' ')"
   echo "-- logs (every container, current and previous)"
