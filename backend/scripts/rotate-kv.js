@@ -19,7 +19,7 @@ import pg from 'pg';
 import { createBaoClient } from '../src/secrets/bao/client.js';
 import { createKvStore } from '../src/secrets/bao/kv.js';
 import { scramSha256Verifier } from '../src/demo/crypto.js';
-import { resolveSecretIds } from '../src/secrets/naming.js';
+import { resolveStoredSecretIds } from '../src/secrets/naming.js';
 
 const env = process.env;
 const must = (k) => {
@@ -28,7 +28,7 @@ const must = (k) => {
 };
 
 async function main() {
-  const ids = resolveSecretIds({ ...env, DB_SECRET_ID: undefined, REDIS_SECRET_ID: undefined }).ids;
+  const ids = resolveStoredSecretIds(env).ids;
   const bao = createBaoClient({
     addr: must('BAO_ADDR'),
     auth: 'kubernetes',

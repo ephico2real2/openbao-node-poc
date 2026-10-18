@@ -1,7 +1,7 @@
 // The secret naming convention: patterns, presets, precedence, config files.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderSecretName, resolveSecretIds, parseSimpleYaml, loadConfigFile, PRESETS } from '../src/secrets/naming.js';
+import { renderSecretName, resolveSecretIds, resolveStoredSecretIds, parseSimpleYaml, loadConfigFile, PRESETS } from '../src/secrets/naming.js';
 
 const files = (map) => (p) => {
   if (!(p in map)) throw Object.assign(new Error(`ENOENT: ${p}`), { code: 'ENOENT' });
@@ -103,3 +103,15 @@ test('a config file must not hold credentials, and the YAML subset is strict', (
   assert.throws(() => parseSimpleYaml('a: 1\na: 2\n'), /appears twice/);
   assert.throws(() => loadConfigFile('/x.toml', () => ''), /unsupported/);
 });
+
+test('stored secret names ignore the app\'s dynamic IDs and file names (seed job, rotation, credential scan)', () => {
+  const base = { SECRETS_ENV: 'dev', DB_SECRET_RESOURCE: 'notes-db', REDIS_SECRET_RESOURCE: 'notes-cache' };
+  const conv = { db: '/rds/dev/notes-db/app', redis: '/elasticache/dev/notes-cache/app', dbAdmin: '/rds/dev/notes-db/admin', redisAdmin: '/elasticache/dev/notes-cache/admin' };
+  // step v2: dynamic users
+  assert.deepEqual(resolveStoredSecretIds({ ...base, DB_SECRET_ID: 'database/creds/notes-app', REDIS_SECRET_ID: 'database/creds/notes-cache' }).ids, conv);
+  // step v3 file mode: file names in SECRETS_DIR (CI run 39166833211: the seed wrote secret/data/db and got 403)
+  assert.deepEqual(resolveStoredSecretIds({ ...base, SECRETS_MODE: 'file', DB_SECRET_ID: 'db', REDIS_SECRET_ID: 'redis' }).ids, conv);
+  // an explicit stored ID still wins
+  assert.equal(resolveStoredSecretIds({ ...base, DB_SECRET_ID: '/custom/db' }).ids.db, '/custom/db');
+});
+

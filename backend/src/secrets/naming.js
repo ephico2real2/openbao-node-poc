@@ -189,3 +189,18 @@ export function resolveSecretIds(env = process.env, { read } = {}) {
   }
   return out;
 }
+
+/**
+ * The STORED secrets (KV / Secrets Manager) of the naming convention, for the
+ * jobs that write or rotate them: the seed job, rotate-kv.js, the credential
+ * scan. DB_SECRET_ID / REDIS_SECRET_ID are ignored when they are the app's
+ * other way in rather than a stored secret: a dynamic user
+ * (database/creds/<role>, step v2) or a file name in SECRETS_DIR
+ * (SECRETS_MODE=file, step v3).
+ */
+export function resolveStoredSecretIds(env = process.env, opts) {
+  const fileMode = (env.SECRETS_MODE ?? '').toLowerCase() === 'file';
+  const keep = (v) => (v && !fileMode && !/(^|\/)creds\//.test(v) ? v : undefined);
+  return resolveSecretIds({ ...env, DB_SECRET_ID: keep(env.DB_SECRET_ID), REDIS_SECRET_ID: keep(env.REDIS_SECRET_ID) }, opts);
+}
+

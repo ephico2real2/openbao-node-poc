@@ -72,12 +72,9 @@ const c = createBaoClient({ ...b, scheduleRenewal: false });
 const sensitive = (k) => /pass|secret|token|key/i.test(k) && !/(id|arn)$/i.test(k);
 const out = new Set();
 const walk = (o) => { for (const [k, v] of Object.entries(o)) { if (typeof v === 'string' && sensitive(k) && v.length >= 8) out.add(v); else if (v && typeof v === 'object') walk(v); } };
-const { resolveSecretIds } = await import('/app/backend/src/secrets/naming.js');
-// Every stored (KV) secret of the naming convention; a dynamic ID (database/creds/...)
-// has no stored value, so the conventional KV names are used for those slots.
-const dyn = (v) => /(^|\/)creds\//.test(v ?? '');
-const env = process.env;
-const named = resolveSecretIds({ ...env, DB_SECRET_ID: dyn(env.DB_SECRET_ID) ? undefined : env.DB_SECRET_ID, REDIS_SECRET_ID: dyn(env.REDIS_SECRET_ID) ? undefined : env.REDIS_SECRET_ID }).ids;
+const { resolveStoredSecretIds } = await import('/app/backend/src/secrets/naming.js');
+// Every stored (KV) secret of the naming convention (a dynamic ID has no stored value).
+const named = resolveStoredSecretIds(process.env).ids;
 const ids = [...new Set(Object.values(named).filter(Boolean))];
 for (const id of ids) {
   for (const p of [id.replace(/^\/+/, ''), `${id.replace(/^\/+/, '')}/pending`]) {

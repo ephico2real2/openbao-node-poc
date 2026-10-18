@@ -35,7 +35,7 @@ import { createAwsStore } from '../src/secrets/aws-store.js';
 import { createBaoClient } from '../src/secrets/bao/client.js';
 import { createKvStore } from '../src/secrets/bao/kv.js';
 import { NOTES_SCHEMA } from '../src/schema.js';
-import { resolveSecretIds } from '../src/secrets/naming.js';
+import { resolveStoredSecretIds } from '../src/secrets/naming.js';
 
 const env = process.env;
 const must = (k) => {
@@ -73,10 +73,9 @@ const store =
       );
 
 // The same names the app will look up: explicit IDs, or the naming convention.
-// A dynamic ID (database/creds/<role>, step v2) is the APP's way in; the seed
-// job still writes the stored secrets of the naming convention.
-const isDyn = (v) => /(^|\/)creds\//.test(v ?? '');
-const naming = resolveSecretIds({ ...env, DB_SECRET_ID: isDyn(env.DB_SECRET_ID) ? undefined : env.DB_SECRET_ID, REDIS_SECRET_ID: isDyn(env.REDIS_SECRET_ID) ? undefined : env.REDIS_SECRET_ID });
+// The stored secrets of the naming convention: a dynamic ID (step v2) or a
+// file name (SECRETS_MODE=file, step v3) is the APP's way in, not a stored secret.
+const naming = resolveStoredSecretIds(env);
 if (naming.error) throw new Error(naming.error);
 const ids = naming.ids;
 for (const k of ['db', 'dbAdmin', 'redis', 'redisAdmin']) {
