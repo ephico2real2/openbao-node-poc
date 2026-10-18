@@ -93,20 +93,24 @@ test('kubernetes auth: logs in with the projected token from its file, re-read a
     if (req.url === '/v1/auth/kubernetes/login') return [200, { auth: { client_token: `tok-k8s-${calls.length}-abcdefgh`, lease_duration: 900, renewable: true, policies: ['secure-notes-app'] } }];
     return [404, {}];
   });
-  const file = secretFile('eyJhbGciOiJSUzI1NiJ9.e30.sig-one');
-  const redactor = new Redactor();
-  const client = createBaoClient({ addr, auth: 'kubernetes', k8sRole: 'secure-notes-app', k8sTokenFile: file, redactor, scheduleRenewal: false });
-  await client.login();
-  assert.deepEqual(calls[0].body, { role: 'secure-notes-app', jwt: 'eyJhbGciOiJSUzI1NiJ9.e30.sig-one' });
-  writeFileSync(file, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-two', { mode: 0o600 }); // rotated in place
-  await client.login('forbidden');
-  assert.equal(calls[1].body.jwt, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-two');
-  assert.equal(redactor.scrubString('x eyJhbGciOiJSUzI1NiJ9.e30.sig-two'), 'x [REDACTED]');
-  const st = client.status();
-  assert.equal(st.authMethod, 'kubernetes (kubernetes)');
-  assert.equal(st.roleId, 'secure-notes-app');
-  assert.equal(st.secretIdFile, undefined);
-  srv.close();
+  try {
+    const file = join(mkdtempSync(join(tmpdir(), 'sa-')), 'token');
+    writeFileSync(file, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-one');
+    const redactor = new Redactor();
+    const client = createBaoClient({ addr, auth: 'kubernetes', k8sRole: 'secure-notes-app', k8sTokenFile: file, redactor, scheduleRenewal: false });
+    await client.login();
+    assert.deepEqual(calls[0].body, { role: 'secure-notes-app', jwt: 'eyJhbGciOiJSUzI1NiJ9.e30.sig-one' });
+    writeFileSync(file, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-two'); // the kubelet rotated it in place
+    await client.login('forbidden');
+    assert.equal(calls[1].body.jwt, 'eyJhbGciOiJSUzI1NiJ9.e30.sig-two');
+    assert.equal(redactor.scrubString('x eyJhbGciOiJSUzI1NiJ9.e30.sig-two'), 'x [REDACTED]');
+    const st = client.status();
+    assert.equal(st.authMethod, 'kubernetes (kubernetes)');
+    assert.equal(st.roleId, 'secure-notes-app');
+    assert.equal(st.secretIdFile, undefined);
+  } finally {
+    srv.close(); // always: an open server would keep the test process (and CI) waiting
+  }
 });
 
 test('a missing secret ID file is a clear error, not a request with an empty secret', async () => {

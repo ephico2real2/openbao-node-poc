@@ -12,7 +12,7 @@
     "start": "node src/server.js",
     "seed:local": "node scripts/seed-local.js",
     "smoke": "node scripts/smoke-test.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test --test-timeout=120000 test/*.test.js"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.700.0",
