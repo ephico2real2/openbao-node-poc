@@ -83,6 +83,8 @@ immediately the current version. So the demo rotator
 | testSecret | log in with the pending value (unchanged) |
 | finishSecret | write it as the next version of `<name>` with `cas` = the version the rotation started from, then delete `<name>/pending`. A rotation that raced another one fails instead of overwriting it |
 
+![The dashboard on OpenBao, captured by CI: a Postgres rotation, Postgres rejecting the stale password, the app picking up KV version 2 and recovering](../../docs/images/openbao-rotation-and-recovery.png)
+
 **Check:** on the dashboard, click **Rotate Postgres secret**, then **Drop connections**.
 The rotation's four steps appear in the event log. Then come `auth-failed`, `new-version`
 and `recovered`, and the secret's version number goes up by one.
@@ -111,6 +113,43 @@ It then searches every container's config and log, and the app's environment, fo
 The CI job `compose (openbao)` runs all of this, plus the reveal flag: with
 `LOG_REVEAL_SECRETS=true`, the values must show up in the app's log and nowhere else. Its
 output goes to the job summary and the `ci-captures` branch.
+
+From CI run [39161016646](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39161016646) ([full output](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2001Z_ci_run39161016646-1_compose-openbao-logs/compose-check.txt)), the OpenBao part
+and the scan's summary:
+
+```text
+== secrets provider: openbao, mode: api
+  ok    the app is logged in to OpenBao as role 'secure-notes-app' (policies: default,secure-notes-app)
+  ok    /api/config shows the login state, never the token
+  ok    the app's secret ID file is mode 0400, owned by the app user
+  ok    no token or secret ID in the app's environment
+  ok    the seed's bootstrap secret ID is spent (single use)
+  ok    the app's policy refuses a path outside its own (403)
+  ok    the audit log recorded 52 KV request/response entries
+…
+  ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)
+  ok    security posture: no check fails  (14 checks, none failing)
+…
+== credential scan (compose): searching for 8 secret values from OpenBao, read as the app's AppRole identity (every version); the values are never printed
+…
+  ok    openbao: audit log (values must be HMAC'd)                     clean
+  ok    openbao: raft storage, seal key, config, /tmp (plaintext?)     clean
+…
+-- the AppRole secret IDs (2: the app's and the seed's spent bootstrap one)
+  ok    every container's config (env, command, labels)                clean
+  ok    every container's log (the app log too, even when revealing)   clean
+  ok    app: process environment values (/proc/1/environ)              clean
+  ok    openbao: audit log                                             clean
+…
+credential-scan: no credential value found anywhere it must not be
+```
+
+With the reveal flag on ([output](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2001Z_ci_run39161016646-1_compose-openbao-logs/credential-scan-revealed.txt)), the scan finds the values in the app's log, and only there:
+
+```text
+  ok    app: log                                                       FOUND 4 (expected: LOG_REVEAL_SECRETS=true)
+credential-scan: no credential value found anywhere it must not be
+```
 
 ## Lab only
 

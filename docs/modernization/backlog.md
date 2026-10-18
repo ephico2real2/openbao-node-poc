@@ -80,24 +80,24 @@ Evidence: [backend/src/secrets/aws-store.js](../../backend/src/secrets/aws-store
 
 ### B3 — OpenBao KV on Docker Compose (steps/v1-openbao-kv)
 
-[#12](https://github.com/ephico2real2/openbao-node-poc/issues/12) · 🔜 · **Outcome:** The full lab runs on OpenBao: seed, rotation without restart, leak test, credential scan, reveal flag. Docs: [initiative](README.md)
+[#12](https://github.com/ephico2real2/openbao-node-poc/issues/12) · ✅ · **Outcome:** The full lab runs on OpenBao: seed, rotation without restart, leak test, credential scan, reveal flag. Docs: [initiative](README.md)
 
-**S3.1 · OpenBao with no manual steps** · M · 🔜 · [#13](https://github.com/ephico2real2/openbao-node-poc/issues/13)
+**S3.1 · OpenBao with no manual steps** · M · ✅ · [#13](https://github.com/ephico2real2/openbao-node-poc/issues/13)
 *As a learner, I want OpenBao to start initialised and unsealed, so that I can focus on the app.*
 - [x] Static seal and self-init (dev/openbao/config.hcl); KV v2, AppRole and policies created at start.
 - [x] A file audit device; its log shows HMACs, never values.
 - [x] Secret zero: the seed job's bootstrap secret ID is generated at first start and is single-use; it mints the app's secret ID into a mode-0400 file.
 
-Evidence: [dev/openbao/config.hcl](../../dev/openbao/config.hcl), [dev/openbao/entrypoint.sh](../../dev/openbao/entrypoint.sh), [steps/v1-openbao-kv/README.md](../../steps/v1-openbao-kv/README.md), backend/test/bao.test.js against the real server: the bootstrap works once; the audit log holds no value
+Evidence: [dev/openbao/config.hcl](../../dev/openbao/config.hcl), [dev/openbao/entrypoint.sh](../../dev/openbao/entrypoint.sh), [steps/v1-openbao-kv/README.md](../../steps/v1-openbao-kv/README.md), backend/test/bao.test.js against the real server: the bootstrap works once; the audit log holds no value, CI run [39161016646](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39161016646) compose (openbao): the seed's bootstrap secret ID is spent; the audit log recorded 52 KV entries and holds no value or secret ID
 
-**S3.2 · The lab on OpenBao** · M · 🔜 · [#14](https://github.com/ephico2real2/openbao-node-poc/issues/14)
+**S3.2 · The lab on OpenBao** · M · ✅ · [#14](https://github.com/ephico2real2/openbao-node-poc/issues/14)
 *As a presenter, I want every existing demo to work on OpenBao, so that the comparison is fair.*
-- [ ] Rotate from the dashboard: auth-failed → new-version → recovered.
-- [ ] Leak test 0 of 6; credential scan clean, including the OpenBao container and its audit log.
-- [ ] CI job compose (openbao) with captures.
-- [ ] The reveal flag on OpenBao: the values appear in the app log only; the AppRole secret IDs appear nowhere.
+- [x] Rotate from the dashboard: auth-failed → new-version → recovered.
+- [x] Leak test 0 of 6; credential scan clean, including the OpenBao container and its audit log.
+- [x] CI job compose (openbao) with captures.
+- [x] The reveal flag on OpenBao: the values appear in the app log only; the AppRole secret IDs appear nowhere.
 
-Evidence: [steps/v1-openbao-kv/compose.yaml](../../steps/v1-openbao-kv/compose.yaml), [scripts/compose-check.sh](../../scripts/compose-check.sh), [scripts/credential-scan.sh](../../scripts/credential-scan.sh)
+Evidence: CI run [39161016646](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39161016646): compose (openbao) green — rotation db and redis to version 3, recovered: db, redis; 6 attempts, 0 leaks; 14 posture checks, none failing, [compose-check.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2001Z_ci_run39161016646-1_compose-openbao-logs/compose-check.txt): 8 values from OpenBao (every version), clean everywhere incl. the audit log and raft storage; both AppRole secret IDs clean, [credential-scan-revealed.txt](https://github.com/ephico2real2/openbao-node-poc/tree/ci-captures/2026-10-18T2001Z_ci_run39161016646-1_compose-openbao-logs/credential-scan-revealed.txt): app log FOUND 4 with LOG_REVEAL_SECRETS=true, clean elsewhere, [steps/v1-openbao-kv/README.md](../../steps/v1-openbao-kv/README.md)
 
 ### B4 — Dynamic credentials and leases (steps/v2-openbao-dynamic)
 

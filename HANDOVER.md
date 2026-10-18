@@ -30,7 +30,7 @@ approved plan's decisions are summarised there.
 | B0 | Seed: the app copied with the AWS path kept, AWS-only alerting removed, CI green | ✅ done (first CI run 39155150999, all jobs green) |
 | B1 | ADR-002: OpenBao first, Vault second, accurate facts | ✅ [ADR-002](docs/modernization/03-adr-002-openbao-first.md), facts checked 2026-10-18 |
 | B2 | Provider switch: `SECRETS_PROVIDER`, the OpenBao client and KV fetcher/store, AppRole with the secret ID in a file | ✅ AppRole done; Kubernetes auth comes with B5, `SECRETS_MODE=file` with B5 |
-| B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | ✅ CI job `compose (openbao)`; the tag `v2-openbao-kv` is for the owner to cut |
+| B3 | `steps/v1-openbao-kv`: the whole lab on OpenBao (Compose) | ✅ CI run 39161016646, every job green including `compose (openbao)`; the tag `v2-openbao-kv` is for the owner to cut |
 | B4 | `steps/v2-openbao-dynamic`: leases, dynamic Postgres users, Valkey | to do |
 | B5 | `steps/v3-k8s`: OpenBao Helm, External Secrets Operator, a watched volume, OpenShift | to do |
 | B6 | `steps/v4-vault`: the same app on Vault | to do |

@@ -93,8 +93,6 @@ fi
 echo "== end-to-end smoke test"
 node backend/scripts/smoke-test.js "$BASE" || fails=$((fails + 1))
 
-echo "== alerts: the local SNS, the stack's unexpected-read rule, the app's notifications"
-
 # After the smoke test: its rotations and its leak test have run, so the logs
 # hold every place a password could have slipped into.
 echo "== the actual credential values, searched for in every container, file and log"
