@@ -1,0 +1,13 @@
+== the app reads its own secret
+  the app read secret/data/rds/dev/notes-db/app 3 times
+  ok    the log store has the app's 3 reads, so the rule has looked at them
+  ok    no alert: the app reading its own secret is normal
+== ops-admin reads the same secret
+  [intruder] read secret/data/rds/dev/notes-db/app as role ops-admin: version 1 (value not printed)
+  ok    alert SecretReadByUnexpectedIdentity after 8 s: role ops-admin, path secret/data/rds/dev/notes-db/app
+  ok    the alert names the role that read it
+== the log store
+  ok    VictoriaLogs holds 25 audit response line(s)
+  ok    the password is in no log line in VictoriaLogs (the audit log HMACs it)
+test-detection: all passed
+rm: cannot remove '/tmp/tmp.UZa1iePlVP/vl/partitions/20261018/datadb': Directory not empty
