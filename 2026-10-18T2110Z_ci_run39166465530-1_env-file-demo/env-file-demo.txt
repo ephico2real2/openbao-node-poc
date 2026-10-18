@@ -1,0 +1,134 @@
+# Part 1: a generic app started with --env-file (podman 4.9.3)
+
+## The .env file
+
+$ cat demo/env-file-demo/generic-app.env
+# A typical .env file: every value below is a credential.
+# EXAMPLE VALUES ONLY — used by scripts/env-file-demo.sh to show who can read them.
+DB_HOST=db.internal
+DB_USER=notes_app
+DB_PASSWORD=Example-Only-Pa55w0rd
+REDIS_URL=redis://:Example-Only-R3dis@cache.internal:6379
+API_KEY=sk_test_EXAMPLE_ONLY_4f9a2c7e
+
+
+## 1. Start it headless (-d), removed when it stops (--rm)
+
+$ podman run -q -d --rm --name envdemo --env-file demo/env-file-demo/generic-app.env docker.io/library/alpine:3.20 sleep 600
+52527ec059353f3071590dd41a1d7290f4c996e9f11bb9ffc49de802111a43f7
+
+
+## 2. Anyone who can exec into the container reads every value
+
+$ podman exec envdemo env
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+container=podman
+REDIS_URL=redis://:Example-Only-R3dis@cache.internal:6379
+API_KEY=sk_test_EXAMPLE_ONLY_4f9a2c7e
+DB_HOST=db.internal
+DB_USER=notes_app
+DB_PASSWORD=Example-Only-Pa55w0rd
+HOME=/root
+
+
+## 3. The same values sit in the process's environment block
+
+$ podman exec envdemo sh -c 'tr "\0" "\n" < /proc/1/environ'
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+container=podman
+REDIS_URL=redis://:Example-Only-R3dis@cache.internal:6379
+API_KEY=sk_test_EXAMPLE_ONLY_4f9a2c7e
+DB_HOST=db.internal
+DB_USER=notes_app
+DB_PASSWORD=Example-Only-Pa55w0rd
+HOME=/root
+HOSTNAME=52527ec05935
+
+
+## 4. No shell needed at all: the container runtime hands them out
+
+$ podman inspect envdemo --format '{{range .Config.Env}}{{println .}}{{end}}'
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+container=podman
+REDIS_URL=redis://:Example-Only-R3dis@cache.internal:6379
+API_KEY=sk_test_EXAMPLE_ONLY_4f9a2c7e
+DB_HOST=db.internal
+DB_USER=notes_app
+DB_PASSWORD=Example-Only-Pa55w0rd
+HOME=/root
+HOSTNAME=52527ec05935
+
+
+## 5. Every child process inherits them (a crash reporter, a debug shell, a subprocess)
+
+$ podman exec envdemo sh -c 'sh -c env | grep -E "PASSWORD|API_KEY"'   # a process started by another process
+API_KEY=sk_test_EXAMPLE_ONLY_4f9a2c7e
+DB_PASSWORD=Example-Only-Pa55w0rd
+
+
+## 6. On the host, the container's process is an ordinary process
+
+$ pid=$(podman inspect envdemo --format '{{.State.Pid}}')   # 2533
+$ sudo cat /proc/$pid/environ | tr '\0' '\n' | grep PASSWORD
+DB_PASSWORD=Example-Only-Pa55w0rd
+
+$ podman kill envdemo
+envdemo
+
+
+# Part 2: Secure Notes, given only where its secrets are
+
+## Its env file: secret IDs and hostnames, no credentials
+
+$ cat demo/env-file-demo/secure-notes.env
+# What Secure Notes is given instead: where to find its secrets, never the secrets.
+NODE_ENV=production
+AWS_REGION=us-east-1
+SECRETS_MODE=sdk
+DB_SECRET_ID=arn:aws:secretsmanager:us-east-1:111122223333:secret:rds!db-0a1b2c3d-AbCdEf
+# The Redis secret is found by the naming convention: /elasticache/prod/secure-notes/app
+SECRETS_ENV=prod
+REDIS_SECRET_RESOURCE=secure-notes
+DB_HOST=secure-notes-db.abc123.us-east-1.rds.amazonaws.com
+DB_SSL=true
+REDIS_HOST=master.secure-notes-cache.abc123.use1.cache.amazonaws.com
+REDIS_TLS=true
+LOG_LEVEL=info
+
+
+## The same lookups (command overridden to sleep: no AWS needed to look)
+
+$ podman run -q -d --rm --name sndemo --env-file demo/env-file-demo/secure-notes.env secure-notes-app:dev sleep 600
+64cec5c69156a7df7fd917797426839da7478abd039682f434d4f12127bcf439
+
+$ podman exec sndemo env | grep -Ei 'pass|secret|token|key|url'
+SECRETS_ENV=prod
+SECRETS_MODE=sdk
+DB_SECRET_ID=arn:aws:secretsmanager:us-east-1:111122223333:secret:rds!db-0a1b2c3d-AbCdEf
+REDIS_SECRET_RESOURCE=secure-notes
+
+$ podman inspect sndemo --format '{{range .Config.Env}}{{println .}}{{end}}'
+LOG_LEVEL=info
+YARN_VERSION=1.22.22
+SECRETS_ENV=prod
+SECRETS_MODE=sdk
+DB_SSL=true
+AWS_REGION=us-east-1
+container=podman
+NODE_VERSION=22.23.3
+NODE_ENV=production
+STATIC_DIR=/app/frontend
+DB_HOST=secure-notes-db.abc123.us-east-1.rds.amazonaws.com
+REDIS_HOST=master.secure-notes-cache.abc123.use1.cache.amazonaws.com
+REDIS_TLS=true
+DB_SECRET_ID=arn:aws:secretsmanager:us-east-1:111122223333:secret:rds!db-0a1b2c3d-AbCdEf
+REDIS_SECRET_RESOURCE=secure-notes
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/home/node
+HOSTNAME=64cec5c69156
+
+Nothing to steal: the passwords are fetched at runtime from Secrets Manager, kept in
+memory only, and the app refuses to start if DB_PASSWORD, DATABASE_URL, REDIS_URL… are set.
+$ podman kill sndemo
+sndemo
+
