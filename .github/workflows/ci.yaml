@@ -387,6 +387,15 @@ jobs:
       - name: Deploy deploy/k8s/overlays/${{ matrix.overlay }}
         run: scripts/k8s-deploy.sh deploy/k8s/overlays/${{ matrix.overlay }}
 
+      # The seed job must be safe to run again (a restarted pod, a second deploy):
+      # the secrets exist and the bootstrap passwords are burned, so it resumes
+      # with the stored admin passwords instead of failing or doing nothing.
+      - name: Deploy again — the seed job runs a second time and must resume cleanly
+        if: matrix.openbao
+        run: |
+          scripts/k8s-deploy.sh deploy/k8s/overlays/${{ matrix.overlay }} | tail -25
+          kubectl -n secure-notes logs job/seed | grep -q 'resuming' || { echo "::error::the second seed run did not take the resume path"; exit 1; }
+
       - name: The app on the host port kind maps (no port-forward)
         run: |
           ok=0
@@ -442,6 +451,7 @@ jobs:
             kubectl -n secure-notes logs "deploy/$d" --all-containers > "output/$d.log" 2>&1 || true
           done
           kubectl -n secure-notes logs job/seed > output/seed.log 2>&1 || true
+          kubectl -n secure-notes logs -l job-name=seed --all-containers --previous > output/seed.previous.log 2>/dev/null || rm -f output/seed.previous.log
 
       - name: Publish the logs next to the captures
         if: always()

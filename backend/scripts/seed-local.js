@@ -161,6 +161,46 @@ async function configureDatabaseEngine(pw) {
   console.log(`[seed] ${NAME}: database engine connected to Redis/Valkey as bao-admin; role notes-cache; bao-admin's password rotated`);
 }
 
+/** A Postgres admin connection with the first password that works (connection errors are retried). */
+function pgAdmin(passwords) {
+  return waitFor('Postgres', async () => {
+    let last;
+    for (const password of passwords) {
+      const c = new pg.Client({ host: pgHost, port: pgPort, database: DB_NAME, user: env.PG_BOOTSTRAP_USER ?? 'postgres', password });
+      try {
+        await c.connect();
+        return c;
+      } catch (err) {
+        last = err;
+        await c.end().catch(() => {});
+        if (err.code !== '28P01') throw err; // not a wrong password: wait and retry
+      }
+    }
+    throw last;
+  }, 30);
+}
+
+/** A Redis/Valkey connection as the default user, with the first password that works. */
+function redisAdmin(passwords) {
+  return waitFor('Redis', async () => {
+    let last;
+    for (const password of passwords) {
+      const r = new Redis({ host: redisHost, port: redisPort, username: 'default', password, lazyConnect: true, maxRetriesPerRequest: 1, retryStrategy: () => null });
+      r.on('error', () => {});
+      try {
+        await r.connect();
+        await r.ping();
+        return r;
+      } catch (err) {
+        last = err;
+        r.disconnect();
+        if (!/WRONGPASS|NOAUTH|invalid username-password|Connection is closed/i.test(err.message)) throw err;
+      }
+    }
+    throw last;
+  }, 30);
+}
+
 async function waitFor(name, fn, tries = 30) {
   for (let i = 1; ; i++) {
     try {
@@ -193,39 +233,37 @@ async function main() {
     await waitFor(NAME, () => store.randomPassword());
   }
 
+  let pw;
   if (await store.exists(ids.db)) {
-    console.log(`[seed] ${ids.db} already exists; nothing to do (reset with: docker compose down -v)`);
-    if (bao && !K8S_AUTH) await provisionAppSecretId();
-    return;
+    // An earlier run created the secrets and may have stopped part-way (a
+    // backing service not ready yet, the job restarted). Resume: make Postgres,
+    // Redis and OpenBao's database engine match the stored secrets. Every step
+    // below can run twice.
+    const pass = async (id) => (await store.read(id)).value.password;
+    pw = { db: await pass(ids.db), dbAdmin: await pass(ids.dbAdmin), redis: await pass(ids.redis), redisAdmin: await pass(ids.redisAdmin) };
+    console.log('[seed] the 4 secrets already exist: making sure Postgres, Redis and the secrets manager match them (resuming)');
+  } else {
+    pw = {
+      db: await randomPassword(),
+      dbAdmin: await randomPassword(),
+      redis: await randomPassword(),
+      redisAdmin: await randomPassword(),
+    };
+    // --- Secrets first, so a credential is never applied without being recorded.
+    const put = (Name, value, Description) => store.create(Name, value, Description);
+    await put(ids.db, { engine: 'postgres', host: appPgHost, port: 5432, dbname: DB_NAME, username: APP_DB_USER, password: pw.db }, 'App login for the notes database');
+    await put(ids.dbAdmin, { engine: 'postgres', host: appPgHost, port: 5432, dbname: DB_NAME, username: 'postgres', password: pw.dbAdmin }, 'Postgres superuser (rotation only)');
+    await put(ids.redis, { host: appRedisHost, port: 6379, username: APP_REDIS_USER, password: pw.redis }, 'App ACL user for Redis');
+    await put(ids.redisAdmin, { host: appRedisHost, port: 6379, username: 'default', password: pw.redisAdmin }, 'Redis default user (rotation only)');
+    console.log('[seed] created 4 secrets');
   }
+  // Step v2: OpenBao's own admin logins, new on every run: OpenBao rotates them right after setup.
+  pw.baoDb = DYNAMIC ? await randomPassword() : undefined;
+  pw.baoCache = DYNAMIC ? await randomPassword() : undefined;
 
-  const pw = {
-    db: await randomPassword(),
-    dbAdmin: await randomPassword(),
-    redis: await randomPassword(),
-    redisAdmin: await randomPassword(),
-    // Step v2: OpenBao's own admin logins; rotated by OpenBao right after setup.
-    baoDb: DYNAMIC ? await randomPassword() : undefined,
-    baoCache: DYNAMIC ? await randomPassword() : undefined,
-  };
-
-  // --- Secrets first, so a credential is never applied without being recorded.
-  const put = (Name, value, Description) => store.create(Name, value, Description);
-  await put(ids.db, { engine: 'postgres', host: appPgHost, port: 5432, dbname: DB_NAME, username: APP_DB_USER, password: pw.db }, 'App login for the notes database');
-  await put(ids.dbAdmin, { engine: 'postgres', host: appPgHost, port: 5432, dbname: DB_NAME, username: 'postgres', password: pw.dbAdmin }, 'Postgres superuser (rotation only)');
-  await put(ids.redis, { host: appRedisHost, port: 6379, username: APP_REDIS_USER, password: pw.redis }, 'App ACL user for Redis');
-  await put(ids.redisAdmin, { host: appRedisHost, port: 6379, username: 'default', password: pw.redisAdmin }, 'Redis default user (rotation only)');
-  console.log('[seed] created 4 secrets');
-
-  // --- Postgres
-  const admin = new pg.Client({
-    host: pgHost,
-    port: pgPort,
-    database: DB_NAME,
-    user: env.PG_BOOTSTRAP_USER ?? 'postgres',
-    password: must('PG_BOOTSTRAP_PASSWORD'),
-  });
-  await waitFor('Postgres', () => admin.connect(), 30);
+  // --- Postgres: the bootstrap password, or, if an earlier run already
+  // burned it, the admin password the secrets manager holds.
+  const admin = await pgAdmin([must('PG_BOOTSTRAP_PASSWORD'), pw.dbAdmin]);
   const lit = (s) => admin.escapeLiteral(s);
   await admin.query(`
     DO $$ BEGIN
@@ -267,17 +305,8 @@ async function main() {
   await admin.end();
   console.log('[seed] postgres: role, table, grants done; bootstrap password replaced');
 
-  // --- Redis
-  const r = new Redis({
-    host: redisHost,
-    port: redisPort,
-    username: 'default',
-    password: must('REDIS_BOOTSTRAP_PASSWORD'),
-    lazyConnect: true,
-    maxRetriesPerRequest: 1,
-  });
-  r.on('error', () => {});
-  await waitFor('Redis', () => r.connect(), 30);
+  // --- Redis: the same, the bootstrap password or the stored admin one.
+  const r = await redisAdmin([must('REDIS_BOOTSTRAP_PASSWORD'), pw.redisAdmin]);
   await r.call(
     'ACL', 'SETUSER', APP_REDIS_USER, 'reset', 'on', `#${redisPasswordHash(pw.redis)}`,
     '~notes:*', 'resetchannels', '-@all', '+@read', '+@write', '+@connection', '-@dangerous', '+info',
