@@ -137,8 +137,8 @@ in [step v1](../../steps/v1-openbao-kv/README.md) shows the app logged in as rol
 Then `scripts/credential-scan.sh` reads every version of every secret **as the app's own
 identity** and searches for those values everywhere, including OpenBao's audit log
 (which must hold only HMACs) and its raft storage. It also searches every container's
-config, every log and the app's environment for the **two AppRole secret IDs**: the
-app's and the seed's spent one.
+config, every log and the app's environment for the **three AppRole secret IDs**: the
+app's, the seed's spent one, and the lab's `ops-admin` one (step v5's intruder uses it).
 
 **Check:** the scan ends with `credential-scan: no credential value found anywhere it
 must not be`. With `LOG_REVEAL_SECRETS=true` the values show up in the app's log and

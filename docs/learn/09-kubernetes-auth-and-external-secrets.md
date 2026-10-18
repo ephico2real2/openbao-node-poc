@@ -120,8 +120,10 @@ Why **never `subPath`**? When the kubelet updates a Secret volume, it writes the
 files into a fresh timestamped directory and atomically swaps the `..data` symlink to
 point at it. The app mounts the whole directory, so it sees the swap. The rule in
 `file-fetcher.js` is blunt: never use `subPath` for this mount, because **a subPath
-file is never updated**. The fetcher uses the target of that `..data` symlink as the
-value's version, which is how it can tell that a new one arrived.
+file is never updated**. The fetcher reads the time from the name of the directory
+`..data` points at, and uses it as the value's version (`22:03:24.405889`, say). The
+kubelet swaps the whole volume when any one secret changes, so a file whose content is
+unchanged keeps its old version: only the secret that really changed shows a new one.
 
 **How a rotation reaches the app:**
 

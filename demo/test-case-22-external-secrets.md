@@ -54,6 +54,10 @@ password:
   ok    the app writes to Postgres after the rotation
 ```
 
+This run printed the version as the kubelet's whole directory name. The app now shows the
+time in it (`22:03:24.405889`). The kubelet swaps the whole volume, so the app keeps the
+old version for a file whose content didn't change: only the Postgres secret shows a new one.
+
 The trade-off is stated, not hidden: in this mode the credentials **are** a Kubernetes
 Secret. That is why the check names it, and why RBAC on Secrets and etcd encryption now
 matter. Between the password change and the kubelet's file swap (56 s here), new
