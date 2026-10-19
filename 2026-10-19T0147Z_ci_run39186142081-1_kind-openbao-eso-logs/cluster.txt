@@ -1,0 +1,415 @@
+NAME                                READY   STATUS      RESTARTS   AGE     IP            NODE                             NOMINATED NODE   READINESS GATES
+pod/postgres-76bdffdcf-lslz2        1/1     Running     0          3m11s   10.244.0.10   secure-notes-bao-control-plane   <none>           <none>
+pod/redis-67658cd5f6-6wrjj          1/1     Running     0          3m11s   10.244.0.11   secure-notes-bao-control-plane   <none>           <none>
+pod/rotate-db-w5shv                 0/1     Completed   0          76s     10.244.0.15   secure-notes-bao-control-plane   <none>           <none>
+pod/secure-notes-7b5bb746c9-prdzv   1/1     Running     0          3m11s   10.244.0.13   secure-notes-bao-control-plane   <none>           <none>
+pod/seed-frbqk                      0/1     Completed   0          2m55s   10.244.0.14   secure-notes-bao-control-plane   <none>           <none>
+
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE     SELECTOR
+service/postgres       ClusterIP   10.96.33.239    <none>        5432/TCP       3m11s   app.kubernetes.io/name=postgres
+service/redis          ClusterIP   10.96.147.95    <none>        6379/TCP       3m11s   app.kubernetes.io/name=redis
+service/secure-notes   NodePort    10.96.151.245   <none>        80:30080/TCP   3m11s   app.kubernetes.io/name=secure-notes
+
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                               SELECTOR
+deployment.apps/postgres       1/1     1            1           3m11s   postgres     docker.io/library/postgres:16        app.kubernetes.io/name=postgres
+deployment.apps/redis          1/1     1            1           3m11s   redis        docker.io/valkey/valkey:8.1-alpine   app.kubernetes.io/name=redis
+deployment.apps/secure-notes   1/1     1            1           3m11s   app          secure-notes-app:dev                 app.kubernetes.io/name=secure-notes
+
+NAME                                      DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES                               SELECTOR
+replicaset.apps/postgres-76bdffdcf        1         1         1       3m11s   postgres     docker.io/library/postgres:16        app.kubernetes.io/name=postgres,pod-template-hash=76bdffdcf
+replicaset.apps/redis-67658cd5f6          1         1         1       3m11s   redis        docker.io/valkey/valkey:8.1-alpine   app.kubernetes.io/name=redis,pod-template-hash=67658cd5f6
+replicaset.apps/secure-notes-7b5bb746c9   1         1         1       3m11s   app          secure-notes-app:dev                 app.kubernetes.io/name=secure-notes,pod-template-hash=7b5bb746c9
+
+NAME                  STATUS     COMPLETIONS   DURATION   AGE     CONTAINERS   IMAGES                 SELECTOR
+job.batch/rotate-db   Complete   1/1           4s         76s     rotate       secure-notes-app:dev   batch.kubernetes.io/controller-uid=ea29ff56-b7d6-4518-ab53-a10dcecaec5f
+job.batch/seed        Complete   1/1           6s         2m55s   seed         secure-notes-app:dev   batch.kubernetes.io/controller-uid=06b3ec98-e6e3-41d2-86e3-8291a1fbedbb
+
+NAME                                                            POD-SELECTOR                                                 AGE
+networkpolicy.networking.k8s.io/app-to-local-mock               app.kubernetes.io/name=secure-notes                          3m10s
+networkpolicy.networking.k8s.io/backing-services-from-app       app.kubernetes.io/name in (aws-mock,postgres,redis)          3m10s
+networkpolicy.networking.k8s.io/backing-services-from-openbao   app.kubernetes.io/name in (postgres,redis)                   3m10s
+networkpolicy.networking.k8s.io/default-deny                    <none>                                                       3m10s
+networkpolicy.networking.k8s.io/secure-notes                    app.kubernetes.io/name=secure-notes                          3m10s
+networkpolicy.networking.k8s.io/seed                            app.kubernetes.io/name=secure-notes-seed                     3m10s
+networkpolicy.networking.k8s.io/to-openbao                      app.kubernetes.io/name in (secure-notes,secure-notes-seed)   3m10s
+
+NAME                                TYPE     DATA   AGE
+secret/local-bootstrap-f9hmh2c6g8   Opaque   2      3m11s
+secret/secure-notes-credentials     Opaque   2      3m9s
+
+NAME                                       DATA   AGE
+configmap/kube-root-ca.crt                 1      3m11s
+configmap/secure-notes-config-md56mg78hc   21     3m11s
+
+LAST SEEN   TYPE      REASON              OBJECT                                    MESSAGE
+3m12s       Normal    Scheduled           pod/redis-67658cd5f6-6wrjj                Successfully assigned secure-notes/redis-67658cd5f6-6wrjj to secure-notes-bao-control-plane
+3m12s       Normal    ScalingReplicaSet   deployment/secure-notes                   Scaled up replica set secure-notes-7b5bb746c9 from 0 to 1
+3m12s       Normal    ScalingReplicaSet   deployment/redis                          Scaled up replica set redis-67658cd5f6 from 0 to 1
+3m12s       Normal    SuccessfulCreate    replicaset/redis-67658cd5f6               Created pod: redis-67658cd5f6-6wrjj
+3m12s       Normal    Scheduled           pod/postgres-76bdffdcf-lslz2              Successfully assigned secure-notes/postgres-76bdffdcf-lslz2 to secure-notes-bao-control-plane
+3m12s       Normal    SuccessfulCreate    replicaset/postgres-76bdffdcf             Created pod: postgres-76bdffdcf-lslz2
+3m12s       Normal    ScalingReplicaSet   deployment/postgres                       Scaled up replica set postgres-76bdffdcf from 0 to 1
+3m11s       Normal    Started             pod/redis-67658cd5f6-6wrjj                Container started
+3m11s       Normal    Pulled              pod/seed-svjm4                            Container image "secure-notes-app:dev" already present on machine and can be accessed by the pod
+3m11s       Normal    Created             pod/redis-67658cd5f6-6wrjj                Container created
+3m11s       Normal    Pulled              pod/redis-67658cd5f6-6wrjj                Container image "docker.io/valkey/valkey:8.1-alpine" already present on machine and can be accessed by the pod
+3m11s       Warning   Unhealthy           pod/redis-67658cd5f6-6wrjj                Readiness probe failed: dial tcp 10.244.0.11:6379: connect: connection refused
+3m11s       Normal    Started             pod/postgres-76bdffdcf-lslz2              Container started
+3m11s       Normal    Created             pod/postgres-76bdffdcf-lslz2              Container created
+3m11s       Warning   UpdateFailed        externalsecret/secure-notes-credentials   error processing spec.data[0] (key: rds/dev/notes-db/app), err: Secret does not exist
+3m11s       Normal    SuccessfulCreate    job/seed                                  Created pod: seed-svjm4
+3m11s       Normal    Started             pod/seed-svjm4                            Container started
+3m11s       Normal    Created             pod/seed-svjm4                            Container created
+3m11s       Normal    Pulled              pod/postgres-76bdffdcf-lslz2              Container image "docker.io/library/postgres:16" already present on machine and can be accessed by the pod
+3m11s       Normal    Scheduled           pod/seed-svjm4                            Successfully assigned secure-notes/seed-svjm4 to secure-notes-bao-control-plane
+3m11s       Normal    Scheduled           pod/secure-notes-7b5bb746c9-prdzv         Successfully assigned secure-notes/secure-notes-7b5bb746c9-prdzv to secure-notes-bao-control-plane
+3m11s       Warning   FailedMount         pod/secure-notes-7b5bb746c9-prdzv         MountVolume.SetUp failed for volume "credentials" : secret "secure-notes-credentials" not found
+3m11s       Normal    SuccessfulCreate    replicaset/secure-notes-7b5bb746c9        Created pod: secure-notes-7b5bb746c9-prdzv
+3m10s       Normal    Created             pod/secure-notes-7b5bb746c9-prdzv         Container created
+3m10s       Normal    Pulled              pod/secure-notes-7b5bb746c9-prdzv         Container image "secure-notes-app:dev" already present on machine and can be accessed by the pod
+3m10s       Normal    Created             externalsecret/secure-notes-credentials   secret created
+3m10s       Warning   Unhealthy           pod/postgres-76bdffdcf-lslz2              Readiness probe failed: 127.0.0.1:5432 - no response
+3m9s        Normal    Started             pod/secure-notes-7b5bb746c9-prdzv         Container started
+3m9s        Warning   Unhealthy           pod/secure-notes-7b5bb746c9-prdzv         Readiness probe failed: Get "http://10.244.0.13:3000/api/health": dial tcp 10.244.0.13:3000: connect: connection refused
+3m3s        Normal    Completed           job/seed                                  Job completed
+2m56s       Normal    Pulled              pod/seed-frbqk                            Container image "secure-notes-app:dev" already present on machine and can be accessed by the pod
+2m56s       Normal    Scheduled           pod/seed-frbqk                            Successfully assigned secure-notes/seed-frbqk to secure-notes-bao-control-plane
+2m56s       Normal    Created             pod/seed-frbqk                            Container created
+2m56s       Normal    Started             pod/seed-frbqk                            Container started
+2m56s       Normal    SuccessfulCreate    job/seed                                  Created pod: seed-frbqk
+2m50s       Normal    Completed           job/seed                                  Job completed
+77s         Normal    SuccessfulCreate    job/rotate-db                             Created pod: rotate-db-w5shv
+77s         Normal    Started             pod/rotate-db-w5shv                       Container started
+77s         Normal    Created             pod/rotate-db-w5shv                       Container created
+77s         Normal    Pulled              pod/rotate-db-w5shv                       Container image "secure-notes-app:dev" already present on machine and can be accessed by the pod
+77s         Normal    Scheduled           pod/rotate-db-w5shv                       Successfully assigned secure-notes/rotate-db-w5shv to secure-notes-bao-control-plane
+73s         Normal    Completed           job/rotate-db                             Job completed
+70s         Normal    Updated             externalsecret/secure-notes-credentials   secret updated
+
+Name:             postgres-76bdffdcf-lslz2
+Namespace:        secure-notes
+Priority:         0
+Service Account:  default
+Node:             secure-notes-bao-control-plane/172.18.0.2
+Start Time:       Mon, 19 Oct 2026 01:44:00 +0000
+Labels:           app.kubernetes.io/name=postgres
+                  pod-template-hash=76bdffdcf
+Annotations:      <none>
+Status:           Running
+SeccompProfile:   RuntimeDefault
+IP:               10.244.0.10
+IPs:
+  IP:           10.244.0.10
+Controlled By:  ReplicaSet/postgres-76bdffdcf
+Containers:
+  postgres:
+    Container ID:  containerd://3fdbd8822b66b5c713e270b94eabca48bf225e405ec13b73bdda4c94cb5db3f3
+    Image:         docker.io/library/postgres:16
+    Image ID:      docker.io/library/import-2026-10-19@sha256:a6d6b22af0517181b1f9945cb1f6be2a1e8110a78e9c7876bbe1253c12192550
+    Port:          5432/TCP (postgres)
+    Host Port:     0/TCP (postgres)
+    Args:
+      -c
+      log_statement=ddl
+    State:          Running
+      Started:      Mon, 19 Oct 2026 01:44:01 +0000
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      memory:  512Mi
+    Requests:
+      cpu:      50m
+      memory:   128Mi
+    Readiness:  exec [pg_isready -h 127.0.0.1 -U postgres -d notes] delay=0s timeout=1s period=3s successThreshold=1 failureThreshold=3
+    Environment:
+      POSTGRES_DB:           notes
+      POSTGRES_PASSWORD:     <set to the key 'pg-password' in secret 'local-bootstrap-f9hmh2c6g8'>  Optional: false
+      POSTGRES_INITDB_ARGS:  --auth-host=scram-sha-256
+      PGDATA:                /var/lib/postgresql/data/pgdata
+    Mounts:
+      /tmp from tmp (rw)
+      /var/lib/postgresql/data from data (rw)
+      /var/run/postgresql from run (rw)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  data:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  run:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  tmp:
+    Type:        EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:      
+    SizeLimit:   <unset>
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                 node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+
+
+Name:             redis-67658cd5f6-6wrjj
+Namespace:        secure-notes
+Priority:         0
+Service Account:  default
+Node:             secure-notes-bao-control-plane/172.18.0.2
+Start Time:       Mon, 19 Oct 2026 01:44:00 +0000
+Labels:           app.kubernetes.io/name=redis
+                  pod-template-hash=67658cd5f6
+Annotations:      <none>
+Status:           Running
+SeccompProfile:   RuntimeDefault
+IP:               10.244.0.11
+IPs:
+  IP:           10.244.0.11
+Controlled By:  ReplicaSet/redis-67658cd5f6
+Containers:
+  redis:
+    Container ID:  containerd://3926f26248588fa371820f230b4f89d31bf71e41fbbc16b532c5ae128a0088e8
+    Image:         docker.io/valkey/valkey:8.1-alpine
+    Image ID:      sha256:09f1cebdbddf5d5c6e7521bd66e488a55bc11c47736572c101d9d0cf628121d0
+    Port:          6379/TCP (redis)
+    Host Port:     0/TCP (redis)
+    Command:
+      /bin/sh
+      -c
+    Args:
+      set -eu
+      ACL=/data/users.acl
+      if [ ! -s "$ACL" ]; then
+        echo "user default on >${REDIS_BOOTSTRAP_PASSWORD} ~* &* +@all" > "$ACL"
+        chmod 600 "$ACL"
+      fi
+      exec valkey-server --aclfile "$ACL" --dir /data --appendonly no --save ""
+      
+    State:          Running
+      Started:      Mon, 19 Oct 2026 01:44:01 +0000
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      memory:  128Mi
+    Requests:
+      cpu:      20m
+      memory:   32Mi
+    Readiness:  tcp-socket :redis delay=0s timeout=1s period=3s successThreshold=1 failureThreshold=3
+    Environment:
+      REDIS_BOOTSTRAP_PASSWORD:  <set to the key 'redis-password' in secret 'local-bootstrap-f9hmh2c6g8'>  Optional: false
+    Mounts:
+      /data from data (rw)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  data:
+    Type:        EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:      
+    SizeLimit:   <unset>
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                 node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+
+
+Name:             rotate-db-w5shv
+Namespace:        secure-notes
+Priority:         0
+Service Account:  secure-notes-seed
+Node:             secure-notes-bao-control-plane/172.18.0.2
+Start Time:       Mon, 19 Oct 2026 01:45:55 +0000
+Labels:           app.kubernetes.io/name=secure-notes-seed
+                  batch.kubernetes.io/controller-uid=ea29ff56-b7d6-4518-ab53-a10dcecaec5f
+                  batch.kubernetes.io/job-name=rotate-db
+                  controller-uid=ea29ff56-b7d6-4518-ab53-a10dcecaec5f
+                  job-name=rotate-db
+Annotations:      <none>
+Status:           Succeeded
+SeccompProfile:   RuntimeDefault
+IP:               10.244.0.15
+IPs:
+  IP:           10.244.0.15
+Controlled By:  Job/rotate-db
+Containers:
+  rotate:
+    Container ID:  containerd://e0551120b8ac55fe1af5e7f9bbbd99367ecf7dcd73202becf24335f86a7f4fa7
+    Image:         secure-notes-app:dev
+    Image ID:      sha256:1d0dddd21a01f975f0738e7e676ca7af37454d9410d446e01b63138decc8ecbe
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      node
+      scripts/rotate-kv.js
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Mon, 19 Oct 2026 01:45:55 +0000
+      Finished:     Mon, 19 Oct 2026 01:45:55 +0000
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      memory:  192Mi
+    Requests:
+      cpu:     20m
+      memory:  64Mi
+    Environment:
+      BAO_ADDR:               http://openbao.openbao.svc:8200
+      BAO_K8S_ROLE:           secure-notes-seed
+      BAO_K8S_TOKEN_FILE:     /var/run/secrets/openbao/token
+      SECRETS_ENV:            dev
+      DB_SECRET_RESOURCE:     notes-db
+      REDIS_SECRET_RESOURCE:  notes-cache
+      SEED_PG_HOST:           postgres
+    Mounts:
+      /var/run/secrets/openbao from openbao-token (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   False 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  openbao-token:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  600
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+
+
+Name:             secure-notes-7b5bb746c9-prdzv
+Namespace:        secure-notes
+Priority:         0
+Service Account:  secure-notes
+Node:             secure-notes-bao-control-plane/172.18.0.2
+Start Time:       Mon, 19 Oct 2026 01:44:01 +0000
+Labels:           app.kubernetes.io/name=secure-notes
+                  pod-template-hash=7b5bb746c9
+Annotations:      <none>
+Status:           Running
+SeccompProfile:   RuntimeDefault
+IP:               10.244.0.13
+IPs:
+  IP:           10.244.0.13
+Controlled By:  ReplicaSet/secure-notes-7b5bb746c9
+Containers:
+  app:
+    Container ID:   containerd://6cd537a8ba362529924a1903d06cbd2853e18348ef924aa2bdc16a3ebda9d1e7
+    Image:          secure-notes-app:dev
+    Image ID:       sha256:1d0dddd21a01f975f0738e7e676ca7af37454d9410d446e01b63138decc8ecbe
+    Port:           3000/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Running
+      Started:      Mon, 19 Oct 2026 01:44:03 +0000
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      memory:  256Mi
+    Requests:
+      cpu:      50m
+      memory:   96Mi
+    Liveness:   http-get http://:http/api/livez delay=10s timeout=1s period=15s successThreshold=1 failureThreshold=3
+    Readiness:  http-get http://:http/api/health delay=0s timeout=5s period=10s successThreshold=1 failureThreshold=3
+    Environment Variables from:
+      secure-notes-config-md56mg78hc  ConfigMap  Optional: false
+    Environment:                      <none>
+    Mounts:
+      /var/run/secrets/secure-notes from credentials (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  credentials:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  secure-notes-credentials
+    Optional:    false
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                 node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+
+
+Name:             seed-frbqk
+Namespace:        secure-notes
+Priority:         0
+Service Account:  secure-notes-seed
+Node:             secure-notes-bao-control-plane/172.18.0.2
+Start Time:       Mon, 19 Oct 2026 01:44:16 +0000
+Labels:           app.kubernetes.io/name=secure-notes-seed
+                  batch.kubernetes.io/controller-uid=06b3ec98-e6e3-41d2-86e3-8291a1fbedbb
+                  batch.kubernetes.io/job-name=seed
+                  controller-uid=06b3ec98-e6e3-41d2-86e3-8291a1fbedbb
+                  job-name=seed
+Annotations:      <none>
+Status:           Succeeded
+SeccompProfile:   RuntimeDefault
+IP:               10.244.0.14
+IPs:
+  IP:           10.244.0.14
+Controlled By:  Job/seed
+Containers:
+  seed:
+    Container ID:  containerd://05361b4b3997d81ce491abdadde20cd8a46a8be63bf50739c2a8e014ad3a4233
+    Image:         secure-notes-app:dev
+    Image ID:      sha256:1d0dddd21a01f975f0738e7e676ca7af37454d9410d446e01b63138decc8ecbe
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      node
+      scripts/seed-local.js
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Mon, 19 Oct 2026 01:44:16 +0000
+      Finished:     Mon, 19 Oct 2026 01:44:19 +0000
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      memory:  192Mi
+    Requests:
+      cpu:     20m
+      memory:  64Mi
+    Environment Variables from:
+      secure-notes-config-md56mg78hc  ConfigMap  Optional: false
+    Environment:
+      BAO_K8S_ROLE:              secure-notes-seed
+      BAO_DYNAMIC:               true
+      APP_PG_HOST:               postgres.secure-notes.svc.cluster.local
+      APP_REDIS_HOST:            redis.secure-notes.svc.cluster.local
+      SEED_PG_HOST:              postgres
+      SEED_REDIS_HOST:           redis
+      PG_BOOTSTRAP_PASSWORD:     <set to the key 'pg-password' in secret 'local-bootstrap-f9hmh2c6g8'>     Optional: false
+      REDIS_BOOTSTRAP_PASSWORD:  <set to the key 'redis-password' in secret 'local-bootstrap-f9hmh2c6g8'>  Optional: false
+    Mounts:
+      /var/run/secrets/openbao from openbao-token (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   False 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  openbao-token:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  600
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
