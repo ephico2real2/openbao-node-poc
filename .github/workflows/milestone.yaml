@@ -1,5 +1,11 @@
 # Tag a milestone of the Secure Notes story and publish its release notes.
 # Manual only: Actions → milestone → Run workflow.
+#
+# Only for a commit whose .github/workflows files match the default branch's
+# (in practice: main's tip). GitHub refuses a ref the workflow token creates on
+# any other commit, because that token can never have the `workflows`
+# permission. Older commits are tagged from a person's machine with
+# scripts/cut-tags.sh.
 name: milestone
 
 on:

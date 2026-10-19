@@ -132,7 +132,8 @@ Concurrency is per branch with cancel-in-progress: a new push to a PR cancels it
 - **`pkill -f` can match your own shell.** Use PIDs.
 - **OpenBao won't create audit devices through the API** (since 2.3.2). Declare them in the config file.
 - **In an ACL policy the most specific path wins; rules are not merged.** A `+/pending` rule with only `delete` took `read` away from that path.
-- **Tags and repository creation are blocked in the sandbox.** The owner runs the `milestone` workflow and creates repos.
+- **Tags and repository creation are blocked in the sandbox,** and so are writes to the git REST API. The owner creates repos and cuts tags.
+- **A workflow's token can't tag an older commit.** GitHub refuses a ref on any commit whose `.github/workflows` files differ from the default branch's (no `workflows` permission for that token). The step tags are cut with `scripts/cut-tags.sh` from the owner's machine; the `milestone` workflow is only for `main`'s tip.
 - **CI runners are not root; the sandbox is.** A test that rewrites a mode-0400 file passed locally and hung CI. Tests clean up in `finally`, and `npm test` has a per-test timeout.
 - **`git add -A` takes every untracked file**, including another branch's work left in the tree. Add paths by name.
 - **Job logs can't be downloaded here** (the blob URL answers 403). Read annotations, or the files the job publishes to `ci-captures`.

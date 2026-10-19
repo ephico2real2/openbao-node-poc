@@ -1,8 +1,19 @@
 # Releases: one tag per step
 
 Each file is the release notes for one tag, cut from a commit whose CI run was green.
-A tag is cut with the `milestone` workflow (Actions → milestone → Run workflow), with the
-tag, commit, title and notes file below.
+Cut them from your own machine, as yourself:
+
+```bash
+scripts/cut-tags.sh --dry-run   # what it would do
+scripts/cut-tags.sh             # annotated tags, pushed, and a release per tag
+```
+
+**Why not the `milestone` workflow?** GitHub refuses to let a workflow's own token create a
+ref on a commit whose `.github/workflows` files differ from `main`'s:
+`refusing to allow a GitHub App to create or update workflow .github/workflows/ci.yaml
+without workflows permission` (run 39179515074). That token can never have that
+permission, and every older step commit differs. The workflow still works for a tag on
+`main`'s current tip.
 
 | Tag | Commit | Title | Notes |
 | --- | --- | --- | --- |

@@ -47,4 +47,5 @@ macOS ships 3.2, and `bootstrap/macos.sh` installs a newer one.
 | --- | --- |
 | [`capture/`](capture) | Playwright walks (`*.yaml`, run by `walk.js`): open each page, click, and assert the visible text, then save a screenshot. A broken page fails the job |
 | [`ci-publish.sh`](ci-publish.sh) | Push a run's evidence to a folder on the `ci-captures` branch |
+| [`cut-tags.sh`](cut-tags.sh) `[--dry-run]` | The owner, on their own machine: an annotated tag and a GitHub release per step, from `docs/releases/`. Existing tags are left alone |
 | [`docs-check.js`](docs-check.js) | Every relative link and `#anchor` in the docs resolves; every Mermaid diagram renders |

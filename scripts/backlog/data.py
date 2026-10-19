@@ -177,7 +177,7 @@ EPICS = [
    S("S8.3", "A tag and release notes for each step", "S",
      "As a learner, I want each step tagged with its release notes, so that I can check out exactly the code a chapter describes.",
      ["docs/releases/<tag>.md for v1-aws-baseline through v6-detection, each naming its commit and green CI run.",
-      "Tags cut with the milestone workflow on those commits; a GitHub release per tag."],
+      "Tags cut on those commits, with a GitHub release per tag: scripts/cut-tags.sh, run by the owner (a workflow's token can't create a ref on an older commit whose workflow files differ, run 39179515074)."],
      evidence=[d("docs/releases/README.md", "docs/releases")],
      done=(0,)),
   ]),
