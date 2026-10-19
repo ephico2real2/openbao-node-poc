@@ -1,0 +1,7 @@
+NAME                          IMAGE                              COMMAND                  SERVICE    CREATED         STATUS                     PORTS
+secure-notes-bao-agent-1      secure-notes-aws-mock:dev          "docker-entrypoint.s…"   agent      2 minutes ago   Up 2 minutes (healthy)     127.0.0.1:3000->3000/tcp, 4566/tcp
+secure-notes-bao-app-1        secure-notes-app:dev               "docker-entrypoint.s…"   app        2 minutes ago   Up About a minute          
+secure-notes-bao-aws-mock-1   secure-notes-aws-mock:dev          "docker-entrypoint.s…"   aws-mock   2 minutes ago   Up 2 minutes (healthy)     4566/tcp
+secure-notes-bao-postgres-1   docker.io/library/postgres:16      "docker-entrypoint.s…"   postgres   2 minutes ago   Up 2 minutes (healthy)     5432/tcp
+secure-notes-bao-redis-1      docker.io/library/redis:7-alpine   "/bin/sh /dev-script…"   redis      2 minutes ago   Up 2 minutes (healthy)     6379/tcp
+secure-notes-bao-seed-1       secure-notes-app:dev               "docker-entrypoint.s…"   seed       2 minutes ago   Exited (0) 2 minutes ago   
