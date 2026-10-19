@@ -1,0 +1,46 @@
+== waiting for http://localhost:3000/api/health
+  ready after ~2 s
+SERVICE    IMAGE                              STATE
+app        secure-notes-app:dev               running
+aws-mock   secure-notes-aws-mock:dev          running
+postgres   docker.io/library/postgres:16      running
+redis      docker.io/library/redis:7-alpine   running
+== the seed job burned the bootstrap passwords
+  ok    Redis rejects the bootstrap password
+  ok    Postgres rejects the bootstrap password
+== secrets provider: aws, mode: sdk
+== end-to-end smoke test
+Smoke test against http://localhost:3000
+  mode: sdk (local mock)
+  ok    health: postgres and redis reachable
+  ok    notes: write to postgres, read through redis  (postgres -> redis)
+  ok    rotate db secret (createSecret -> setSecret -> testSecret -> finishSecret)  (new version aa5fe3ef)
+  ok    rotate redis secret (createSecret -> setSecret -> testSecret -> finishSecret)  (new version f41556a4)
+  ok    drop connections, then app recovers with the rotated credentials  (recovered: db, redis)
+  ok    secrets dashboard shows the new versions in cache
+  ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)
+  ok    security posture: no check fails  (13 checks, none failing)
+
+All checks passed
+== the actual credential values, searched for in every container, file and log
+== credential scan (compose): searching for 6 secret values from Secrets Manager (every version); the values are never printed
+-- containers
+  ok    app: container config (env, command, labels: docker inspect)   clean
+  ok    aws-mock: container config (env, command, labels: docker inspect) clean
+  ok    postgres: container config (env, command, labels: docker inspect) clean
+  ok    redis: container config (env, command, labels: docker inspect) clean
+  ok    seed: container config (env, command, labels: docker inspect)  clean
+  ok    app: process environment values (/proc/1/environ)              clean
+  ok    app: every readable file (5845 files)                          clean
+  ok    postgres: data directory and config (plaintext passwords?)     clean
+  ok    redis: data and ACL files (plaintext passwords?)               clean
+-- logs
+  ok    app: log                                                       clean
+  ok    aws-mock: log                                                  clean
+  ok    postgres: log                                                  clean
+  ok    redis: log                                                     clean
+  ok    seed: log                                                      clean
+-- debug logging (LOG_LEVEL=debug)
+  ok    app log names the secrets and keys it consumed                 6 line(s)
+  ok    every password is shown as ******** (length, fingerprint)      yes
+credential-scan: no credential value found anywhere it must not be
