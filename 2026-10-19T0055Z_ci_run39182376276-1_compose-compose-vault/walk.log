@@ -1,0 +1,6 @@
+01-dynamic-dashboard: found "Secrets in memory", "lease", "renewed", "Vault issued this instance its own db user", "AppRole secret ID in a file", "Database logins are short-lived" — expectations met
+02-revoke-postgres-lease: found "revokeLease", "dropped this instance's Postgres user", "Postgres rejected the cached password", "Vault issued a new db user", "Reconnected to Postgres with the rotated credential" — expectations met
+03-revoke-redis-lease: found "dropped this instance's Redis user", "Vault issued a new redis user", "Reconnected to Redis with the rotated credential" — expectations met
+04-max-ttl-reissue: found "(lease-max-ttl)", "New Postgres connections use the newly issued user" — expectations met
+05-leak-test: found "0 of 6 leaked", "[REDACTED]" — expectations met
+06-debug-log: found "Application log", "secret consumed", "password=******** (", "connecting with" — expectations met
