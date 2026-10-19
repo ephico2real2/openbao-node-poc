@@ -14,7 +14,15 @@ cd "$(dirname "$0")/../.."
 T=$(mktemp -d)
 B=$((19000 + RANDOM % 400)); VL=$((B + 1000)); CON=$((B + 1100)); VMA=$((B + 1200))
 pids=()
-cleanup() { for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done; rm -rf "$T"; }
+# Stop every part and wait for it to exit before deleting its files: VictoriaLogs
+# still writing its partitions made rm fail, which failed a passing test.
+cleanup() {
+  local rc=$?
+  for p in "${pids[@]}"; do kill "$p" 2>/dev/null || true; done
+  for p in "${pids[@]}"; do wait "$p" 2>/dev/null || true; done
+  rm -rf "$T" 2>/dev/null || { sleep 1; rm -rf "$T" 2>/dev/null; } || echo "  note: could not remove $T"
+  exit "$rc"
+}
 trap cleanup EXIT
 fails=0
 ok()   { echo "  ok    $*"; }

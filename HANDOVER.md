@@ -136,7 +136,8 @@ Concurrency is per branch with cancel-in-progress: a new push to a PR cancels it
 - **A workflow's token can't tag an older commit.** GitHub refuses a ref on any commit whose `.github/workflows` files differ from the default branch's (no `workflows` permission for that token). The step tags are cut with `scripts/cut-tags.sh` from the owner's machine; the `milestone` workflow is only for `main`'s tip.
 - **CI runners are not root; the sandbox is.** A test that rewrites a mode-0400 file passed locally and hung CI. Tests clean up in `finally`, and `npm test` has a per-test timeout.
 - **`git add -A` takes every untracked file**, including another branch's work left in the tree. Add paths by name.
-- **Job logs can't be downloaded here** (the blob URL answers 403). Read annotations, or the files the job publishes to `ci-captures`.
+- **Job logs can't be downloaded here** (the blob URL answers 403). Read annotations, or the files the job publishes to `ci-captures`: a failed `checks` job publishes `output/` to a `…_checks-logs` folder.
+- **An EXIT trap's last command sets the script's exit code.** test-detection's cleanup deleted VictoriaLogs' files while it was still writing; the failed `rm` turned a passing run red (runs 39175716947, 39180038846). Wait for the processes, and never let cleanup fail the test.
 - **vmalert waits `-rule.evalDelay` (30 s by default) before it evaluates.** The lab sets 5 s, or a test waits past its deadline.
 - **VictoriaLogs flattens nested JSON** (`auth.metadata.role_name`), and alert labels turn the dots into underscores.
 - **The openbao chart's start script rewrites the words POD_IP, HOST_IP, HOSTNAME, API_ADDR and the like** anywhere in the server config, comments included. Keep them out of it.
