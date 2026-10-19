@@ -167,14 +167,14 @@ Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/
 
 ### B10 — Upkeep: keep CI and the pins current
 
-[#43](https://github.com/ephico2real2/openbao-node-poc/issues/43) · 🔜 · **Outcome:** CI runs on supported runtimes and current pins, so a deprecation never turns into a red build. Docs: [initiative](README.md)
+[#43](https://github.com/ephico2real2/openbao-node-poc/issues/43) · ✅ · **Outcome:** CI runs on supported runtimes and current pins, so a deprecation never turns into a red build. Docs: [initiative](README.md)
 
-**S10.1 · GitHub Actions on Node.js 24** · S · 🔜 · [#44](https://github.com/ephico2real2/openbao-node-poc/issues/44)
+**S10.1 · GitHub Actions on Node.js 24** · S · ✅ · [#44](https://github.com/ephico2real2/openbao-node-poc/issues/44)
 *As the owner, I want no action on the retiring Node.js 20 runtime, so that CI keeps working when GitHub removes it.*
-- [ ] actions/cache v4 -> v5, upload-artifact v4 -> v6, download-artifact v4 -> v7: the first major of each whose action.yml says node24 (download-artifact v6 still says node20; v8 also makes a digest mismatch an error by default).
-- [ ] Every job green with the new versions, and no Node.js 20 deprecation annotation left.
+- [x] actions/cache v4 -> v5, upload-artifact v4 -> v6, download-artifact v4 -> v7: the first major of each whose action.yml says node24 (download-artifact v6 still says node20; v8 also makes a digest mismatch an error by default).
+- [x] Every job green with the new versions, and no Node.js 20 deprecation annotation left.
 
-Evidence: [initiative](README.md)
+Evidence: CI run [39182376276](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39182376276) (PR #46): every job green, and no annotation on any job
 
 ## Track TUTORIAL — building the tutorial
 
