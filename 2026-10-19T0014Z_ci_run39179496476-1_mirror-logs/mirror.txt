@@ -1,0 +1,10 @@
+== mirroring with skopeo to localhost:5001/secure-notes
+  docker-daemon:secure-notes-app:dev -> localhost:5001/secure-notes/secure-notes-app:latest
+  docker-daemon:secure-notes-aws-mock:dev -> localhost:5001/secure-notes/secure-notes-aws-mock:latest
+  docker-daemon:docker.io/library/postgres:16 -> localhost:5001/secure-notes/postgres:16
+  docker-daemon:docker.io/library/redis:7-alpine -> localhost:5001/secure-notes/redis:7-alpine
+  ok    localhost:5001/secure-notes/postgres:16
+  ok    localhost:5001/secure-notes/redis:7-alpine
+  ok    localhost:5001/secure-notes/secure-notes-app:latest
+  ok    localhost:5001/secure-notes/secure-notes-aws-mock:latest
+== wrote deploy/k8s/overlays/mirror — deploy with:  KUBECTL=oc scripts/k8s-deploy.sh deploy/k8s/overlays/mirror
