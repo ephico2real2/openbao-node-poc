@@ -1,0 +1,10 @@
+NAME                               IMAGE                                             COMMAND                  SERVICE         CREATED         STATUS                     PORTS
+secure-notes-bao-alert-console-1   secure-notes-app:dev                              "docker-entrypoint.s…"   alert-console   4 minutes ago   Up 3 minutes               3000/tcp, 127.0.0.1:3100->3100/tcp
+secure-notes-bao-app-1             secure-notes-app:dev                              "docker-entrypoint.s…"   app             5 seconds ago   Up 2 seconds               127.0.0.1:3000->3000/tcp
+secure-notes-bao-audit-shipper-1   secure-notes-app:dev                              "docker-entrypoint.s…"   audit-shipper   4 minutes ago   Up 3 minutes               3000/tcp
+secure-notes-bao-openbao-1         docker.io/openbao/openbao:2.7.1                   "/bin/sh /lab/entryp…"   openbao         4 minutes ago   Up 3 minutes (healthy)     127.0.0.1:8200->8200/tcp
+secure-notes-bao-postgres-1        docker.io/library/postgres:16                     "docker-entrypoint.s…"   postgres        4 minutes ago   Up 3 minutes (healthy)     5432/tcp
+secure-notes-bao-redis-1           docker.io/library/redis:7-alpine                  "/bin/sh /dev-script…"   redis           4 minutes ago   Up 3 minutes (healthy)     6379/tcp
+secure-notes-bao-seed-1            secure-notes-app:dev                              "docker-entrypoint.s…"   seed            4 minutes ago   Exited (0) 3 minutes ago   
+secure-notes-bao-victorialogs-1    docker.io/victoriametrics/victoria-logs:v1.53.0   "/victoria-logs-prod…"   victorialogs    4 minutes ago   Up 3 minutes               9428/tcp
+secure-notes-bao-vmalert-1         docker.io/victoriametrics/vmalert:v1.154.0        "/vmalert-prod -data…"   vmalert         4 minutes ago   Up 3 minutes               8880/tcp
