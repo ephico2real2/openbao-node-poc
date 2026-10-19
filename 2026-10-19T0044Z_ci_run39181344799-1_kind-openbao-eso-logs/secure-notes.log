@@ -1,0 +1,119 @@
+{"time":"2026-10-19T00:41:04.362Z","level":"debug","app":"secure-notes","secretsProvider":"openbao","secretsMode":"file","secretIds":{"db":"db","redis":"redis"},"secretIdSources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"namingPattern":"/{service}/{env}/{resource}/{name}","endpoint":"http://openbao.openbao.svc:8200","logLevel":"debug","msg":"credential sources: which secrets this process will consume"}
+{"time":"2026-10-19T00:41:04.363Z","level":"info","app":"secure-notes","secretIds":{"db":"db","redis":"redis"},"sources":{"db":"explicit","redis":"explicit","dbAdmin":"pattern","redisAdmin":"pattern"},"environment":"dev","pattern":"/{service}/{env}/{resource}/{name}","msg":"secret IDs resolved"}
+{"time":"2026-10-19T00:41:04.368Z","level":"info","app":"secure-notes","component":"secrets","secretId":"db","versionId":"00:41:03.358629","reason":"cold-start","forced":false,"changed":false,"ms":3,"msg":"secret loaded"}
+{"time":"2026-10-19T00:41:04.369Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"db","name":"db","versionId":"00:41:03.358629","stages":["file"],"source":"file","reason":"cold-start","fingerprint":"edac9af0f46a","keys":["dbname=n****","engine=postgres","host=postgres.secure-notes.svc.cluster.local","password=******** (32 chars, fp=0ca1a6a4)","port=5432","username=no*****pp"],"msg":"secret consumed"}
+{"time":"2026-10-19T00:41:04.370Z","level":"info","app":"secure-notes","component":"secrets","secretId":"redis","versionId":"00:41:03.358629","reason":"cold-start","forced":false,"changed":false,"ms":5,"msg":"secret loaded"}
+{"time":"2026-10-19T00:41:04.371Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"redis","name":"redis","versionId":"00:41:03.358629","stages":["file"],"source":"file","reason":"cold-start","fingerprint":"24e31af71afa","keys":["host=redis.secure-notes.svc.cluster.local","password=******** (32 chars, fp=ee57cce3)","port=6379","username=no*****pp"],"msg":"secret consumed"}
+{"time":"2026-10-19T00:41:04.373Z","level":"debug","app":"secure-notes","component":"redis","secretId":"redis","versionId":"00:41:03.358629","fingerprint":"24e31af71afa","host":"redis","port":6379,"tls":false,"why":"first connection","using":["username<-username=no*****pp","password<-password=******** (32 chars, fp=ee57cce3)"],"msg":"redis authenticating with"}
+{"time":"2026-10-19T00:41:04.394Z","level":"info","app":"secure-notes","component":"redis","msg":"redis connection ready"}
+{"time":"2026-10-19T00:41:04.401Z","level":"debug","app":"secure-notes","component":"db","secretId":"db","versionId":"00:41:03.358629","fingerprint":"edac9af0f46a","host":"postgres","port":5432,"database":"notes","tls":false,"using":["user<-username=no*****pp","password<-password=******** (32 chars, fp=0ca1a6a4)"],"msg":"postgres connecting with"}
+{"time":"2026-10-19T00:41:04.422Z","level":"info","app":"secure-notes","host":"0.0.0.0","port":3000,"secretsProvider":"openbao","secretsMode":"file","demoMode":true,"msg":"secure-notes listening"}
+{"time":"2026-10-19T00:41:14.117Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":5,"msg":"request"}
+{"time":"2026-10-19T00:41:18.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.8,"msg":"request"}
+{"time":"2026-10-19T00:41:22.652Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.2,"msg":"request"}
+{"time":"2026-10-19T00:41:24.115Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":3.4,"msg":"request"}
+{"time":"2026-10-19T00:41:33.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:41:34.113Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.3,"msg":"request"}
+{"time":"2026-10-19T00:41:44.113Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.9,"msg":"request"}
+{"time":"2026-10-19T00:41:48.006Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:41:48.055Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":1,"msg":"request"}
+{"time":"2026-10-19T00:41:48.058Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:41:48.059Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":23.5,"msg":"request"}
+{"time":"2026-10-19T00:41:48.060Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+{"time":"2026-10-19T00:41:48.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:41:48.848Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":809.5,"msg":"request"}
+{"time":"2026-10-19T00:41:50.852Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:41:50.854Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":1,"msg":"request"}
+{"time":"2026-10-19T00:41:50.856Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":1.1,"msg":"request"}
+{"time":"2026-10-19T00:41:52.852Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:41:52.853Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:41:52.853Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:41:53.267Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:41:53.274Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":1.1,"msg":"request"}
+{"time":"2026-10-19T00:41:53.280Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:41:53.281Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:41:53.282Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:41:54.080Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":803.6,"msg":"request"}
+{"time":"2026-10-19T00:41:54.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.5,"msg":"request"}
+{"time":"2026-10-19T00:41:55.832Z","level":"error","app":"secure-notes","component":"api","err":{"type":"Error","message":"connect ECONNREFUSED postgres://notes_app:[REDACTED]@postgres:5432/notes","stack":"Error: connect ECONNREFUSED postgres://notes_app:[REDACTED]@postgres:5432/notes\n    at Object.handler (file:///app/backend/src/routes.js:152:17)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async Server.<anonymous> (file:///app/backend/src/http.js:140:22)"},"msg":"simulated: library error containing a connection string"}
+{"time":"2026-10-19T00:41:55.832Z","level":"warn","app":"secure-notes","component":"api","user":"notes_app","dbPassword":"[REDACTED]","msg":"simulated: developer logs the credential"}
+{"time":"2026-10-19T00:41:55.832Z","level":"info","app":"secure-notes","component":"api","msg":"simulated: password inlined into a message: [REDACTED]"}
+{"time":"2026-10-19T00:41:55.832Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/demo/leak-test","status":200,"ms":2.7,"msg":"request"}
+{"time":"2026-10-19T00:41:55.844Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:41:55.845Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:41:55.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.7,"msg":"request"}
+{"time":"2026-10-19T00:41:56.085Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:41:56.085Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:41:56.086Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:42:03.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:42:04.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.4,"msg":"request"}
+{"time":"2026-10-19T00:42:14.111Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.2,"msg":"request"}
+{"time":"2026-10-19T00:42:18.845Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:42:24.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.3,"msg":"request"}
+{"time":"2026-10-19T00:42:33.845Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:42:34.111Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1,"msg":"request"}
+{"time":"2026-10-19T00:42:44.111Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1,"msg":"request"}
+{"time":"2026-10-19T00:42:48.845Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:42:54.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.3,"msg":"request"}
+{"time":"2026-10-19T00:43:00.127Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:01.103Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:01.581Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:43:03.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:04.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:43:11.550Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:14.111Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:43:16.564Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:43:18.845Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:43:21.579Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:43:24.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.8,"msg":"request"}
+{"time":"2026-10-19T00:43:26.593Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:43:31.607Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:43:33.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:43:34.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.2,"msg":"request"}
+{"time":"2026-10-19T00:43:36.624Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:43:41.638Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.7,"msg":"request"}
+{"time":"2026-10-19T00:43:44.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:43:46.650Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:48.845Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:43:51.662Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:43:54.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1.1,"msg":"request"}
+{"time":"2026-10-19T00:43:55.219Z","level":"info","app":"secure-notes","component":"secrets-file","dir":"/var/run/secrets/secure-notes","file":"..2026_10_19_00_41_03.3586299331","event":"secrets.file.changed","msg":"the mounted secret changed; re-reading"}
+{"time":"2026-10-19T00:43:55.220Z","level":"info","app":"secure-notes","component":"secrets","secretId":"redis","versionId":"00:41:03.358629","reason":"file-changed","forced":true,"changed":false,"ms":0,"msg":"secret loaded"}
+{"time":"2026-10-19T00:43:55.221Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"redis","name":"redis","versionId":"00:41:03.358629","stages":["file"],"source":"file","reason":"file-changed","fingerprint":"24e31af71afa","keys":["host=redis.secure-notes.svc.cluster.local","password=******** (32 chars, fp=ee57cce3)","port=6379","username=no*****pp"],"msg":"secret consumed"}
+{"time":"2026-10-19T00:43:55.222Z","level":"info","app":"secure-notes","component":"secrets","secretId":"db","versionId":"00:43:54.226514","reason":"file-changed","forced":true,"changed":true,"ms":3,"msg":"secret refreshed: new version"}
+{"time":"2026-10-19T00:43:55.223Z","level":"debug","app":"secure-notes","component":"secrets","secretId":"db","name":"db","versionId":"00:43:54.226514","stages":["file"],"source":"file","reason":"file-changed","fingerprint":"edac9af0f46a -> 3627dc219c6b","keys":["dbname=n****","engine=postgres","host=postgres.secure-notes.svc.cluster.local","password=******** (32 chars, fp=592ffcc5)","port=5432","username=no*****pp"],"msg":"secret consumed"}
+{"time":"2026-10-19T00:43:56.675Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:43:56.685Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:43:56.699Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/notes","status":201,"ms":2.7,"msg":"request"}
+{"time":"2026-10-19T00:43:56.775Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:43:56.790Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:43:56.798Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/notes","status":201,"ms":2.9,"msg":"request"}
+{"time":"2026-10-19T00:43:56.802Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":1.7,"msg":"request"}
+{"time":"2026-10-19T00:43:56.805Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":0.7,"msg":"request"}
+{"time":"2026-10-19T00:43:56.807Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:56.809Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:43:56.812Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:43:56.818Z","level":"error","app":"secure-notes","component":"api","err":{"type":"Error","message":"connect ECONNREFUSED postgres://notes_app:[REDACTED]@postgres:5432/notes","stack":"Error: connect ECONNREFUSED postgres://notes_app:[REDACTED]@postgres:5432/notes\n    at Object.handler (file:///app/backend/src/routes.js:152:17)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async Server.<anonymous> (file:///app/backend/src/http.js:140:22)"},"msg":"simulated: library error containing a connection string"}
+{"time":"2026-10-19T00:43:56.818Z","level":"warn","app":"secure-notes","component":"api","user":"notes_app","dbPassword":"[REDACTED]","msg":"simulated: developer logs the credential"}
+{"time":"2026-10-19T00:43:56.819Z","level":"info","app":"secure-notes","component":"api","msg":"simulated: password inlined into a message: [REDACTED]"}
+{"time":"2026-10-19T00:43:56.819Z","level":"debug","app":"secure-notes","component":"http","method":"POST","path":"/api/demo/leak-test","status":200,"ms":1.6,"msg":"request"}
+{"time":"2026-10-19T00:43:57.625Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":801.4,"msg":"request"}
+{"time":"2026-10-19T00:44:03.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:44:04.111Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:44:14.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:44:18.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:44:20.194Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/config","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:44:20.234Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/notes","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:44:20.235Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:44:20.236Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.9,"msg":"request"}
+{"time":"2026-10-19T00:44:20.237Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:44:21.039Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/security/checks","status":200,"ms":805,"msg":"request"}
+{"time":"2026-10-19T00:44:23.044Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.6,"msg":"request"}
+{"time":"2026-10-19T00:44:23.044Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.3,"msg":"request"}
+{"time":"2026-10-19T00:44:23.045Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+{"time":"2026-10-19T00:44:24.111Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":1,"msg":"request"}
+{"time":"2026-10-19T00:44:25.043Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/secrets","status":200,"ms":0.5,"msg":"request"}
+{"time":"2026-10-19T00:44:25.044Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/events","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:44:25.045Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/logs","status":200,"ms":0.8,"msg":"request"}
+{"time":"2026-10-19T00:44:33.846Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/livez","status":200,"ms":0.4,"msg":"request"}
+{"time":"2026-10-19T00:44:34.112Z","level":"debug","app":"secure-notes","component":"http","method":"GET","path":"/api/health","status":200,"ms":0.9,"msg":"request"}
