@@ -1,0 +1,90 @@
+== who each container runs as (OpenShift-style arbitrary UIDs show up here)
+  postgres      uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
+  redis         uid=999(valkey) gid=1000(valkey) groups=1000(valkey)
+  secure-notes  uid=1000(node) gid=1000(node) groups=1000(node)
+  ok    no pod asks for UID 0
+== the app never restarted (startup and rotation recover in-process)
+  ok    restartCount 0
+== Pod Security admission on the namespace
+  ok    enforce=restricted: the API server rejects non-compliant pods
+== Kubernetes Secrets in the namespace (Opaque ones; names and keys only)
+  local-bootstrap-f9hmh2c6g8: pg-password redis-password 
+  secure-notes-credentials: db redis 
+  info  file mode: secure-notes-credentials holds the app's credentials BY DESIGN (owner ExternalSecret/secure-notes-credentials): RBAC on Secrets and etcd encryption now matter
+  ok    no other Secret: only the one-time bootstrap and the one External Secrets Operator manages
+== the bootstrap passwords were burned by the seed job
+  ok    Redis rejects the bootstrap password
+  ok    Postgres rejects the bootstrap password
+== the app's environment holds IDs and hostnames, no credentials
+  BAO_ADDR BAO_AUTH BAO_K8S_ROLE BAO_K8S_TOKEN_FILE DB_HOST DB_NAME DB_SECRET_ID DB_SECRET_RESOURCE DEMO_MODE HO
+  ME HOST HOSTNAME KUBERNETES_PORT KUBERNETES_PORT_443_TCP KUBERNETES_PORT_443_TCP_ADDR KUBERNETES_PORT_443_TCP_
+  PORT KUBERNETES_PORT_443_TCP_PROTO KUBERNETES_SERVICE_HOST KUBERNETES_SERVICE_PORT KUBERNETES_SERVICE_PORT_HTT
+  PS LOG_LEVEL NODE_ENV NODE_VERSION PATH PORT PWD REDIS_HOST REDIS_SECRET_ID REDIS_SECRET_RESOURCE SECRETS_DIR 
+  SECRETS_ENV SECRETS_MODE SECRETS_PROVIDER SECRET_CACHE_TTL_SECONDS SHLVL STATIC_DIR YARN_VERSION 
+  ok    no credential-named variables
+== Postgres statement log: new passwords arrived as SCRAM verifiers
+  ALTER ROLE notes_app WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:dwxw9
+  ALTER ROLE bao_admin WITH LOGIN CREATEROLE PASSWORD 'SCRAM-SHA-256$4096:oGqQI
+  ALTER ROLE "postgres" WITH PASSWORD 'SCRAM-SHA-256$4096:TMQrD
+  ok    every ALTER ROLE in the log carries a SCRAM verifier
+== NetworkPolicies
+  app-to-local-mock
+  backing-services-from-app
+  backing-services-from-openbao
+  default-deny
+  secure-notes
+  seed
+  to-openbao
+== step v3, file mode: External Secrets Operator, a mounted Secret, a watched directory
+  ok    ExternalSecret secure-notes-credentials is Ready (SecretSynced)
+  ok    its Secret has the keys db and redis (names only shown)
+  ok    the Secret is mounted as a volume: no env, no envFrom, no subPath (a subPath file never updates)
+  ok    the app pod has no OpenBao token: it has no identity in OpenBao at all
+  info  the app holds db version 01:21:20.159977 (when the kubelet wrote that content)
+== rotate in OpenBao from OUTSIDE the app (a Job as the seed job's service account)
+  [rotate] postgres: new password set on role notes_app (SCRAM verifier)
+  [rotate] OpenBao: /rds/dev/notes-db/app version 1 -> 2 (check-and-set). External Secrets Operator copies it on its next refresh.
+  ok    the new version reached the app in 46 s without a restart: 01:21:20.159977 -> 01:24:06.375910 (file-changed)
+  ok    the app writes to Postgres after the rotation
+== end-to-end smoke test against http://localhost:3000
+Smoke test against http://localhost:3000
+  mode: file
+  ok    health: postgres and redis reachable
+  ok    notes: write to postgres, read through redis  (postgres -> redis)
+  skip  rotation and drop-connections: SECRETS_MODE=file (the rotation happens in OpenBao; k8s-check runs it)
+  ok    secrets dashboard shows the new versions in cache
+  ok    leak test: no attempt exposes the password  (6 attempts, 0 leaks)
+  ok    security posture: no check fails  (14 checks, none failing)
+
+All checks passed
+== the actual credential values, searched for in every pod, object, file and log
+== credential scan (k8s): searching for 2 secret values from OpenBao, read as the app's own identity (every version); the values are never printed
+-- Kubernetes objects
+  ok    pod specs, Deployments, Jobs (env, args, annotations)          clean
+  ok    ConfigMaps                                                     clean
+  ok    Secrets (decoded), except the one ESO manages                  clean
+  info  secure-notes-credentials (managed by External Secrets Operator) holds the values by design in file mode
+  ok    events                                                         clean
+-- inside the app pod
+  ok    app: process environment values (/proc/1/environ)              clean
+  info  /var/run/secrets/secure-notes (the mounted Secret) holds the values by design in file mode; every other file is searched
+  ok    app: every readable file (5846 files)                          clean
+  ok    postgres pod: data directory (plaintext passwords?)            clean
+  ok    redis pod: data and ACL files (plaintext passwords?)           clean
+-- logs (every container, current and previous)
+  ok    postgres-76bdffdcf-kjq4j: logs                                 clean
+  ok    redis-67658cd5f6-hjfvz: logs                                   clean
+  ok    rotate-db-9mlxx: logs                                          clean
+  ok    secure-notes-7b5bb746c9-dqbtv: logs                            clean
+  ok    seed-d65wl: logs                                               clean
+-- OpenBao (namespace openbao): its audit device writes to the pod log
+  ok    openbao-0: log, with the audit log (values must be HMAC'd)     clean
+  ok    openbao-0: raft storage and config (plaintext?)                clean
+  ok    openbao namespace: Secrets (decoded; the seal key is binary)   clean
+-- debug logging (LOG_LEVEL=debug)
+  ok    app log names the secrets and keys it consumed                 7 line(s)
+  ok    every password is shown as ******** (length, fingerprint)      yes
+        e.g. {"secretId":"db","versionId":"01:21:20.159977","source":"file","keys":["dbname=n****","engine=postgres","host=postgres.secure-notes.svc.cluster.local","password=******** (32 chars, fp=2ffba0c1)","port=5432","username=no*****pp"]}
+credential-scan: no credential value found anywhere it must not be
+
+k8s-check: all checks passed
