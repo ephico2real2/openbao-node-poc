@@ -1,0 +1,10 @@
+installed syft 1.52.0 (checksum verified)
+installed grype 0.119.0 (checksum verified)
+== secure-notes-app:dev
+  ok    no CRITICAL vulnerability with a fix available
+== secure-notes-aws-mock:dev
+  ok    no CRITICAL vulnerability with a fix available
+| Image | Packages | Critical | High | Medium | Low | Critical with a fix |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `secure-notes-app:dev` | 596 | 0 | 20 | 22 | 9 | 0 |
+| `secure-notes-aws-mock:dev` | 498 | 0 | 20 | 22 | 9 | 0 |
