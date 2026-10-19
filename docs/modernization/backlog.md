@@ -167,7 +167,7 @@ Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/
 
 ### B10 — Upkeep: keep CI and the pins current
 
-[#43](https://github.com/ephico2real2/openbao-node-poc/issues/43) · ✅ · **Outcome:** CI runs on supported runtimes and current pins, so a deprecation never turns into a red build. Docs: [initiative](README.md)
+[#43](https://github.com/ephico2real2/openbao-node-poc/issues/43) · 🔜 · **Outcome:** CI runs on supported runtimes and current pins, so a deprecation never turns into a red build. Docs: [initiative](README.md)
 
 **S10.1 · GitHub Actions on Node.js 24** · S · ✅ · [#44](https://github.com/ephico2real2/openbao-node-poc/issues/44)
 *As the owner, I want no action on the retiring Node.js 20 runtime, so that CI keeps working when GitHub removes it.*
@@ -175,6 +175,28 @@ Evidence: CI run [39169755271](https://github.com/ephico2real2/openbao-node-poc/
 - [x] Every job green with the new versions, and no Node.js 20 deprecation annotation left.
 
 Evidence: CI run [39182376276](https://github.com/ephico2real2/openbao-node-poc/actions/runs/39182376276) (PR #46): every job green, and no annotation on any job
+
+**S10.2 · The MacBook lab on Podman, as in the sibling** · M · 🔜 · [#48](https://github.com/ephico2real2/openbao-node-poc/issues/48)
+*As the owner, I want this repo's labs on Podman Desktop, so that I never need Docker Desktop, as with the sibling repo.*
+- [ ] Port from aws-secrets-manager-node-poc: scripts/podman.env (DOCKER_HOST at the machine's socket, KIND_EXPERIMENTAL_PROVIDER=podman), scripts/bootstrap/macos.sh --podman, and the preflight naming the engine.
+- [ ] A compose (podman) CI job, as in the sibling (not a gate for images).
+- [ ] Measured on the owner's Mac: memory used by each step's lab (the OpenBao, ESO and detection stacks are larger than the sibling's), written in HANDOVER section 11.
+
+Evidence: [initiative](README.md)
+
+**S10.3 · helm on the Mac and in the preflight** · S · 🔜 · [#49](https://github.com/ephico2real2/openbao-node-poc/issues/49)
+*As a learner on a Mac, I want the bootstrap to install what step v3 needs, so that openbao-k8s-up.sh doesn't stop at 'helm 3 is required'.*
+- [ ] scripts/bootstrap/macos.sh installs helm (Homebrew formula); linux.sh installs it at a pinned, checksum-verified version when missing.
+- [ ] scripts/preflight.sh kind shows a helm row (required for steps v3), and CI's kind legs run it strict.
+
+Evidence: [initiative](README.md)
+
+**S10.4 · Reference pages cover OpenBao and Vault** · S · 🔜 · [#50](https://github.com/ephico2real2/openbao-node-poc/issues/50)
+*As a reviewer, I want the reference pages to describe this repo, so that they agree with GUIDE and the step READMEs.*
+- [ ] docs/reference/ci.md lists every job and leg of ci.yaml (it still describes the sibling's AWS-only jobs).
+- [ ] docs/reference/secret-naming.md and security-controls.md cover the KV paths, the database roles, AppRole and Kubernetes auth.
+
+Evidence: [initiative](README.md)
 
 ## Track TUTORIAL — building the tutorial
 
