@@ -1,0 +1,15 @@
+NAME            READY   STATUS    RESTARTS   AGE     IP           NODE                             NOMINATED NODE   READINESS GATES
+pod/openbao-0   1/1     Running   0          4m17s   10.244.0.6   secure-notes-bao-control-plane   <none>           <none>
+
+NAME                       TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)             AGE     SELECTOR
+service/openbao            ClusterIP   10.96.16.145   <none>        8200/TCP,8201/TCP   4m17s   app.kubernetes.io/instance=openbao,app.kubernetes.io/name=openbao,component=server
+service/openbao-active     ClusterIP   10.96.27.188   <none>        8200/TCP,8201/TCP   4m17s   app.kubernetes.io/instance=openbao,app.kubernetes.io/name=openbao,component=server,openbao-active=true
+service/openbao-internal   ClusterIP   None           <none>        8200/TCP,8201/TCP   4m17s   app.kubernetes.io/instance=openbao,app.kubernetes.io/name=openbao,component=server
+service/openbao-standby    ClusterIP   10.96.89.138   <none>        8200/TCP,8201/TCP   4m17s   app.kubernetes.io/instance=openbao,app.kubernetes.io/name=openbao,component=server,openbao-active=false
+
+NAME                       READY   AGE     CONTAINERS   IMAGES
+statefulset.apps/openbao   1/1     4m17s   openbao      docker.io/openbao/openbao:2.7.1
+
+NAME                                   TYPE                 DATA   AGE
+secret/openbao-seal-key                Opaque               1      4m19s
+secret/sh.helm.release.v1.openbao.v1   helm.sh/release.v1   1      4m17s
